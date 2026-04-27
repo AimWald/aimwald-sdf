@@ -39,6 +39,8 @@ contextBridge.exposeInMainWorld('flyff', {
   // --- Gamepad-Input an Main-Prozess senden ---
   // Wird vom Renderer (index.html) aufgerufen – Gamepad API läuft im Haupt-Renderer-Kontext,
   // weil navigator.getGamepads() im isolierten Preload-Kontext nicht zuverlässig funktioniert.
-  sendGamepadMove:   (dx, dy)   => ipcRenderer.send('gamepad-mouse-move', { dx, dy }),
-  sendGamepadButton: (keyCode)  => ipcRenderer.send('gamepad-button', { keyCode })
+  sendGamepadMove:    (dx, dy)  => ipcRenderer.send('gamepad-mouse-move', { dx, dy }),
+  sendGamepadButton:  (keyCode) => ipcRenderer.send('gamepad-button', { keyCode }),
+  sendGamepadKeyDown: (keyCode) => ipcRenderer.send('gamepad-keydown', { keyCode }),
+  sendGamepadKeyUp:   (keyCode) => ipcRenderer.send('gamepad-keyup',   { keyCode })
 });

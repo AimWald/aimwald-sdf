@@ -283,7 +283,7 @@ function setupIPC() {
     } catch {}
   });
 
-  // Gamepad-Button: Tastendruck an aktiven View senden
+  // Gamepad-Button: kurzer Tastendruck (keyDown + keyUp sofort)
   ipcMain.on('gamepad-button', (_, { keyCode }) => {
     const view = activeAccount === 'account1' ? view1 : view2;
     if (!view) return;
@@ -291,6 +291,19 @@ function setupIPC() {
       view.webContents.sendInputEvent({ type: 'keyDown', keyCode });
       view.webContents.sendInputEvent({ type: 'keyUp',   keyCode });
     } catch {}
+  });
+
+  // Gamepad-WASD: Taste gedrückt halten (linker Stick)
+  ipcMain.on('gamepad-keydown', (_, { keyCode }) => {
+    const view = activeAccount === 'account1' ? view1 : view2;
+    if (!view) return;
+    try { view.webContents.sendInputEvent({ type: 'keyDown', keyCode }); } catch {}
+  });
+
+  ipcMain.on('gamepad-keyup', (_, { keyCode }) => {
+    const view = activeAccount === 'account1' ? view1 : view2;
+    if (!view) return;
+    try { view.webContents.sendInputEvent({ type: 'keyUp', keyCode }); } catch {}
   });
 }
 

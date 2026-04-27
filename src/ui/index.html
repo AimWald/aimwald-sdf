@@ -173,49 +173,70 @@
     // ── Gamepad-Polling (läuft im Renderer-Hauptkontext) ─────────────────────
 
     function startGamepadPolling(buttonMap) {
-      const DEADZONE    = 0.15;
-      const SPEED_LEFT  = 8;
-      const SPEED_RIGHT = 4;
-      const prevBtns    = {};
-      const gpLabel     = document.getElementById('gp-label');
+      const WASD_THRESHOLD = 0.3;   // Ab diesem Wert gilt der Stick als "gedrückt"
+      const SPEED_RIGHT    = 6;     // Rechter Stick: Maus-Pixel pro Tick
+      const prevBtns       = {};
+      const gpLabel        = document.getElementById('gp-label');
 
-      function deadzone(v) { return Math.abs(v) < DEADZONE ? 0 : v; }
+      // Merkt sich welche WASD-Tasten gerade vom Stick gehalten werden
+      const heldKeys = { W: false, A: false, S: false, D: false };
+
+      function setKey(keyCode, shouldBePressed) {
+        if (shouldBePressed === heldKeys[keyCode]) return; // keine Änderung
+        heldKeys[keyCode] = shouldBePressed;
+        if (shouldBePressed) {
+          window.flyff.sendGamepadKeyDown(keyCode);
+        } else {
+          window.flyff.sendGamepadKeyUp(keyCode);
+        }
+      }
+
+      function releaseAllWASD() {
+        Object.keys(heldKeys).forEach(k => setKey(k, false));
+      }
 
       window.addEventListener('gamepadconnected', (e) => {
         console.log('[Gamepad] Verbunden:', e.gamepad.id, '| Achsen:', e.gamepad.axes.length, '| Buttons:', e.gamepad.buttons.length);
       });
       window.addEventListener('gamepaddisconnected', (e) => {
         console.log('[Gamepad] Getrennt:', e.gamepad.id);
+        releaseAllWASD();
       });
 
       setInterval(() => {
         const pads = navigator.getGamepads();
         const connected = Array.from(pads).filter(Boolean);
 
-        // Status-Anzeige in der Toolbar aktualisieren
+        // Status-Anzeige aktualisieren
         if (connected.length === 0) {
           gpLabel.textContent = '–';
           gpLabel.style.color = '#555';
-        } else {
-          gpLabel.textContent = connected.length + ' OK';
-          gpLabel.style.color = '#44ee44';
+          releaseAllWASD();
+          return;
         }
+        gpLabel.textContent = connected.length + ' OK';
+        gpLabel.style.color = '#44ee44';
 
         for (const gp of connected) {
-          // Linker Stick (axes 0+1) → Mausbewegung
-          const lx = deadzone(gp.axes[0] || 0);
-          const ly = deadzone(gp.axes[1] || 0);
-          // Rechter Stick (axes 2+3) → Kamera, gedämpft
-          const rx = deadzone(gp.axes[2] || 0);
-          const ry = deadzone(gp.axes[3] || 0);
+          const lx = gp.axes[0] || 0;
+          const ly = gp.axes[1] || 0;
 
-          const dx = lx * SPEED_LEFT + rx * SPEED_RIGHT;
-          const dy = ly * SPEED_LEFT + ry * SPEED_RIGHT;
+          // Linker Stick → WASD (Charakter-Bewegung)
+          setKey('D', lx >  WASD_THRESHOLD);
+          setKey('A', lx < -WASD_THRESHOLD);
+          setKey('S', ly >  WASD_THRESHOLD);
+          setKey('W', ly < -WASD_THRESHOLD);
+
+          // Rechter Stick (axes 2+3) → Mausbewegung (Kamera)
+          const rx = gp.axes[2] || 0;
+          const ry = gp.axes[3] || 0;
+          const dx = Math.abs(rx) > 0.15 ? rx * SPEED_RIGHT : 0;
+          const dy = Math.abs(ry) > 0.15 ? ry * SPEED_RIGHT : 0;
           if (dx !== 0 || dy !== 0) {
             window.flyff.sendGamepadMove(dx, dy);
           }
 
-          // Buttons: nur beim erstmaligen Drücken senden (Edge-Detection)
+          // Buttons: kurzer Tastendruck (Edge-Detection)
           gp.buttons.forEach((btn, idx) => {
             const key     = `${gp.index}_${idx}`;
             const pressed = btn.pressed;
