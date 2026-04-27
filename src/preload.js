@@ -6,7 +6,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
 const path = require('path');
 const fs   = require('fs');
-const gamepad = require('./gamepad.js');
 
 contextBridge.exposeInMainWorld('flyff', {
 
@@ -21,12 +20,13 @@ contextBridge.exposeInMainWorld('flyff', {
   openSettings: () => ipcRenderer.send('open-settings'),
 
   // --- Daten abfragen (Promise) ---
-  getState: ()               => ipcRenderer.invoke('get-state'),
-  getAutomationConfig: ()    => ipcRenderer.invoke('get-automation-config'),
+  getState: ()            => ipcRenderer.invoke('get-state'),
+  getAutomationConfig: () => ipcRenderer.invoke('get-automation-config'),
+  getGamepadConfig: ()    => ipcRenderer.invoke('get-gamepad-config'),
 
   // --- Konfiguration speichern ---
-  saveAutomationConfig: (cfg)    => ipcRenderer.send('save-automation-config', cfg),
-  saveHotkeys:          (keys)   => ipcRenderer.send('save-hotkeys', keys),
+  saveAutomationConfig: (cfg)  => ipcRenderer.send('save-automation-config', cfg),
+  saveHotkeys:          (keys) => ipcRenderer.send('save-hotkeys', keys),
 
   // --- Events empfangen ---
   // Erlaubte Kanäle: account-switched, automation-state-changed
@@ -36,16 +36,9 @@ contextBridge.exposeInMainWorld('flyff', {
     ipcRenderer.on(channel, (_event, ...args) => cb(...args));
   },
 
-  // --- Gamepad-Polling starten ---
-  // Wird explizit von index.html aufgerufen, damit Settings-Fenster kein Polling startet
-  startGamepadPolling: () => {
-    let buttonMap = { '0': 'Z', '1': 'X', '2': 'C', '3': 'V' };
-    try {
-      const cfgPath = path.join(__dirname, '..', 'config', 'gamepad.json');
-      buttonMap = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
-    } catch {
-      // Default-Mapping beibehalten
-    }
-    gamepad.start(ipcRenderer, buttonMap);
-  }
+  // --- Gamepad-Input an Main-Prozess senden ---
+  // Wird vom Renderer (index.html) aufgerufen – Gamepad API läuft im Haupt-Renderer-Kontext,
+  // weil navigator.getGamepads() im isolierten Preload-Kontext nicht zuverlässig funktioniert.
+  sendGamepadMove:   (dx, dy)   => ipcRenderer.send('gamepad-mouse-move', { dx, dy }),
+  sendGamepadButton: (keyCode)  => ipcRenderer.send('gamepad-button', { keyCode })
 });

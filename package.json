@@ -4,7 +4,8 @@
   "description": "Electron Wrapper für Flyff Universe – Multiboxing, Automation, Gamepad",
   "main": "src/main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron . --disable-gpu-sandbox",
+    "start-nogpu": "electron . --disable-gpu"
   },
   "dependencies": {
     "electron-store": "^11.0.2"

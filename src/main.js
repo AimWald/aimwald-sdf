@@ -238,6 +238,11 @@ function setupIPC() {
     return loadConfig('automation.json');
   });
 
+  // Gamepad-Config für Renderer liefern
+  ipcMain.handle('get-gamepad-config', () => {
+    return loadConfig('gamepad.json') || { '0': 'Z', '1': 'X', '2': 'C', '3': 'V' };
+  });
+
   // Neue Automation-Config übernehmen und in Datei schreiben
   ipcMain.on('save-automation-config', (_, cfg) => {
     try { saveConfig('automation.json', cfg); } catch (e) {

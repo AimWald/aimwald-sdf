@@ -121,8 +121,11 @@
       applyRunningState('account1', state.account1Running);
       applyRunningState('account2', state.account2Running);
 
-      // Gamepad-Polling starten (nur hier, nicht im Settings-Fenster)
-      window.flyff.startGamepadPolling();
+      // Gamepad-Config laden und Polling starten.
+      // Polling läuft hier im Renderer-Hauptkontext, weil navigator.getGamepads()
+      // im isolierten Preload-Kontext nicht zuverlässig verfügbar ist.
+      const gpConfig = await window.flyff.getGamepadConfig();
+      startGamepadPolling(gpConfig);
     }
 
     // ── UI-Hilfsfunktionen ────────────────────────────────────────────────────
@@ -163,6 +166,53 @@
     window.flyff.on('automation-state-changed', ({ account, running }) => {
       applyRunningState(account, running);
     });
+
+    // ── Gamepad-Polling (läuft im Renderer-Hauptkontext) ─────────────────────
+
+    function startGamepadPolling(buttonMap) {
+      const DEADZONE     = 0.15;
+      const SPEED_LEFT   = 8;
+      const SPEED_RIGHT  = 4;
+      const prevBtns     = {};
+
+      function deadzone(v) { return Math.abs(v) < DEADZONE ? 0 : v; }
+
+      // gamepadconnected-Event abwarten, dann per setInterval pollen
+      window.addEventListener('gamepadconnected', (e) => {
+        console.log('Gamepad verbunden:', e.gamepad.id);
+      });
+
+      setInterval(() => {
+        const pads = navigator.getGamepads();
+        for (const gp of pads) {
+          if (!gp) continue;
+
+          // Linker Stick (axes 0+1) → schnelle Mausbewegung
+          const lx = deadzone(gp.axes[0] || 0);
+          const ly = deadzone(gp.axes[1] || 0);
+          // Rechter Stick (axes 2+3) → Kamera, gedämpft
+          const rx = deadzone(gp.axes[2] || 0);
+          const ry = deadzone(gp.axes[3] || 0);
+
+          const dx = lx * SPEED_LEFT + rx * SPEED_RIGHT;
+          const dy = ly * SPEED_LEFT + ry * SPEED_RIGHT;
+          if (dx !== 0 || dy !== 0) {
+            window.flyff.sendGamepadMove(dx, dy);
+          }
+
+          // Buttons: nur beim erstmaligen Drücken senden (Edge-Detection)
+          gp.buttons.forEach((btn, idx) => {
+            const key     = `${gp.index}_${idx}`;
+            const pressed = btn.pressed;
+            if (pressed && !prevBtns[key]) {
+              const keyCode = buttonMap && buttonMap[String(idx)];
+              if (keyCode) window.flyff.sendGamepadButton(keyCode);
+            }
+            prevBtns[key] = pressed;
+          });
+        }
+      }, 16);
+    }
 
     init();
   </script>
