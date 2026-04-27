@@ -108,6 +108,9 @@
 
     <button onclick="window.flyff.openSettings()" title="Einstellungen (Tasten, Intervalle, Hotkeys)">⚙ Settings</button>
 
+    <!-- Gamepad-Status-Indikator -->
+    <span id="gp-status" class="label no-drag" title="Gamepad-Status">🎮 <span id="gp-label">–</span></span>
+
     <!-- Schließen ganz rechts -->
     <button id="btn-close" onclick="window.close()" title="App beenden">✕</button>
   </div>
@@ -170,24 +173,36 @@
     // ── Gamepad-Polling (läuft im Renderer-Hauptkontext) ─────────────────────
 
     function startGamepadPolling(buttonMap) {
-      const DEADZONE     = 0.15;
-      const SPEED_LEFT   = 8;
-      const SPEED_RIGHT  = 4;
-      const prevBtns     = {};
+      const DEADZONE    = 0.15;
+      const SPEED_LEFT  = 8;
+      const SPEED_RIGHT = 4;
+      const prevBtns    = {};
+      const gpLabel     = document.getElementById('gp-label');
 
       function deadzone(v) { return Math.abs(v) < DEADZONE ? 0 : v; }
 
-      // gamepadconnected-Event abwarten, dann per setInterval pollen
       window.addEventListener('gamepadconnected', (e) => {
-        console.log('Gamepad verbunden:', e.gamepad.id);
+        console.log('[Gamepad] Verbunden:', e.gamepad.id, '| Achsen:', e.gamepad.axes.length, '| Buttons:', e.gamepad.buttons.length);
+      });
+      window.addEventListener('gamepaddisconnected', (e) => {
+        console.log('[Gamepad] Getrennt:', e.gamepad.id);
       });
 
       setInterval(() => {
         const pads = navigator.getGamepads();
-        for (const gp of pads) {
-          if (!gp) continue;
+        const connected = Array.from(pads).filter(Boolean);
 
-          // Linker Stick (axes 0+1) → schnelle Mausbewegung
+        // Status-Anzeige in der Toolbar aktualisieren
+        if (connected.length === 0) {
+          gpLabel.textContent = '–';
+          gpLabel.style.color = '#555';
+        } else {
+          gpLabel.textContent = connected.length + ' OK';
+          gpLabel.style.color = '#44ee44';
+        }
+
+        for (const gp of connected) {
+          // Linker Stick (axes 0+1) → Mausbewegung
           const lx = deadzone(gp.axes[0] || 0);
           const ly = deadzone(gp.axes[1] || 0);
           // Rechter Stick (axes 2+3) → Kamera, gedämpft
@@ -205,6 +220,7 @@
             const key     = `${gp.index}_${idx}`;
             const pressed = btn.pressed;
             if (pressed && !prevBtns[key]) {
+              console.log('[Gamepad] Button', idx, 'gedrückt');
               const keyCode = buttonMap && buttonMap[String(idx)];
               if (keyCode) window.flyff.sendGamepadButton(keyCode);
             }

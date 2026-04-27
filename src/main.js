@@ -72,6 +72,8 @@ function createMainWindow() {
 
   mainWindow.loadFile(path.join(__dirname, 'ui', 'index.html'));
   mainWindow.maximize();
+  // DevTools für Gamepad-Debugging – entfernen wenn nicht mehr gebraucht
+  mainWindow.webContents.openDevTools({ mode: 'detach' });
 
   mainWindow.on('resize', () => {
     if (mainWindow) {
