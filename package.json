@@ -5,12 +5,29 @@
   "main": "src/main.js",
   "scripts": {
     "start": "electron . --disable-gpu-sandbox",
-    "start-nogpu": "electron . --disable-gpu"
+    "start-nogpu": "electron . --disable-gpu",
+    "build": "electron-builder --linux AppImage"
   },
   "dependencies": {
     "electron-store": "^11.0.2"
   },
   "devDependencies": {
-    "electron": "^41.3.0"
+    "electron": "^41.3.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.flyff.wrapper",
+    "productName": "Flyff Wrapper",
+    "files": [
+      "src/**/*",
+      "config/**/*"
+    ],
+    "linux": {
+      "target": "AppImage",
+      "category": "Game"
+    },
+    "extraMetadata": {
+      "main": "src/main.js"
+    }
   }
 }
