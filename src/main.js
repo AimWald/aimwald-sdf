@@ -191,13 +191,6 @@ function registerShortcuts() {
     });
   } catch {}
 
-  // Alt+F4: App beenden (wichtig für Game Mode wo kein Fenster-X existiert)
-  try {
-    globalShortcut.register('Alt+F4', () => {
-      globalShortcut.unregisterAll();
-      app.quit();
-    });
-  } catch {}
 }
 
 // ── Settings-Fenster ──────────────────────────────────────────────────────────
