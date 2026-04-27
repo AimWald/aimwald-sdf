@@ -190,6 +190,14 @@ function registerShortcuts() {
       mainWindow?.setFullScreen(!mainWindow.isFullScreen());
     });
   } catch {}
+
+  // Alt+F4: App beenden (wichtig für Game Mode wo kein Fenster-X existiert)
+  try {
+    globalShortcut.register('Alt+F4', () => {
+      globalShortcut.unregisterAll();
+      app.quit();
+    });
+  } catch {}
 }
 
 // ── Settings-Fenster ──────────────────────────────────────────────────────────
@@ -324,4 +332,16 @@ app.whenReady().then(async () => {
 app.on('window-all-closed', () => {
   globalShortcut.unregisterAll();
   if (process.platform !== 'darwin') app.quit();
+});
+
+// Sauberes Beenden via SIGTERM (Steam Overlay "Spiel beenden" im Game Mode)
+process.on('SIGTERM', () => {
+  globalShortcut.unregisterAll();
+  app.quit();
+});
+
+// IPC-Handler: App direkt beenden (vom Toolbar-Button)
+ipcMain.on('quit-app', () => {
+  globalShortcut.unregisterAll();
+  app.quit();
 });

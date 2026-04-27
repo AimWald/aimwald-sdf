@@ -36,6 +36,9 @@ contextBridge.exposeInMainWorld('flyff', {
     ipcRenderer.on(channel, (_event, ...args) => cb(...args));
   },
 
+  // --- App beenden ---
+  quitApp: () => ipcRenderer.send('quit-app'),
+
   // --- Gamepad-Input an Main-Prozess senden ---
   // Wird vom Renderer (index.html) aufgerufen – Gamepad API läuft im Haupt-Renderer-Kontext,
   // weil navigator.getGamepads() im isolierten Preload-Kontext nicht zuverlässig funktioniert.
