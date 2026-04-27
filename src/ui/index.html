@@ -236,16 +236,30 @@
             window.flyff.sendGamepadMove(dx, dy);
           }
 
-          // Buttons: kurzer Tastendruck (Edge-Detection)
+          // Buttons mit Edge-Detection und Sonderaktionen
           gp.buttons.forEach((btn, idx) => {
-            const key     = `${gp.index}_${idx}`;
-            const pressed = btn.pressed;
-            if (pressed && !prevBtns[key]) {
-              console.log('[Gamepad] Button', idx, 'gedrückt');
-              const keyCode = buttonMap && buttonMap[String(idx)];
-              if (keyCode) window.flyff.sendGamepadButton(keyCode);
+            const stateKey   = `${gp.index}_${idx}`;
+            const pressed    = btn.pressed;
+            const wasPressed = prevBtns[stateKey];
+            const action     = buttonMap && buttonMap[String(idx)];
+
+            if (pressed && !wasPressed) {
+              // Button gerade gedrückt
+              if (action === '__LCLICK') {
+                window.flyff.sendMouseDown('left');
+                setTimeout(() => window.flyff.sendMouseUp('left'), 80);
+              } else if (action === '__RHOLD') {
+                window.flyff.sendMouseDown('right');
+              } else if (action) {
+                window.flyff.sendGamepadButton(action);
+              }
+            } else if (!pressed && wasPressed) {
+              // Button losgelassen – Rechtsklick freigeben
+              if (action === '__RHOLD') {
+                window.flyff.sendMouseUp('right');
+              }
             }
-            prevBtns[key] = pressed;
+            prevBtns[stateKey] = pressed;
           });
         }
       }, 16);

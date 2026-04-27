@@ -111,6 +111,10 @@ function createGameViews() {
   view1.webContents.loadURL(FLYFF_URL);
   view2.webContents.loadURL(FLYFF_URL);
 
+  // Login-Daten automatisch einfügen wenn Seite geladen ist
+  view1.webContents.on('did-finish-load', () => autoFill('account1', view1));
+  view2.webContents.on('did-finish-load', () => autoFill('account2', view2));
+
   updateViewBounds();
 }
 
@@ -132,6 +136,26 @@ function updateViewBounds() {
     view1.setBounds(hiddenBounds);
     view1.setVisible(false);
   }
+}
+
+// ── Auto-Fill Login ───────────────────────────────────────────────────────────
+
+function autoFill(account, view) {
+  const creds = store.get(`credentials.${account}`, {});
+  if (!creds.autofill || !creds.username || !creds.password) return;
+  // Kurz warten bis das SPA fertig gerendert hat
+  setTimeout(async () => {
+    try {
+      await view.webContents.executeJavaScript(`
+        (function() {
+          const u = document.querySelector('input[type="email"], input[name="email"], input[name="username"], input[name="login"], input[name="account"]');
+          const p = document.querySelector('input[type="password"]');
+          if (u) { u.value = ${JSON.stringify(creds.username)}; u.dispatchEvent(new Event('input', {bubbles:true})); }
+          if (p) { p.value = ${JSON.stringify(creds.password)}; p.dispatchEvent(new Event('input', {bubbles:true})); }
+        })()
+      `);
+    } catch {}
+  }, 1500);
 }
 
 // ── Account-Wechsel ───────────────────────────────────────────────────────────
@@ -303,6 +327,45 @@ function setupIPC() {
     const view = activeAccount === 'account1' ? view1 : view2;
     if (!view) return;
     try { view.webContents.sendInputEvent({ type: 'keyUp', keyCode }); } catch {}
+  });
+
+  // Mausklicks für Controller-Buttons (__LCLICK / __RHOLD)
+  ipcMain.on('gamepad-mousedown', (_, { button }) => {
+    const view = activeAccount === 'account1' ? view1 : view2;
+    if (!view) return;
+    try {
+      view.webContents.sendInputEvent({
+        type: 'mouseDown', button,
+        x: Math.round(cursor.x), y: Math.round(cursor.y), clickCount: 1
+      });
+    } catch {}
+  });
+
+  ipcMain.on('gamepad-mouseup', (_, { button }) => {
+    const view = activeAccount === 'account1' ? view1 : view2;
+    if (!view) return;
+    try {
+      view.webContents.sendInputEvent({
+        type: 'mouseUp', button,
+        x: Math.round(cursor.x), y: Math.round(cursor.y), clickCount: 1
+      });
+    } catch {}
+  });
+
+  // Gamepad-Config speichern
+  ipcMain.on('save-gamepad-config', (_, cfg) => {
+    try { saveConfig('gamepad.json', cfg); } catch (e) {
+      console.error('Fehler beim Speichern der Gamepad-Config:', e.message);
+    }
+  });
+
+  // Login-Credentials laden und speichern
+  ipcMain.handle('get-credentials', (_, account) => {
+    return store.get(`credentials.${account}`, { username: '', password: '', autofill: false });
+  });
+
+  ipcMain.on('save-credentials', (_, account, creds) => {
+    store.set(`credentials.${account}`, creds);
   });
 }
 

@@ -1,11 +1,6 @@
 'use strict';
 
-// Preload läuft im Renderer-Context mit Node.js-Zugriff (sandbox: false).
-// Exponiert ein sicheres API über contextBridge an den Renderer (index.html / settings.html).
-
 const { contextBridge, ipcRenderer } = require('electron');
-const path = require('path');
-const fs   = require('fs');
 
 contextBridge.exposeInMainWorld('flyff', {
 
@@ -18,32 +13,32 @@ contextBridge.exposeInMainWorld('flyff', {
 
   // --- UI-Fenster ---
   openSettings: () => ipcRenderer.send('open-settings'),
+  quitApp:      () => ipcRenderer.send('quit-app'),
 
   // --- Daten abfragen (Promise) ---
-  getState: ()            => ipcRenderer.invoke('get-state'),
+  getState:            () => ipcRenderer.invoke('get-state'),
   getAutomationConfig: () => ipcRenderer.invoke('get-automation-config'),
-  getGamepadConfig: ()    => ipcRenderer.invoke('get-gamepad-config'),
+  getGamepadConfig:    () => ipcRenderer.invoke('get-gamepad-config'),
+  getCredentials:      (account) => ipcRenderer.invoke('get-credentials', account),
 
   // --- Konfiguration speichern ---
-  saveAutomationConfig: (cfg)  => ipcRenderer.send('save-automation-config', cfg),
-  saveHotkeys:          (keys) => ipcRenderer.send('save-hotkeys', keys),
+  saveAutomationConfig: (cfg)           => ipcRenderer.send('save-automation-config', cfg),
+  saveGamepadConfig:    (cfg)           => ipcRenderer.send('save-gamepad-config', cfg),
+  saveHotkeys:          (keys)          => ipcRenderer.send('save-hotkeys', keys),
+  saveCredentials:      (account, creds) => ipcRenderer.send('save-credentials', account, creds),
 
   // --- Events empfangen ---
-  // Erlaubte Kanäle: account-switched, automation-state-changed
   on: (channel, cb) => {
     const allowed = ['account-switched', 'automation-state-changed'];
     if (!allowed.includes(channel)) return;
     ipcRenderer.on(channel, (_event, ...args) => cb(...args));
   },
 
-  // --- App beenden ---
-  quitApp: () => ipcRenderer.send('quit-app'),
-
-  // --- Gamepad-Input an Main-Prozess senden ---
-  // Wird vom Renderer (index.html) aufgerufen – Gamepad API läuft im Haupt-Renderer-Kontext,
-  // weil navigator.getGamepads() im isolierten Preload-Kontext nicht zuverlässig funktioniert.
-  sendGamepadMove:    (dx, dy)  => ipcRenderer.send('gamepad-mouse-move', { dx, dy }),
-  sendGamepadButton:  (keyCode) => ipcRenderer.send('gamepad-button', { keyCode }),
-  sendGamepadKeyDown: (keyCode) => ipcRenderer.send('gamepad-keydown', { keyCode }),
-  sendGamepadKeyUp:   (keyCode) => ipcRenderer.send('gamepad-keyup',   { keyCode })
+  // --- Gamepad-Input ---
+  sendGamepadMove:    (dx, dy)  => ipcRenderer.send('gamepad-mouse-move',  { dx, dy }),
+  sendGamepadButton:  (keyCode) => ipcRenderer.send('gamepad-button',      { keyCode }),
+  sendGamepadKeyDown: (keyCode) => ipcRenderer.send('gamepad-keydown',     { keyCode }),
+  sendGamepadKeyUp:   (keyCode) => ipcRenderer.send('gamepad-keyup',       { keyCode }),
+  sendMouseDown:      (button)  => ipcRenderer.send('gamepad-mousedown',   { button }),
+  sendMouseUp:        (button)  => ipcRenderer.send('gamepad-mouseup',     { button }),
 });

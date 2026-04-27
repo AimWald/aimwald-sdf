@@ -138,6 +138,8 @@
 
   <div class="tabs">
     <div class="tab active" onclick="showTab('automation')">Automation</div>
+    <div class="tab"        onclick="showTab('gamepad')">Controller</div>
+    <div class="tab"        onclick="showTab('accounts')">Accounts</div>
     <div class="tab"        onclick="showTab('hotkeys')">Hotkeys</div>
   </div>
 
@@ -172,6 +174,47 @@
 
   </div>
 
+  <!-- ── Controller-Tab ───────────────────────────────────────────────── -->
+  <div id="tab-gamepad" class="tab-content">
+    <h3>Button-Mapping</h3>
+    <p style="color:#555; font-size:11px; margin-bottom:8px;">Linker Stick → WASD &nbsp;|&nbsp; Rechter Stick → Maus/Kamera (fest)</p>
+    <table id="tbl-gamepad">
+      <thead><tr><th>Button</th><th>Aktion</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- ── Accounts-Tab ──────────────────────────────────────────────────── -->
+  <div id="tab-accounts" class="tab-content">
+    <h3>Login-Daten (optional)</h3>
+    <p style="color:#555; font-size:11px; margin-bottom:10px;">
+      Werden beim Laden der Spielseite automatisch eingetragen wenn "Auto-Fill" aktiv ist.
+    </p>
+    <table class="hk-table">
+      <thead><tr><th>Feld</th><th>Account 1</th><th>Account 2</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Benutzername</td>
+          <td><input type="text"     id="cred-u1" autocomplete="off" style="width:160px"></td>
+          <td><input type="text"     id="cred-u2" autocomplete="off" style="width:160px"></td>
+        </tr>
+        <tr>
+          <td>Passwort</td>
+          <td><input type="password" id="cred-p1" autocomplete="off" style="width:160px"></td>
+          <td><input type="password" id="cred-p2" autocomplete="off" style="width:160px"></td>
+        </tr>
+        <tr>
+          <td>Auto-Fill</td>
+          <td><input type="checkbox" id="cred-af1"></td>
+          <td><input type="checkbox" id="cred-af2"></td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="color:#444; font-size:10px; margin-top:8px;">
+      ⚠ Passwörter werden lokal unverschlüsselt gespeichert.
+    </p>
+  </div>
+
   <!-- ── Hotkeys-Tab ────────────────────────────────────────────────────── -->
   <div id="tab-hotkeys" class="tab-content">
 
@@ -201,18 +244,38 @@
   </div>
 
   <script>
-    // Erlaubte Tasten für Automation-Aktionen
     const KEY_OPTIONS = ['F1','F2','F3','F4','F5','F6','F7','F8','F9','F10','F11','F12'];
 
-    let loadedConfig = null;
+    // Alle möglichen Gamepad-Aktionen
+    const GP_KEY_OPTIONS = [
+      { value: '',         label: '– keine Aktion –' },
+      { value: '__LCLICK', label: 'Linksklick' },
+      { value: '__RHOLD',  label: 'Rechtsklick (halten)' },
+      { value: 'Escape',   label: 'Escape' },
+      { value: 'Tab',      label: 'Tab' },
+      { value: 'Space',    label: 'Leertaste' },
+      { value: 'Return',   label: 'Enter' },
+      { value: 'M',        label: 'M (Karte)' },
+      ...Array.from({length:12}, (_,i) => ({ value:`F${i+1}`, label:`F${i+1}` })),
+      ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(k => ({ value: k, label: k })),
+    ];
+
+    const GP_BUTTON_LABELS = {
+      0:'A / Cross', 1:'B / Circle', 2:'X / Square', 3:'Y / Dreieck',
+      4:'L1 / LB', 5:'R1 / RB', 6:'L2 / LT (Trigger)', 7:'R2 / RT (Trigger)',
+      8:'Select / View', 9:'Start / Menu', 10:'L3 (Stick-Klick)', 11:'R3 (Stick-Klick)',
+      12:'D-Pad Oben', 13:'D-Pad Unten', 14:'D-Pad Links', 15:'D-Pad Rechts',
+    };
+
+    let loadedConfig    = null;
+    let loadedGpConfig  = null;
 
     // ── Tab-Navigation ────────────────────────────────────────────────────────
 
     function showTab(name) {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-
-      const tabIndex = ['automation', 'hotkeys'].indexOf(name);
+      const tabIndex = ['automation','gamepad','accounts','hotkeys'].indexOf(name);
       document.querySelectorAll('.tab')[tabIndex].classList.add('active');
       document.getElementById(`tab-${name}`).classList.add('active');
     }
@@ -293,6 +356,41 @@
       }));
     }
 
+    // ── Gamepad-Tabelle ───────────────────────────────────────────────────────
+
+    function renderGamepadTable(gpConfig) {
+      const tbody = document.querySelector('#tbl-gamepad tbody');
+      tbody.innerHTML = '';
+      for (let idx = 0; idx <= 15; idx++) {
+        const tr  = document.createElement('tr');
+        const tdL = document.createElement('td');
+        tdL.textContent = GP_BUTTON_LABELS[idx] || `Button ${idx}`;
+        tdL.style.color = '#aaa';
+        const tdA = document.createElement('td');
+        const sel = document.createElement('select');
+        sel.dataset.btn = idx;
+        const current = (gpConfig && gpConfig[String(idx)]) || '';
+        GP_KEY_OPTIONS.forEach(opt => {
+          const o = document.createElement('option');
+          o.value = opt.value; o.textContent = opt.label;
+          if (opt.value === current) o.selected = true;
+          sel.appendChild(o);
+        });
+        tdA.appendChild(sel);
+        tr.appendChild(tdL); tr.appendChild(tdA);
+        tbody.appendChild(tr);
+      }
+    }
+
+    function readGamepadTable() {
+      const cfg = {};
+      document.querySelectorAll('#tbl-gamepad tbody tr').forEach(tr => {
+        const sel = tr.querySelector('select');
+        cfg[sel.dataset.btn] = sel.value;
+      });
+      return cfg;
+    }
+
     // ── Initialisierung ───────────────────────────────────────────────────────
 
     async function init() {
@@ -300,7 +398,21 @@
       renderTable('tbl-account1', loadedConfig.account1.actions);
       renderTable('tbl-account2', loadedConfig.account2.actions);
 
-      const state = await window.flyff.getState();
+      loadedGpConfig = await window.flyff.getGamepadConfig();
+      renderGamepadTable(loadedGpConfig);
+
+      const [cred1, cred2, state] = await Promise.all([
+        window.flyff.getCredentials('account1'),
+        window.flyff.getCredentials('account2'),
+        window.flyff.getState()
+      ]);
+      document.getElementById('cred-u1').value  = cred1.username  || '';
+      document.getElementById('cred-p1').value  = cred1.password  || '';
+      document.getElementById('cred-af1').checked = !!cred1.autofill;
+      document.getElementById('cred-u2').value  = cred2.username  || '';
+      document.getElementById('cred-p2').value  = cred2.password  || '';
+      document.getElementById('cred-af2').checked = !!cred2.autofill;
+
       document.getElementById('hk-switch').value = state.hotkeys?.switchAccount     || 'F9';
       document.getElementById('hk-auto').value   = state.hotkeys?.toggleAutomation || 'F10';
     }
@@ -308,6 +420,7 @@
     // ── Speichern ─────────────────────────────────────────────────────────────
 
     function save() {
+      // Automation
       const newConfig = {
         account1: { actions: readTable('tbl-account1', loadedConfig.account1.actions) },
         account2: { actions: readTable('tbl-account2', loadedConfig.account2.actions) }
@@ -315,11 +428,28 @@
       window.flyff.saveAutomationConfig(newConfig);
       loadedConfig = newConfig;
 
-      const hotkeys = {
+      // Gamepad
+      const gpCfg = readGamepadTable();
+      window.flyff.saveGamepadConfig(gpCfg);
+      loadedGpConfig = gpCfg;
+
+      // Credentials
+      window.flyff.saveCredentials('account1', {
+        username: document.getElementById('cred-u1').value,
+        password: document.getElementById('cred-p1').value,
+        autofill: document.getElementById('cred-af1').checked,
+      });
+      window.flyff.saveCredentials('account2', {
+        username: document.getElementById('cred-u2').value,
+        password: document.getElementById('cred-p2').value,
+        autofill: document.getElementById('cred-af2').checked,
+      });
+
+      // Hotkeys
+      window.flyff.saveHotkeys({
         switchAccount:    document.getElementById('hk-switch').value.trim() || 'F9',
         toggleAutomation: document.getElementById('hk-auto').value.trim()   || 'F10'
-      };
-      window.flyff.saveHotkeys(hotkeys);
+      });
 
       const msg = document.getElementById('saved-msg');
       msg.style.display = 'inline';
