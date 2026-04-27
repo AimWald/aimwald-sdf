@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Flyff Wrapper</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 30px;
+      overflow: hidden;
+      background: #12122a;
+      color: #d0d0e8;
+      font-family: system-ui, sans-serif;
+      font-size: 11px;
+      user-select: none;
+      /* Gesamte Toolbar ist ziehbar – Buttons überschreiben das */
+      -webkit-app-region: drag;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      height: 30px;
+      padding: 0 6px;
+      gap: 3px;
+    }
+
+    /* Alle interaktiven Elemente aus der Drag-Region herausnehmen */
+    button, .no-drag {
+      -webkit-app-region: no-drag;
+    }
+
+    button {
+      height: 22px;
+      padding: 0 7px;
+      border: 1px solid #3a3a6a;
+      border-radius: 3px;
+      background: #1e1e4a;
+      color: #d0d0e8;
+      font-size: 11px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.1s;
+    }
+    button:hover  { background: #2a2a6a; }
+
+    /* Aktiver Account */
+    button.active {
+      background: #2a4a8a;
+      border-color: #5a8ad8;
+      color: #c8dcff;
+    }
+
+    /* Automation läuft */
+    button.running {
+      background: #1a4a1a;
+      border-color: #3a9a3a;
+      color: #88ee88;
+    }
+
+    .sep {
+      -webkit-app-region: no-drag;
+      width: 1px;
+      height: 18px;
+      background: #3a3a5a;
+      margin: 0 2px;
+    }
+
+    .label {
+      color: #666;
+      font-size: 10px;
+      padding: 0 3px;
+    }
+
+    #btn-close {
+      background: #4a1a1a;
+      border-color: #8a3a3a;
+      margin-left: auto;
+    }
+    #btn-close:hover { background: #7a2a2a; }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+
+    <!-- Account-Auswahl -->
+    <span class="label no-drag">Acc:</span>
+    <button id="btn-acc1" class="active" onclick="switchAccount('account1')" title="Account 1 anzeigen">1</button>
+    <button id="btn-acc2"               onclick="switchAccount('account2')" title="Account 2 anzeigen">2</button>
+
+    <div class="sep"></div>
+
+    <!-- Automation Account 1 -->
+    <span class="label no-drag">Acc1:</span>
+    <button id="btn-start-account1" onclick="startAutomation('account1')" title="Automation Account 1 starten (F10)">▶</button>
+    <button id="btn-stop-account1"  onclick="stopAutomation('account1')"  title="Automation Account 1 stoppen">■</button>
+
+    <div class="sep"></div>
+
+    <!-- Automation Account 2 -->
+    <span class="label no-drag">Acc2:</span>
+    <button id="btn-start-account2" onclick="startAutomation('account2')" title="Automation Account 2 starten">▶</button>
+    <button id="btn-stop-account2"  onclick="stopAutomation('account2')"  title="Automation Account 2 stoppen">■</button>
+
+    <div class="sep"></div>
+
+    <button onclick="window.flyff.openSettings()" title="Einstellungen (Tasten, Intervalle, Hotkeys)">⚙ Settings</button>
+
+    <!-- Schließen ganz rechts -->
+    <button id="btn-close" onclick="window.close()" title="App beenden">✕</button>
+  </div>
+
+  <script>
+    // ── Initialisierung ───────────────────────────────────────────────────────
+
+    async function init() {
+      const state = await window.flyff.getState();
+      applyAccountState(state.activeAccount);
+      applyRunningState('account1', state.account1Running);
+      applyRunningState('account2', state.account2Running);
+
+      // Gamepad-Polling starten (nur hier, nicht im Settings-Fenster)
+      window.flyff.startGamepadPolling();
+    }
+
+    // ── UI-Hilfsfunktionen ────────────────────────────────────────────────────
+
+    function applyAccountState(active) {
+      document.getElementById('btn-acc1').classList.toggle('active', active === 'account1');
+      document.getElementById('btn-acc2').classList.toggle('active', active === 'account2');
+    }
+
+    function applyRunningState(account, running) {
+      document.getElementById(`btn-start-${account}`).classList.toggle('running', running);
+      document.getElementById(`btn-stop-${account}` ).classList.toggle('running', running);
+    }
+
+    // ── Button-Handler ────────────────────────────────────────────────────────
+
+    function switchAccount(account) {
+      window.flyff.switchAccount(account);
+      applyAccountState(account);
+    }
+
+    function startAutomation(account) {
+      window.flyff.startAutomation(account);
+      applyRunningState(account, true);
+    }
+
+    function stopAutomation(account) {
+      window.flyff.stopAutomation(account);
+      applyRunningState(account, false);
+    }
+
+    // ── Events vom Main-Prozess (z.B. via F9 / F10) ───────────────────────────
+
+    window.flyff.on('account-switched', (account) => {
+      applyAccountState(account);
+    });
+
+    window.flyff.on('automation-state-changed', ({ account, running }) => {
+      applyRunningState(account, running);
+    });
+
+    init();
+  </script>
+</body>
+</html>

@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Flyff Wrapper – Einstellungen</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: system-ui, sans-serif;
+      font-size: 13px;
+      background: #12122a;
+      color: #d0d0e8;
+      padding: 16px;
+      min-height: 100vh;
+    }
+
+    h2 {
+      font-size: 15px;
+      margin-bottom: 14px;
+      color: #88aaff;
+      border-bottom: 1px solid #2a2a4a;
+      padding-bottom: 8px;
+    }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 14px;
+      border-bottom: 1px solid #2a2a4a;
+    }
+    .tab {
+      padding: 6px 16px;
+      background: #1a1a3a;
+      border: 1px solid #2a2a4a;
+      border-bottom: none;
+      cursor: pointer;
+      font-size: 12px;
+      color: #888;
+      margin-bottom: -1px;
+    }
+    .tab.active {
+      background: #12122a;
+      color: #d0d0e8;
+      border-bottom: 1px solid #12122a;
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ── Tabellen ── */
+    h3 {
+      font-size: 12px;
+      color: #6688cc;
+      margin: 14px 0 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 6px;
+    }
+    th {
+      text-align: left;
+      font-weight: 600;
+      color: #666;
+      font-size: 11px;
+      padding: 4px 8px;
+      border-bottom: 1px solid #2a2a4a;
+    }
+    td {
+      padding: 3px 6px;
+      border-bottom: 1px solid #1a1a3a;
+      vertical-align: middle;
+    }
+    tr:hover td { background: #1a1a3a; }
+
+    input[type="text"],
+    input[type="number"] {
+      background: #0d0d1e;
+      border: 1px solid #3a3a5a;
+      color: #d0d0e8;
+      padding: 3px 6px;
+      border-radius: 3px;
+      font-size: 12px;
+      width: 100%;
+    }
+    input[type="number"] { width: 80px; }
+
+    select {
+      background: #0d0d1e;
+      border: 1px solid #3a3a5a;
+      color: #d0d0e8;
+      padding: 3px 6px;
+      border-radius: 3px;
+      font-size: 12px;
+    }
+
+    input[type="checkbox"] {
+      cursor: pointer;
+      width: 15px;
+      height: 15px;
+      accent-color: #4488ff;
+    }
+
+    /* ── Hotkeys-Tabelle ── */
+    .hk-table td:first-child { width: 200px; color: #aaa; }
+
+    /* ── Speichern-Button ── */
+    .footer {
+      margin-top: 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .btn-save {
+      padding: 8px 24px;
+      background: #1a3a1a;
+      border: 1px solid #3a8a3a;
+      color: #88ee88;
+      border-radius: 4px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .btn-save:hover { background: #244424; }
+
+    .saved-msg {
+      color: #44ee44;
+      font-size: 12px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h2>⚙ Einstellungen</h2>
+
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('automation')">Automation</div>
+    <div class="tab"        onclick="showTab('hotkeys')">Hotkeys</div>
+  </div>
+
+  <!-- ── Automation-Tab ─────────────────────────────────────────────────── -->
+  <div id="tab-automation" class="tab-content active">
+
+    <h3>Account 1 – Aktionen</h3>
+    <table id="tbl-account1">
+      <thead>
+        <tr>
+          <th>Label</th>
+          <th>Taste</th>
+          <th>Intervall (ms)</th>
+          <th>Aktiv</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <h3>Account 2 – Aktionen</h3>
+    <table id="tbl-account2">
+      <thead>
+        <tr>
+          <th>Label</th>
+          <th>Taste</th>
+          <th>Intervall (ms)</th>
+          <th>Aktiv</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+  </div>
+
+  <!-- ── Hotkeys-Tab ────────────────────────────────────────────────────── -->
+  <div id="tab-hotkeys" class="tab-content">
+
+    <h3>Globale Tastenkürzel</h3>
+    <table class="hk-table">
+      <thead><tr><th>Funktion</th><th>Taste</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Account wechseln</td>
+          <td><input type="text" id="hk-switch" placeholder="F9" style="width:70px"></td>
+        </tr>
+        <tr>
+          <td>Automation (aktiver Account) an/aus</td>
+          <td><input type="text" id="hk-auto"   placeholder="F10" style="width:70px"></td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="color:#555; font-size:11px; margin-top:8px;">
+      F11 (Vollbild) ist fest belegt und kann nicht geändert werden.
+    </p>
+
+  </div>
+
+  <div class="footer">
+    <button class="btn-save" onclick="save()">💾 Speichern</button>
+    <span class="saved-msg" id="saved-msg">✓ Gespeichert!</span>
+  </div>
+
+  <script>
+    // Erlaubte Tasten für Automation-Aktionen
+    const KEY_OPTIONS = ['F1','F2','F3','F4','F5','F6','F7','F8','F9','F10','F11','F12'];
+
+    let loadedConfig = null;
+
+    // ── Tab-Navigation ────────────────────────────────────────────────────────
+
+    function showTab(name) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+      const tabIndex = ['automation', 'hotkeys'].indexOf(name);
+      document.querySelectorAll('.tab')[tabIndex].classList.add('active');
+      document.getElementById(`tab-${name}`).classList.add('active');
+    }
+
+    // ── Tabelle aufbauen ──────────────────────────────────────────────────────
+
+    function buildKeySelect(selected) {
+      const sel = document.createElement('select');
+      KEY_OPTIONS.forEach(k => {
+        const opt = document.createElement('option');
+        opt.value = k;
+        opt.textContent = k;
+        if (k === selected) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      return sel;
+    }
+
+    function renderTable(tableId, actions) {
+      const tbody = document.querySelector(`#${tableId} tbody`);
+      tbody.innerHTML = '';
+
+      actions.forEach((action, i) => {
+        const tr = document.createElement('tr');
+
+        // Label
+        const tdLabel = document.createElement('td');
+        const inpLabel = document.createElement('input');
+        inpLabel.type = 'text';
+        inpLabel.value = action.label;
+        inpLabel.dataset.idx = i;
+        inpLabel.dataset.field = 'label';
+        tdLabel.appendChild(inpLabel);
+
+        // Taste (Dropdown: nur F1–F12)
+        const tdKey = document.createElement('td');
+        const selKey = buildKeySelect(action.key);
+        selKey.dataset.idx = i;
+        selKey.dataset.field = 'key';
+        tdKey.appendChild(selKey);
+
+        // Intervall
+        const tdMs = document.createElement('td');
+        const inpMs = document.createElement('input');
+        inpMs.type = 'number';
+        inpMs.min = 100;
+        inpMs.max = 600000;
+        inpMs.value = action.intervalMs;
+        inpMs.dataset.idx = i;
+        inpMs.dataset.field = 'intervalMs';
+        tdMs.appendChild(inpMs);
+
+        // Aktiviert
+        const tdEn = document.createElement('td');
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = action.enabled;
+        cb.dataset.idx = i;
+        cb.dataset.field = 'enabled';
+        tdEn.appendChild(cb);
+
+        tr.appendChild(tdLabel);
+        tr.appendChild(tdKey);
+        tr.appendChild(tdMs);
+        tr.appendChild(tdEn);
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Liest aktuelle Eingaben aus einer Tabelle aus
+    function readTable(tableId, originalActions) {
+      return Array.from(document.querySelectorAll(`#${tableId} tbody tr`)).map((tr, i) => ({
+        label:      tr.querySelector('[data-field="label"]').value,
+        key:        tr.querySelector('[data-field="key"]').value,
+        intervalMs: parseInt(tr.querySelector('[data-field="intervalMs"]').value, 10)
+                    || originalActions[i].intervalMs,
+        enabled:    tr.querySelector('[data-field="enabled"]').checked
+      }));
+    }
+
+    // ── Initialisierung ───────────────────────────────────────────────────────
+
+    async function init() {
+      loadedConfig = await window.flyff.getAutomationConfig();
+      renderTable('tbl-account1', loadedConfig.account1.actions);
+      renderTable('tbl-account2', loadedConfig.account2.actions);
+
+      const state = await window.flyff.getState();
+      document.getElementById('hk-switch').value = state.hotkeys?.switchAccount     || 'F9';
+      document.getElementById('hk-auto').value   = state.hotkeys?.toggleAutomation || 'F10';
+    }
+
+    // ── Speichern ─────────────────────────────────────────────────────────────
+
+    function save() {
+      const newConfig = {
+        account1: { actions: readTable('tbl-account1', loadedConfig.account1.actions) },
+        account2: { actions: readTable('tbl-account2', loadedConfig.account2.actions) }
+      };
+      window.flyff.saveAutomationConfig(newConfig);
+      loadedConfig = newConfig;
+
+      const hotkeys = {
+        switchAccount:    document.getElementById('hk-switch').value.trim() || 'F9',
+        toggleAutomation: document.getElementById('hk-auto').value.trim()   || 'F10'
+      };
+      window.flyff.saveHotkeys(hotkeys);
+
+      const msg = document.getElementById('saved-msg');
+      msg.style.display = 'inline';
+      setTimeout(() => { msg.style.display = 'none'; }, 2500);
+    }
+
+    init();
+  </script>
+</body>
+</html>
