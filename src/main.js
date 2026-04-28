@@ -24,21 +24,29 @@ async function initStore() {
 }
 
 // ── Config-Dateien ────────────────────────────────────────────────────────────
+// Nutzer-Configs liegen in app.getPath('userData') (~/.config/flyff-wrapper/)
+// damit AppImage-Updates die gespeicherten Einstellungen nicht überschreiben.
+// Beim ersten Start wird die gebündelte Default-Config dorthin kopiert.
+
+function userConfigPath(filename) {
+  return path.join(app.getPath('userData'), filename);
+}
+
+function bundledConfigPath(filename) {
+  return path.join(__dirname, '..', 'config', filename);
+}
 
 function loadConfig(filename) {
-  try {
-    return JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'config', filename), 'utf8'));
-  } catch {
-    return null;
+  // Zuerst Nutzer-Config, dann gebündelter Default
+  for (const p of [userConfigPath(filename), bundledConfigPath(filename)]) {
+    try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch {}
   }
+  return null;
 }
 
 function saveConfig(filename, data) {
-  fs.writeFileSync(
-    path.join(__dirname, '..', 'config', filename),
-    JSON.stringify(data, null, 2),
-    'utf8'
-  );
+  fs.mkdirSync(app.getPath('userData'), { recursive: true });
+  fs.writeFileSync(userConfigPath(filename), JSON.stringify(data, null, 2), 'utf8');
 }
 
 // ── Globale Variablen ─────────────────────────────────────────────────────────
@@ -50,7 +58,8 @@ let view2 = null;   // WebContentsView für Account 2
 let activeAccount = 'account1';
 
 // Virtuelle Mausposition für Gamepad-Delta-Bewegung
-const cursor = { x: DEFAULT_W / 2, y: DEFAULT_H / 2 };
+const cursor  = { x: DEFAULT_W / 2, y: DEFAULT_H / 2 };
+const lastSent = { x: -1, y: -1 };   // verhindert Flood bei Cursor an der Kante
 
 // ── Hauptfenster ──────────────────────────────────────────────────────────────
 
@@ -111,9 +120,17 @@ function createGameViews() {
   view1.webContents.loadURL(FLYFF_URL);
   view2.webContents.loadURL(FLYFF_URL);
 
-  // Login-Daten automatisch einfügen wenn Seite geladen ist
-  view1.webContents.on('did-finish-load', () => autoFill('account1', view1));
-  view2.webContents.on('did-finish-load', () => autoFill('account2', view2));
+  // Cursor sichtbar halten (Spiel setzt canvas { cursor: none })
+  const CURSOR_CSS = '*, canvas { cursor: default !important; }';
+
+  view1.webContents.on('did-finish-load', () => {
+    view1.webContents.insertCSS(CURSOR_CSS);
+    autoFill('account1', view1);
+  });
+  view2.webContents.on('did-finish-load', () => {
+    view2.webContents.insertCSS(CURSOR_CSS);
+    autoFill('account2', view2);
+  });
 
   updateViewBounds();
 }
@@ -128,11 +145,13 @@ function updateViewBounds() {
   if (activeAccount === 'account1') {
     view1.setBounds(activeBounds);
     view1.setVisible(true);
+    view1.webContents.focus();
     view2.setBounds(hiddenBounds);
     view2.setVisible(false);
   } else {
     view2.setBounds(activeBounds);
     view2.setVisible(true);
+    view2.webContents.focus();
     view1.setBounds(hiddenBounds);
     view1.setVisible(false);
   }
@@ -225,15 +244,13 @@ function openSettings() {
   settingsWindow = new BrowserWindow({
     width: 680,
     height: 740,
-    parent: mainWindow,
-    modal: false,
     title: 'Flyff Wrapper – Einstellungen',
     backgroundColor: '#1a1a2e',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false
+      sandbox: true
     }
   });
 
@@ -249,13 +266,15 @@ function setupIPC() {
   ipcMain.on('start-automation',    (_, acc)  => startAutomation(acc));
   ipcMain.on('stop-automation',     (_, acc)  => stopAutomation(acc));
   ipcMain.on('open-settings',       ()        => openSettings());
+  ipcMain.on('close-settings',      ()        => settingsWindow?.close());
 
   // Zustand für Toolbar-Initialisierung liefern
   ipcMain.handle('get-state', () => ({
     activeAccount,
     account1Running: automation.isRunning('account1'),
     account2Running: automation.isRunning('account2'),
-    hotkeys: store.get('hotkeys')
+    hotkeys: store.get('hotkeys'),
+    version: app.getVersion()
   }));
 
   // Automation-Config für Settings-Fenster liefern
@@ -295,15 +314,26 @@ function setupIPC() {
     const view = activeAccount === 'account1' ? view1 : view2;
     if (!view || !mainWindow) return;
     const [w, h] = mainWindow.getContentSize();
-    cursor.x = Math.max(0, Math.min(w,            cursor.x + dx));
-    cursor.y = Math.max(0, Math.min(h - TOOLBAR_H, cursor.y + dy));
+    cursor.x = Math.max(0, Math.min(w - 1,             cursor.x + dx));
+    cursor.y = Math.max(0, Math.min(h - TOOLBAR_H - 1, cursor.y + dy));
+    const rx = Math.round(cursor.x);
+    const ry = Math.round(cursor.y);
+    if (rx === lastSent.x && ry === lastSent.y) return;  // Position unverändert → nicht senden
+    lastSent.x = rx;
+    lastSent.y = ry;
     try {
-      view.webContents.sendInputEvent({
-        type: 'mouseMove',
-        x: Math.round(cursor.x),
-        y: Math.round(cursor.y)
-      });
+      view.webContents.sendInputEvent({ type: 'mouseMove', x: rx, y: ry });
     } catch {}
+  });
+
+  // Cursor zur Mitte zurücksetzen wenn Stick losgelassen (nach Kamera-Schwenk)
+  ipcMain.on('gamepad-reset-cursor', () => {
+    if (!mainWindow) return;
+    const [w, h] = mainWindow.getContentSize();
+    cursor.x   = w / 2;
+    cursor.y   = (h - TOOLBAR_H) / 2;
+    lastSent.x = -1;  // nächste Bewegung erzwingt Send
+    lastSent.y = -1;
   });
 
   // Gamepad-Button: kurzer Tastendruck (keyDown + keyUp sofort)
@@ -320,13 +350,18 @@ function setupIPC() {
   ipcMain.on('gamepad-keydown', (_, { keyCode }) => {
     const view = activeAccount === 'account1' ? view1 : view2;
     if (!view) return;
-    try { view.webContents.sendInputEvent({ type: 'keyDown', keyCode }); } catch {}
+    try {
+      view.webContents.focus();
+      view.webContents.sendInputEvent({ type: 'keyDown', keyCode });
+    } catch {}
   });
 
   ipcMain.on('gamepad-keyup', (_, { keyCode }) => {
     const view = activeAccount === 'account1' ? view1 : view2;
     if (!view) return;
-    try { view.webContents.sendInputEvent({ type: 'keyUp', keyCode }); } catch {}
+    try {
+      view.webContents.sendInputEvent({ type: 'keyUp', keyCode });
+    } catch {}
   });
 
   // Mausklicks für Controller-Buttons (__LCLICK / __RHOLD)
@@ -348,6 +383,22 @@ function setupIPC() {
       view.webContents.sendInputEvent({
         type: 'mouseUp', button,
         x: Math.round(cursor.x), y: Math.round(cursor.y), clickCount: 1
+      });
+    } catch {}
+  });
+
+  // Scrollrad (D-Pad Zoom)
+  ipcMain.on('gamepad-scroll', (_, { deltaX, deltaY }) => {
+    const view = activeAccount === 'account1' ? view1 : view2;
+    if (!view) return;
+    try {
+      view.webContents.sendInputEvent({
+        type: 'mouseWheel',
+        x: Math.round(cursor.x),
+        y: Math.round(cursor.y),
+        deltaX,
+        deltaY,
+        canScroll: true
       });
     } catch {}
   });
@@ -383,6 +434,14 @@ app.whenReady().then(async () => {
   createGameViews();
   setupIPC();
   registerShortcuts();
+
+  // Game-View alle 200ms neu fokussieren – verhindert dass Keyboard-Events
+  // nach Focus-Verlust durch Toolbar/Compositor dauerhaft blockiert werden
+  setInterval(() => {
+    if (settingsWindow) return;
+    const view = activeAccount === 'account1' ? view1 : view2;
+    if (view) try { view.webContents.focus(); } catch {}
+  }, 200);
 });
 
 app.on('window-all-closed', () => {

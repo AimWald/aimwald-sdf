@@ -12,8 +12,9 @@ contextBridge.exposeInMainWorld('flyff', {
   stopAutomation:  (account) => ipcRenderer.send('stop-automation', account),
 
   // --- UI-Fenster ---
-  openSettings: () => ipcRenderer.send('open-settings'),
-  quitApp:      () => ipcRenderer.send('quit-app'),
+  openSettings:  () => ipcRenderer.send('open-settings'),
+  closeSettings: () => ipcRenderer.send('close-settings'),
+  quitApp:       () => ipcRenderer.send('quit-app'),
 
   // --- Daten abfragen (Promise) ---
   getState:            () => ipcRenderer.invoke('get-state'),
@@ -35,10 +36,12 @@ contextBridge.exposeInMainWorld('flyff', {
   },
 
   // --- Gamepad-Input ---
-  sendGamepadMove:    (dx, dy)  => ipcRenderer.send('gamepad-mouse-move',  { dx, dy }),
-  sendGamepadButton:  (keyCode) => ipcRenderer.send('gamepad-button',      { keyCode }),
-  sendGamepadKeyDown: (keyCode) => ipcRenderer.send('gamepad-keydown',     { keyCode }),
-  sendGamepadKeyUp:   (keyCode) => ipcRenderer.send('gamepad-keyup',       { keyCode }),
-  sendMouseDown:      (button)  => ipcRenderer.send('gamepad-mousedown',   { button }),
-  sendMouseUp:        (button)  => ipcRenderer.send('gamepad-mouseup',     { button }),
+  sendGamepadMove:    (dx, dy)        => ipcRenderer.send('gamepad-mouse-move',  { dx, dy }),
+  sendGamepadButton:  (keyCode)       => ipcRenderer.send('gamepad-button',      { keyCode }),
+  sendGamepadKeyDown: (keyCode)       => ipcRenderer.send('gamepad-keydown',     { keyCode }),
+  sendGamepadKeyUp:   (keyCode)       => ipcRenderer.send('gamepad-keyup',       { keyCode }),
+  sendMouseDown:      (button)        => ipcRenderer.send('gamepad-mousedown',   { button }),
+  sendMouseUp:        (button)        => ipcRenderer.send('gamepad-mouseup',     { button }),
+  sendGamepadScroll:  (deltaX, deltaY) => ipcRenderer.send('gamepad-scroll',     { deltaX, deltaY }),
+  resetCursor:        ()               => ipcRenderer.send('gamepad-reset-cursor'),
 });

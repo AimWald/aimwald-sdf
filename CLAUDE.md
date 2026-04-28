@@ -22,84 +22,122 @@ eine Automation-Engine (Autoheal/Buff) und Gamepad-Steuerung.
 - Fenstergröße wird in `electron-store` gespeichert und beim nächsten Start wiederhergestellt
 
 ### Automation-Engine
-- Konfigurierbare Aktions-Liste pro Account (Label, Taste F1–F12, Intervall ms, an/aus)
+- Konfigurierbare Aktions-Liste pro Account (Label, Taste 1–0/F1–F12, Intervall ms, an/aus)
 - Aktionen werden via `webContents.sendInputEvent` direkt in den jeweiligen View injiziert
 - **Läuft auch auf dem Hintergrund-Account** (nicht sichtbarer View) – ideal für Autoheal
 - Pro Account separate Start/Stop-Buttons in der Toolbar: `▶ / ■` für Acc1 und Acc2
 - Automation-Status wird in der Toolbar visuell angezeigt (grüne Buttons = aktiv)
 - Globaler Toggle für den **aktiven** Account via **F10** (konfigurierbar)
-- Standard-Config: Heal (F1, 3 s), Buff 1 (F2, 30 s), Buff 2 (F3, 30 s), weitere disabled
+- Standard-Config: Heal (1, 3 s), Buff 1 (2, 30 s), Buff 2 (3, 30 s), weitere disabled
 
 ### Gamepad-Support
-- Polling alle 16 ms (~60 fps) via Browser Gamepad API in `src/gamepad.js`
-- Linker Stick (Axes 0+1): Mausbewegung (Geschwindigkeit 8 px/Tick)
-- Rechter Stick (Axes 2+3): Kamerabewegung (Geschwindigkeit 4 px/Tick, gedämpft)
-- Deadzone: 0.15 (verhindert Drift)
-- Button-Mapping konfigurierbar in `config/gamepad.json` (Button-Index → Taste)
+- Polling via `requestAnimationFrame` im Toolbar-Renderer (kein setInterval-Cascade)
+- Linker Stick (Axes 0+1): WASD-Tasten mit Hysterese (Press 0.40 / Release 0.20)
+- Rechter Stick (Axes 2+3): Mausbewegung (Kameradrehung), Deadzone 0.25
+- Maus-IPC gedrosselt auf 30 fps, Deltas akkumuliert – verhindert Queue-Flooding
+- Virtueller Cursor wird beim Loslassen von `__RHOLD` zur Bildschirmmitte zurückgesetzt
+- Focus-Keeper: aktiver Game-View wird alle 200 ms neu fokussiert (verhindert Keyboard-Blockade)
+- `webContents.focus()` bei jedem `keydown`-Event und `updateViewBounds()`
+- Deadzone: 0.25 (verhindert Drift)
+- Button-Mapping konfigurierbar in Settings (Controller-Tab) und `config/gamepad.json`
 - Edge-Detection: Tastendruck wird nur einmal ausgelöst, kein Auto-Repeat
+- Maus-Cursor immer sichtbar via `insertCSS: cursor: default !important`
+
+### Standard-Controller-Layout (Steam Deck)
+| Button | Aktion |
+|--------|--------|
+| A (0) | Linksklick (Angriff/Auswählen) |
+| B (1) | `.` – Clear Target (in Spiel unter Menu→Keys auf `.` legen) |
+| X (2) | Taste 3 |
+| Y (3) | Leertaste |
+| L1 (4) | Taste 1 (Heal) |
+| R1 (5) | Taste 2 (Buff) |
+| L2 (6) | Rechtsklick halten (Kamera drehen) |
+| R2 (7) | Taste 4 |
+| Back (8) | Escape |
+| Start (9) | M (Karte) |
+| D-Pad ↑ (12) | Zoom rein (Scrollrad) |
+| D-Pad ↓ (13) | Zoom raus (Scrollrad) |
+| D-Pad → (15) | Tab (Skillbar wechseln) |
 
 ### Konfiguration & Persistenz
-- `electron-store` speichert: `activeAccount`, `hotkeys`, `windowBounds`
-- Automation-Config in `config/automation.json` (lesbar/bearbeitbar im Settings-Fenster)
-- Gamepad-Mapping in `config/gamepad.json` (direkte JSON-Bearbeitung)
+- `electron-store` speichert: `activeAccount`, `hotkeys`, `windowBounds`, `credentials`
+- `automation.json` und `gamepad.json` werden in `app.getPath('userData')` gespeichert (`~/.config/flyff-wrapper/`)
+- Beim ersten Start wird die gebündelte Default-Config nach userData kopiert
+- AppImage-Updates überschreiben Nutzer-Configs **nicht**
 - Beim Start wird der zuletzt aktive Account wiederhergestellt
 
 ### UI – Toolbar (30 px)
 - Account-Buttons: `1` / `2` (aktiver Button hervorgehoben)
 - Automation-Buttons je Account: `▶ Acc1` `■ Acc1` `▶ Acc2` `■ Acc2`
 - `⚙ Settings` öffnet das Einstellungs-Fenster
+- Versionsnummer sichtbar (grau, zwischen Settings und Gamepad-Status)
+- Gamepad-Status-Indikator: zeigt Anzahl verbundener Controller
 - `✕` schließt die App
 - Toolbar ist draggable (`-webkit-app-region: drag`), Buttons haben `no-drag`
 
 ### UI – Settings-Fenster
-- Tab **Automation**: Tabelle mit Label, Taste (F1–F12 Dropdown), Intervall, Checkbox pro Aktion, für beide Accounts
+- Unabhängiges Fenster (kein `parent: mainWindow`, `sandbox: true`) – verhindert Doppel-Input unter Wayland
+- `✕ Schließen`-Button im Footer (IPC `close-settings`)
+- Tab **Automation**: Tabelle mit Label, Taste (1–0, F1–F12 Dropdown), Intervall, Checkbox pro Aktion, für beide Accounts
+- Tab **Controller**: Button-Mapping Tabelle (16 Buttons, alle Sonderaktionen wählbar inkl. Scroll, Mausklick)
+- Tab **Accounts**: Benutzername/Passwort mit Auto-Fill-Option pro Account
 - Tab **Hotkeys**: Texteingabe für Account-Switch-Taste und Automation-Toggle-Taste
 - `💾 Speichern` schreibt Config sofort auf Disk und startet laufende Automationen mit neuer Config neu
+
+### Steam Deck Deployment
+- AppImage wird via `electron-builder` gebaut: `npm run build`
+- Datei liegt auf dem Deck unter `/home/deck/FlyffWrapper.AppImage`
+- Startup-Skript: `/home/deck/launch-flyff.sh` (setzt Wayland-Flags, `--appimage-extract-and-run`)
+- Übertragen via: `scp dist/FlyffWrapper.AppImage deck@192.168.178.30:/home/deck/`
+- **Version immer in `package.json` hochzählen** vor dem Build – sichtbar in der Toolbar
 
 ## Offene Punkte / mögliche Erweiterungen
 
 ### Funktionalität
-- [ ] **Gamepad-Config im Settings-UI** – `config/gamepad.json` ist aktuell nur manuell editierbar
 - [ ] **Automation-Aktionen hinzufügen/löschen** – Settings-Tabelle hat feste 8 Einträge, kein +/- Button
 - [ ] **Automation-Profil-Wahl in der Toolbar** – aktuell fest: account1 ↔ account2-Profil
 - [ ] **Reconnect-Logik** – wenn das Spiel die Session verliert, automatisch neu laden
 - [ ] **Benachrichtigung bei Automation-Fehler** – stille Fehler in `sendInputEvent` werden nur geloggt
-- [ ] **Tastatur-Shortcut für Vollbild auch per IPC** – aktuell nur via F11 globalShortcut
-
-### Steam Deck / Deployment
-- [ ] **Electron Forge / electron-builder** – kein Packaging/Installer vorhanden; `npm start` nötig
-- [ ] **Steam-Eintrag (.desktop-Datei)** – damit die App in SteamOS als Non-Steam-Spiel läuft
-- [ ] **Gamescope-Kompatibilität testen** – Gamescope (Steam Deck Game Mode) hat eigene Fokus-Regeln
-- [ ] **Wayland-spezifische Fenster-Flags** – `--ozone-platform=wayland` ggf. nötig auf Bazzite
+- [ ] **Gamepad-Config live neu laden** – Änderungen im Settings-UI aktiv sofort, aber `getGamepadConfig` beim Start in index.html neu laden nötig
 
 ### Code-Qualität
-- [ ] **Gamepad-Config live neu laden** – Änderungen an `config/gamepad.json` brauchen App-Neustart
 - [ ] **IPC-Fehlerbehandlung im Renderer** – `window.flyff.*`-Aufrufe haben kein Error-Handling
-- [ ] **Unit-Tests** für `automation.js` (Timer-Logik) und `gamepad.js` (Deadzone, Edge-Detection)
+- [ ] **Unit-Tests** für `automation.js` (Timer-Logik) und Gamepad-Polling (Deadzone, Hysterese)
 
 ## Projektstruktur
 
 ```
 flyff-wrapper/
-├── package.json              – Electron 41, electron-store 11
+├── package.json              – Electron 41, electron-store 11, Version
+├── CHANGELOG.md              – Versionshistorie
 ├── config/
-│   ├── automation.json       – Aktions-Config (Heal/Buff Tasten + Intervalle)
-│   └── gamepad.json          – Button-Index → Taste Mapping
+│   ├── automation.json       – Default-Config (Heal/Buff Tasten + Intervalle)
+│   └── gamepad.json          – Default Button-Index → Taste Mapping
 └── src/
-    ├── main.js               – Hauptprozess: Fenster, Views, IPC, Shortcuts
+    ├── main.js               – Hauptprozess: Fenster, Views, IPC, Shortcuts, Focus-Keeper
     ├── automation.js         – Timer-Engine (start/stop/isRunning pro Account)
-    ├── gamepad.js            – Gamepad-Polling-Modul (Preload-Context)
     ├── preload.js            – contextBridge → window.flyff API
     └── ui/
-        ├── index.html        – 30 px Toolbar
-        └── settings.html     – Einstellungs-Fenster
+        ├── index.html        – 30 px Toolbar + Gamepad-Polling (requestAnimationFrame)
+        └── settings.html     – Einstellungs-Fenster (4 Tabs)
 ```
 
-## App starten
+> `src/gamepad.js` existiert noch im Repo, wird aber nicht mehr verwendet.
+> Polling läuft seit v1.0 direkt im Toolbar-Renderer (`index.html`).
+
+## App starten (Entwicklung)
 
 ```bash
 npm install   # nur beim ersten Mal nötig
 npm start
+```
+
+## Build & Deploy auf Steam Deck
+
+```bash
+npm run build
+scp dist/FlyffWrapper.AppImage deck@192.168.178.30:/home/deck/
 ```
 
 ## Technische Hinweise
@@ -107,5 +145,9 @@ npm start
 - **electron-store** ist ESM-only (v8+) → wird via `await import('electron-store')` geladen
 - **WebContentsView** statt BrowserView (BrowserView ab Electron 30 deprecated)
 - **contextIsolation: true, nodeIntegration: false** überall gesetzt
-- **sandbox: false** im Preload nötig, damit `require('./gamepad.js')` und `fs` funktionieren
+- **sandbox: false** im Preload des Hauptfensters (nutzt `require('electron')`)
+- **sandbox: true** im Settings-Fenster (kein Node.js nötig, verhindert Input-Probleme)
 - Automation läuft auf dem **Hintergrund-View** via `sendInputEvent` ohne Fokus-Anforderung
+- Gamepad-Polling via `requestAnimationFrame` im Toolbar-Renderer; Maus-IPC max 30 fps
+- Configs werden in `app.getPath('userData')` gespeichert, nicht im AppImage-Bundle
+- Wayland: `ELECTRON_OZONE_PLATFORM_HINT=auto` im Startup-Skript gesetzt

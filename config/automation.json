@@ -1,26 +1,26 @@
 {
   "account1": {
     "actions": [
-      { "label": "Heal",   "key": "F1", "intervalMs": 3000,  "enabled": true },
-      { "label": "Buff 1", "key": "F2", "intervalMs": 30000, "enabled": true },
-      { "label": "Buff 2", "key": "F3", "intervalMs": 30000, "enabled": true },
-      { "label": "Buff 3", "key": "F4", "intervalMs": 30000, "enabled": false },
-      { "label": "Buff 4", "key": "F5", "intervalMs": 30000, "enabled": false },
-      { "label": "Buff 5", "key": "F6", "intervalMs": 30000, "enabled": false },
-      { "label": "Buff 6", "key": "F7", "intervalMs": 30000, "enabled": false },
-      { "label": "Buff 7", "key": "F8", "intervalMs": 30000, "enabled": false }
+      { "label": "Heal",   "key": "1", "intervalMs": 3000,  "enabled": true },
+      { "label": "Buff 1", "key": "2", "intervalMs": 30000, "enabled": true },
+      { "label": "Buff 2", "key": "3", "intervalMs": 30000, "enabled": true },
+      { "label": "Buff 3", "key": "4", "intervalMs": 30000, "enabled": false },
+      { "label": "Buff 4", "key": "5", "intervalMs": 30000, "enabled": false },
+      { "label": "Buff 5", "key": "6", "intervalMs": 30000, "enabled": false },
+      { "label": "Buff 6", "key": "7", "intervalMs": 30000, "enabled": false },
+      { "label": "Buff 7", "key": "8", "intervalMs": 30000, "enabled": false }
     ]
   },
   "account2": {
     "actions": [
-      { "label": "Heal",   "key": "F1", "intervalMs": 3000,  "enabled": true },
-      { "label": "Buff 1", "key": "F2", "intervalMs": 30000, "enabled": true },
-      { "label": "Buff 2", "key": "F3", "intervalMs": 30000, "enabled": false },
-      { "label": "Buff 3", "key": "F4", "intervalMs": 30000, "enabled": false },
-      { "label": "Buff 4", "key": "F5", "intervalMs": 30000, "enabled": false },
-      { "label": "Buff 5", "key": "F6", "intervalMs": 30000, "enabled": false },
-      { "label": "Buff 6", "key": "F7", "intervalMs": 30000, "enabled": false },
-      { "label": "Buff 7", "key": "F8", "intervalMs": 30000, "enabled": false }
+      { "label": "Heal",   "key": "1", "intervalMs": 3000,  "enabled": true },
+      { "label": "Buff 1", "key": "2", "intervalMs": 30000, "enabled": true },
+      { "label": "Buff 2", "key": "3", "intervalMs": 30000, "enabled": false },
+      { "label": "Buff 3", "key": "4", "intervalMs": 30000, "enabled": false },
+      { "label": "Buff 4", "key": "5", "intervalMs": 30000, "enabled": false },
+      { "label": "Buff 5", "key": "6", "intervalMs": 30000, "enabled": false },
+      { "label": "Buff 6", "key": "7", "intervalMs": 30000, "enabled": false },
+      { "label": "Buff 7", "key": "8", "intervalMs": 30000, "enabled": false }
     ]
   }
 }

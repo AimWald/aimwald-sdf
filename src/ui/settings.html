@@ -126,6 +126,18 @@
     }
     .btn-save:hover { background: #244424; }
 
+    .btn-back {
+      padding: 8px 18px;
+      background: #2a2a4a;
+      border: 1px solid #4a4a7a;
+      color: #aaa;
+      border-radius: 4px;
+      font-size: 13px;
+      cursor: pointer;
+      margin-left: auto;
+    }
+    .btn-back:hover { background: #3a3a6a; color: #d0d0e8; }
+
     .saved-msg {
       color: #44ee44;
       font-size: 12px;
@@ -195,8 +207,8 @@
       <tbody>
         <tr>
           <td>Benutzername</td>
-          <td><input type="text"     id="cred-u1" autocomplete="off" style="width:160px"></td>
-          <td><input type="text"     id="cred-u2" autocomplete="off" style="width:160px"></td>
+          <td><input type="text"     id="cred-u1" autocomplete="new-password" style="width:160px"></td>
+          <td><input type="text"     id="cred-u2" autocomplete="new-password" style="width:160px"></td>
         </tr>
         <tr>
           <td>Passwort</td>
@@ -241,21 +253,26 @@
   <div class="footer">
     <button class="btn-save" onclick="save()">💾 Speichern</button>
     <span class="saved-msg" id="saved-msg">✓ Gespeichert!</span>
+    <button class="btn-back" onclick="window.flyff.closeSettings()">✕ Schließen</button>
   </div>
 
   <script>
-    const KEY_OPTIONS = ['F1','F2','F3','F4','F5','F6','F7','F8','F9','F10','F11','F12'];
+    const KEY_OPTIONS = ['1','2','3','4','5','6','7','8','9','0','F1','F2','F3','F4','F5','F6','F7','F8','F9','F10','F11','F12'];
 
     // Alle möglichen Gamepad-Aktionen
     const GP_KEY_OPTIONS = [
       { value: '',         label: '– keine Aktion –' },
-      { value: '__LCLICK', label: 'Linksklick' },
-      { value: '__RHOLD',  label: 'Rechtsklick (halten)' },
+      { value: '__LCLICK',      label: 'Linksklick' },
+      { value: '__RHOLD',       label: 'Rechtsklick (halten)' },
+      { value: '__SCROLL_UP',   label: 'Zoom ein (Scrollrad ↑)' },
+      { value: '__SCROLL_DOWN', label: 'Zoom aus (Scrollrad ↓)' },
       { value: 'Escape',   label: 'Escape' },
-      { value: 'Tab',      label: 'Tab' },
+      { value: 'Tab',      label: 'Tab (Skillbar wechseln)' },
       { value: 'Space',    label: 'Leertaste' },
       { value: 'Return',   label: 'Enter' },
+      { value: '.',        label: '. (Clear Target)' },
       { value: 'M',        label: 'M (Karte)' },
+      ...['1','2','3','4','5','6','7','8','9','0'].map(k => ({ value: k, label: `Taste ${k}` })),
       ...Array.from({length:12}, (_,i) => ({ value:`F${i+1}`, label:`F${i+1}` })),
       ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(k => ({ value: k, label: k })),
     ];

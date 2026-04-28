@@ -108,6 +108,9 @@
 
     <button onclick="window.flyff.openSettings()" title="Einstellungen (Tasten, Intervalle, Hotkeys)">⚙ Settings</button>
 
+    <!-- Versionsnummer -->
+    <span id="app-version" class="label no-drag" style="color:#333; font-size:10px;"></span>
+
     <!-- Gamepad-Status-Indikator -->
     <span id="gp-status" class="label no-drag" title="Gamepad-Status">🎮 <span id="gp-label">–</span></span>
 
@@ -123,6 +126,7 @@
       applyAccountState(state.activeAccount);
       applyRunningState('account1', state.account1Running);
       applyRunningState('account2', state.account2Running);
+      document.getElementById('app-version').textContent = 'v' + state.version;
 
       // Gamepad-Config laden und Polling starten.
       // Polling läuft hier im Renderer-Hauptkontext, weil navigator.getGamepads()
@@ -173,96 +177,102 @@
     // ── Gamepad-Polling (läuft im Renderer-Hauptkontext) ─────────────────────
 
     function startGamepadPolling(buttonMap) {
-      const WASD_THRESHOLD = 0.3;   // Ab diesem Wert gilt der Stick als "gedrückt"
-      const SPEED_RIGHT    = 6;     // Rechter Stick: Maus-Pixel pro Tick
-      const prevBtns       = {};
-      const gpLabel        = document.getElementById('gp-label');
+      const WASD_PRESS     = 0.40;
+      const WASD_RELEASE   = 0.20;
+      const STICK_DEADZONE = 0.25;
+      const SPEED_RIGHT    = 6;
+      const MOUSE_RATE_MS  = 33;   // Maus-IPC max 30fps – verhindert Queue-Flooding
 
-      // Merkt sich welche WASD-Tasten gerade vom Stick gehalten werden
+      const prevBtns = {};
+      const gpLabel  = document.getElementById('gp-label');
       const heldKeys = { W: false, A: false, S: false, D: false };
 
-      function setKey(keyCode, shouldBePressed) {
-        if (shouldBePressed === heldKeys[keyCode]) return; // keine Änderung
-        heldKeys[keyCode] = shouldBePressed;
-        if (shouldBePressed) {
-          window.flyff.sendGamepadKeyDown(keyCode);
-        } else {
-          window.flyff.sendGamepadKeyUp(keyCode);
-        }
+      // Deltas akkumulieren, gebündelt senden statt 60×/s einzeln
+      let pendingDx   = 0;
+      let pendingDy   = 0;
+      let lastMouseMs = 0;
+
+      function updateAxis(key, val) {
+        const held = heldKeys[key];
+        const next = held ? val > WASD_RELEASE : val > WASD_PRESS;
+        if (next === held) return;
+        heldKeys[key] = next;
+        if (next) window.flyff.sendGamepadKeyDown(key);
+        else       window.flyff.sendGamepadKeyUp(key);
       }
 
       function releaseAllWASD() {
-        Object.keys(heldKeys).forEach(k => setKey(k, false));
+        Object.keys(heldKeys).forEach(k => {
+          if (!heldKeys[k]) return;
+          heldKeys[k] = false;
+          window.flyff.sendGamepadKeyUp(k);
+        });
       }
 
-      window.addEventListener('gamepadconnected', (e) => {
-        console.log('[Gamepad] Verbunden:', e.gamepad.id, '| Achsen:', e.gamepad.axes.length, '| Buttons:', e.gamepad.buttons.length);
-      });
-      window.addEventListener('gamepaddisconnected', (e) => {
-        console.log('[Gamepad] Getrennt:', e.gamepad.id);
-        releaseAllWASD();
-      });
+      window.addEventListener('gamepadconnected',    () => {});
+      window.addEventListener('gamepaddisconnected', () => releaseAllWASD());
 
-      setInterval(() => {
-        const pads = navigator.getGamepads();
+      // requestAnimationFrame statt setInterval: kein Cascade wenn ein Frame zu lang dauert
+      function poll(now) {
+        const pads      = navigator.getGamepads();
         const connected = Array.from(pads).filter(Boolean);
 
-        // Status-Anzeige aktualisieren
         if (connected.length === 0) {
           gpLabel.textContent = '–';
           gpLabel.style.color = '#555';
           releaseAllWASD();
+          requestAnimationFrame(poll);
           return;
         }
         gpLabel.textContent = connected.length + ' OK';
         gpLabel.style.color = '#44ee44';
 
         for (const gp of connected) {
-          const lx = gp.axes[0] || 0;
-          const ly = gp.axes[1] || 0;
+          // Linker Stick → WASD
+          updateAxis('D',  gp.axes[0] || 0);
+          updateAxis('A', -(gp.axes[0] || 0));
+          updateAxis('S',  gp.axes[1] || 0);
+          updateAxis('W', -(gp.axes[1] || 0));
 
-          // Linker Stick → WASD (Charakter-Bewegung)
-          setKey('D', lx >  WASD_THRESHOLD);
-          setKey('A', lx < -WASD_THRESHOLD);
-          setKey('S', ly >  WASD_THRESHOLD);
-          setKey('W', ly < -WASD_THRESHOLD);
-
-          // Rechter Stick (axes 2+3) → Mausbewegung (Kamera)
+          // Rechter Stick → Mausdelta akkumulieren
           const rx = gp.axes[2] || 0;
           const ry = gp.axes[3] || 0;
-          const dx = Math.abs(rx) > 0.15 ? rx * SPEED_RIGHT : 0;
-          const dy = Math.abs(ry) > 0.15 ? ry * SPEED_RIGHT : 0;
-          if (dx !== 0 || dy !== 0) {
-            window.flyff.sendGamepadMove(dx, dy);
-          }
+          if (Math.abs(rx) > STICK_DEADZONE) pendingDx += rx * SPEED_RIGHT;
+          if (Math.abs(ry) > STICK_DEADZONE) pendingDy += ry * SPEED_RIGHT;
 
-          // Buttons mit Edge-Detection und Sonderaktionen
+          // Buttons: sofort, kein Throttle
           gp.buttons.forEach((btn, idx) => {
-            const stateKey   = `${gp.index}_${idx}`;
+            const key        = `${gp.index}_${idx}`;
             const pressed    = btn.pressed;
-            const wasPressed = prevBtns[stateKey];
+            const wasPressed = prevBtns[key];
             const action     = buttonMap && buttonMap[String(idx)];
 
             if (pressed && !wasPressed) {
-              // Button gerade gedrückt
-              if (action === '__LCLICK') {
-                window.flyff.sendMouseDown('left');
-                setTimeout(() => window.flyff.sendMouseUp('left'), 80);
-              } else if (action === '__RHOLD') {
-                window.flyff.sendMouseDown('right');
-              } else if (action) {
-                window.flyff.sendGamepadButton(action);
-              }
-            } else if (!pressed && wasPressed) {
-              // Button losgelassen – Rechtsklick freigeben
-              if (action === '__RHOLD') {
-                window.flyff.sendMouseUp('right');
-              }
+              if      (action === '__LCLICK')      { window.flyff.sendMouseDown('left'); setTimeout(() => window.flyff.sendMouseUp('left'), 80); }
+              else if (action === '__RHOLD')        window.flyff.sendMouseDown('right');
+              else if (action === '__SCROLL_UP')    window.flyff.sendGamepadScroll(0,  120);
+              else if (action === '__SCROLL_DOWN')  window.flyff.sendGamepadScroll(0, -120);
+              else if (action)                      window.flyff.sendGamepadButton(action);
+            } else if (!pressed && wasPressed && action === '__RHOLD') {
+              window.flyff.sendMouseUp('right');
+              window.flyff.resetCursor();
             }
-            prevBtns[stateKey] = pressed;
+            prevBtns[key] = pressed;
           });
         }
-      }, 16);
+
+        // Maus-IPC gebündelt max 30fps senden
+        if (now - lastMouseMs >= MOUSE_RATE_MS && (pendingDx !== 0 || pendingDy !== 0)) {
+          window.flyff.sendGamepadMove(pendingDx, pendingDy);
+          pendingDx   = 0;
+          pendingDy   = 0;
+          lastMouseMs = now;
+        }
+
+        requestAnimationFrame(poll);
+      }
+
+      requestAnimationFrame(poll);
     }
 
     init();
