@@ -20,17 +20,14 @@ contextBridge.exposeInMainWorld('flyff', {
   getState:            () => ipcRenderer.invoke('get-state'),
   getAutomationConfig: () => ipcRenderer.invoke('get-automation-config'),
   getGamepadConfig:    () => ipcRenderer.invoke('get-gamepad-config'),
-  getCredentials:      (account) => ipcRenderer.invoke('get-credentials', account),
-
   // --- Konfiguration speichern ---
   saveAutomationConfig: (cfg)           => ipcRenderer.send('save-automation-config', cfg),
   saveGamepadConfig:    (cfg)           => ipcRenderer.send('save-gamepad-config', cfg),
   saveHotkeys:          (keys)          => ipcRenderer.send('save-hotkeys', keys),
-  saveCredentials:      (account, creds) => ipcRenderer.send('save-credentials', account, creds),
 
   // --- Events empfangen ---
   on: (channel, cb) => {
-    const allowed = ['account-switched', 'automation-state-changed'];
+    const allowed = ['account-switched', 'automation-state-changed', 'gamepad-config-updated'];
     if (!allowed.includes(channel)) return;
     ipcRenderer.on(channel, (_event, ...args) => cb(...args));
   },
@@ -44,4 +41,7 @@ contextBridge.exposeInMainWorld('flyff', {
   sendMouseUp:        (button)        => ipcRenderer.send('gamepad-mouseup',     { button }),
   sendGamepadScroll:  (deltaX, deltaY) => ipcRenderer.send('gamepad-scroll',     { deltaX, deltaY }),
   resetCursor:        ()               => ipcRenderer.send('gamepad-reset-cursor'),
+  searchTarget:       ()               => ipcRenderer.send('search-target'),
+  getChangelog:       ()               => ipcRenderer.invoke('get-changelog'),
+  clearSession:       (account)        => ipcRenderer.invoke('clear-session', account),
 });

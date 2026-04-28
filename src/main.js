@@ -6,6 +6,10 @@ const fs   = require('fs');
 const automation = require('./automation.js');
 
 const FLYFF_URL     = 'https://universe.flyff.com';
+
+// sendInputEvent erwartet DOM-Keywerte, nicht Accelerator-Namen
+const KEY_NAME_MAP = { 'Space': ' ', 'Return': '\r', 'Enter': '\r' };
+function normalizeKey(k) { return KEY_NAME_MAP[k] ?? k; }
 const TOOLBAR_H     = 30;     // Höhe der Toolbar in px
 const DEFAULT_W     = 1280;
 const DEFAULT_H     = 800;
@@ -123,14 +127,8 @@ function createGameViews() {
   // Cursor sichtbar halten (Spiel setzt canvas { cursor: none })
   const CURSOR_CSS = '*, canvas { cursor: default !important; }';
 
-  view1.webContents.on('did-finish-load', () => {
-    view1.webContents.insertCSS(CURSOR_CSS);
-    autoFill('account1', view1);
-  });
-  view2.webContents.on('did-finish-load', () => {
-    view2.webContents.insertCSS(CURSOR_CSS);
-    autoFill('account2', view2);
-  });
+  view1.webContents.on('did-finish-load', () => { view1.webContents.insertCSS(CURSOR_CSS); });
+  view2.webContents.on('did-finish-load', () => { view2.webContents.insertCSS(CURSOR_CSS); });
 
   updateViewBounds();
 }
@@ -159,23 +157,6 @@ function updateViewBounds() {
 
 // ── Auto-Fill Login ───────────────────────────────────────────────────────────
 
-function autoFill(account, view) {
-  const creds = store.get(`credentials.${account}`, {});
-  if (!creds.autofill || !creds.username || !creds.password) return;
-  // Kurz warten bis das SPA fertig gerendert hat
-  setTimeout(async () => {
-    try {
-      await view.webContents.executeJavaScript(`
-        (function() {
-          const u = document.querySelector('input[type="email"], input[name="email"], input[name="username"], input[name="login"], input[name="account"]');
-          const p = document.querySelector('input[type="password"]');
-          if (u) { u.value = ${JSON.stringify(creds.username)}; u.dispatchEvent(new Event('input', {bubbles:true})); }
-          if (p) { p.value = ${JSON.stringify(creds.password)}; p.dispatchEvent(new Event('input', {bubbles:true})); }
-        })()
-      `);
-    } catch {}
-  }, 1500);
-}
 
 // ── Account-Wechsel ───────────────────────────────────────────────────────────
 
@@ -259,6 +240,102 @@ function openSettings() {
   settingsWindow.on('closed', () => { settingsWindow = null; });
 }
 
+// ── CDP-Tastendruck (für Keys die sendInputEvent nicht erreicht) ──────────────
+// Puppeteer/Playwright-Äquivalent: setzt code, key, text, windowsVirtualKeyCode korrekt
+// und erzeugt isTrusted:true – identisch zu echtem OS-Tastendruck aus Sicht des Spiels
+
+async function sendKeyCDP(view, keyDef) {
+  if (!view) return;
+  const dbg = view.webContents.debugger;
+  if (!dbg.isAttached()) {
+    try { dbg.attach('1.3'); } catch { return; }
+  }
+  try {
+    await dbg.sendCommand('Input.dispatchKeyEvent', { type: 'rawKeyDown', ...keyDef });
+    if (keyDef.text) {
+      await dbg.sendCommand('Input.dispatchKeyEvent', { type: 'char', ...keyDef });
+    }
+    // 80ms halten – Spiel pollt Input per rAF (~16ms); keyUp im selben Tick = Taste nie "gedrückt"
+    await new Promise(r => setTimeout(r, 80));
+    await dbg.sendCommand('Input.dispatchKeyEvent', { type: 'keyUp', ...keyDef });
+  } catch {}
+}
+
+const CDP_KEYS = {
+  Space: { windowsVirtualKeyCode: 32, nativeVirtualKeyCode: 32, code: 'Space', key: ' ', text: ' ', unmodifiedText: ' ', autoRepeat: false },
+  J:     { windowsVirtualKeyCode: 74, nativeVirtualKeyCode: 74, code: 'KeyJ',  key: 'j', text: 'j', unmodifiedText: 'j', autoRepeat: false }
+};
+
+// ── Auto-Targeting: Spiralsuche im Game-View-Kontext ─────────────────────────
+// Wird via executeJavaScript in den aktiven WebContentsView injiziert.
+// Bewegt den Cursor spiralförmig von der Bildschirmmitte nach außen und klickt,
+// sobald das Spiel via Cursor-Style-Änderung ein hoverbares Ziel signalisiert.
+
+function spiralSearch(maxRadius) {
+  if (window.__flyffTargetSearch) return;
+  window.__flyffTargetSearch = true;
+
+  const cx = window.innerWidth / 2;
+  const cy = window.innerHeight / 2;
+  const STEP = 0.35;    // Radiant pro Tick (~60° pro Tick, Scan in ~2.3s statt ~8s)
+  const TIGHTNESS = 6;  // Pixel pro Radiant (~37px Abstand zwischen Spiralarmen)
+  const TICK_MS = 16;   // ~60 Schritte/s
+
+  let theta = 0;
+  let curX = cx;
+  let curY = cy;
+  let timer = null;
+  let observer = null;
+
+  const baseCursor = document.body.style.cursor;
+  const canvas = document.querySelector('canvas');
+  const baseCanvasCursor = canvas ? canvas.style.cursor : '';
+
+  function stop() {
+    window.__flyffTargetSearch = false;
+    if (observer) observer.disconnect();
+    clearInterval(timer);
+  }
+
+  function clickCurrent() {
+    stop();
+    setTimeout(() => {
+      const el = document.elementFromPoint(curX, curY) || document.body;
+      el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, clientX: curX, clientY: curY, button: 0 }));
+      el.dispatchEvent(new MouseEvent('mouseup',   { bubbles: true, cancelable: true, clientX: curX, clientY: curY, button: 0 }));
+    }, 80);
+  }
+
+  function cursorChanged() {
+    if (document.body.style.cursor !== baseCursor) return true;
+    if (canvas && canvas.style.cursor !== baseCanvasCursor) return true;
+    return false;
+  }
+
+  observer = new MutationObserver(() => { if (cursorChanged()) clickCurrent(); });
+  observer.observe(document.body, { attributes: true, attributeFilter: ['style'] });
+  if (canvas) observer.observe(canvas, { attributes: true, attributeFilter: ['style'] });
+
+  timer = setInterval(() => {
+    const r = TIGHTNESS * theta;
+    if (r > maxRadius) { stop(); return; }
+
+    curX = cx + r * Math.cos(theta);
+    curY = cy + r * Math.sin(theta);
+
+    const el = document.elementFromPoint(curX, curY) || document.body;
+    el.dispatchEvent(new MouseEvent('mousemove', {
+      bubbles: true, cancelable: true,
+      clientX: curX, clientY: curY,
+      screenX: curX, screenY: curY
+    }));
+
+    if (cursorChanged()) { clickCurrent(); return; }
+
+    theta += STEP;
+  }, TICK_MS);
+}
+
 // ── IPC-Handler ───────────────────────────────────────────────────────────────
 
 function setupIPC() {
@@ -285,6 +362,20 @@ function setupIPC() {
   // Gamepad-Config für Renderer liefern
   ipcMain.handle('get-gamepad-config', () => {
     return loadConfig('gamepad.json') || { '0': 'Z', '1': 'X', '2': 'C', '3': 'V' };
+  });
+
+  ipcMain.handle('clear-session', async (_, account) => {
+    const { session } = require('electron');
+    const partition = account === 'account1' ? 'persist:account1' : 'persist:account2';
+    await session.fromPartition(partition).clearStorageData();
+    const view = account === 'account1' ? view1 : view2;
+    view?.webContents.loadURL('https://universe.flyff.com');
+  });
+
+  ipcMain.handle('get-changelog', () => {
+    try {
+      return fs.readFileSync(path.join(__dirname, '../CHANGELOG.md'), 'utf8');
+    } catch { return ''; }
   });
 
   // Neue Automation-Config übernehmen und in Datei schreiben
@@ -336,12 +427,19 @@ function setupIPC() {
     lastSent.y = -1;
   });
 
-  // Gamepad-Button: kurzer Tastendruck (keyDown + keyUp sofort)
+  // Gamepad-Button: kurzer Tastendruck
+  // Space/J via CDP (80ms Hold nötig weil Spiel Input per rAF pollt); alle anderen Keys via sendInputEvent sofort
   ipcMain.on('gamepad-button', (_, { keyCode }) => {
     const view = activeAccount === 'account1' ? view1 : view2;
     if (!view) return;
+    const cdpDef = CDP_KEYS[keyCode];
+    if (cdpDef) {
+      sendKeyCDP(view, cdpDef);
+      return;
+    }
     try {
       view.webContents.sendInputEvent({ type: 'keyDown', keyCode });
+      view.webContents.sendInputEvent({ type: 'char',    keyCode: normalizeKey(keyCode) });
       view.webContents.sendInputEvent({ type: 'keyUp',   keyCode });
     } catch {}
   });
@@ -350,18 +448,13 @@ function setupIPC() {
   ipcMain.on('gamepad-keydown', (_, { keyCode }) => {
     const view = activeAccount === 'account1' ? view1 : view2;
     if (!view) return;
-    try {
-      view.webContents.focus();
-      view.webContents.sendInputEvent({ type: 'keyDown', keyCode });
-    } catch {}
+    try { view.webContents.sendInputEvent({ type: 'keyDown', keyCode: normalizeKey(keyCode) }); } catch {}
   });
 
   ipcMain.on('gamepad-keyup', (_, { keyCode }) => {
     const view = activeAccount === 'account1' ? view1 : view2;
     if (!view) return;
-    try {
-      view.webContents.sendInputEvent({ type: 'keyUp', keyCode });
-    } catch {}
+    try { view.webContents.sendInputEvent({ type: 'keyUp', keyCode: normalizeKey(keyCode) }); } catch {}
   });
 
   // Mausklicks für Controller-Buttons (__LCLICK / __RHOLD)
@@ -403,21 +496,23 @@ function setupIPC() {
     } catch {}
   });
 
+  // Auto-Targeting: Spiralsuche im aktiven Game-View
+  ipcMain.on('search-target', () => {
+    const view = activeAccount === 'account1' ? view1 : view2;
+    if (!view) return;
+    const gpCfg = loadConfig('gamepad.json') || {};
+    const radius = gpCfg.targetRadius || 300;
+    view.webContents.executeJavaScript(`(${spiralSearch})(${radius})`).catch(() => {});
+  });
+
   // Gamepad-Config speichern
   ipcMain.on('save-gamepad-config', (_, cfg) => {
     try { saveConfig('gamepad.json', cfg); } catch (e) {
       console.error('Fehler beim Speichern der Gamepad-Config:', e.message);
     }
+    mainWindow?.webContents.send('gamepad-config-updated', cfg);
   });
 
-  // Login-Credentials laden und speichern
-  ipcMain.handle('get-credentials', (_, account) => {
-    return store.get(`credentials.${account}`, { username: '', password: '', autofill: false });
-  });
-
-  ipcMain.on('save-credentials', (_, account, creds) => {
-    store.set(`credentials.${account}`, creds);
-  });
 }
 
 // ── App-Lifecycle ─────────────────────────────────────────────────────────────
@@ -435,13 +530,6 @@ app.whenReady().then(async () => {
   setupIPC();
   registerShortcuts();
 
-  // Game-View alle 200ms neu fokussieren – verhindert dass Keyboard-Events
-  // nach Focus-Verlust durch Toolbar/Compositor dauerhaft blockiert werden
-  setInterval(() => {
-    if (settingsWindow) return;
-    const view = activeAccount === 'account1' ? view1 : view2;
-    if (view) try { view.webContents.focus(); } catch {}
-  }, 200);
 });
 
 app.on('window-all-closed', () => {

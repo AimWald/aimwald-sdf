@@ -3,7 +3,7 @@
 ## Ziel
 
 Electron-App als Wrapper für https://universe.flyff.com, optimiert für das Steam Deck
-(1280 × 800, Bazzite/SteamOS). Unterstützt Multiboxing (zwei Accounts gleichzeitig),
+(1280 × 800, original SteamOS von Valve). Unterstützt Multiboxing (zwei Accounts gleichzeitig),
 eine Automation-Engine (Autoheal/Buff) und Gamepad-Steuerung.
 
 ## Erledigte Features
@@ -23,6 +23,8 @@ eine Automation-Engine (Autoheal/Buff) und Gamepad-Steuerung.
 
 ### Automation-Engine
 - Konfigurierbare Aktions-Liste pro Account (Label, Taste 1–0/F1–F12, Intervall ms, an/aus)
+- Aktionen können dynamisch hinzugefügt (`+ Aktion`) und gelöscht (`✕`) werden – keine feste Obergrenze
+- Änderungen werden sofort gespeichert und laufende Automationen ohne Neustart übernommen (Live-Save)
 - Aktionen werden via `webContents.sendInputEvent` direkt in den jeweiligen View injiziert
 - **Läuft auch auf dem Hintergrund-Account** (nicht sichtbarer View) – ideal für Autoheal
 - Pro Account separate Start/Stop-Buttons in der Toolbar: `▶ / ■` für Acc1 und Acc2
@@ -33,15 +35,17 @@ eine Automation-Engine (Autoheal/Buff) und Gamepad-Steuerung.
 ### Gamepad-Support
 - Polling via `requestAnimationFrame` im Toolbar-Renderer (kein setInterval-Cascade)
 - Linker Stick (Axes 0+1): WASD-Tasten mit Hysterese (Press 0.40 / Release 0.20)
-- Rechter Stick (Axes 2+3): Mausbewegung (Kameradrehung), Deadzone 0.25
+- Rechter Stick (Axes 2+3): Mausbewegung (Kameradrehung) **nur wenn L2 (`__RHOLD`) gehalten** – verhindert Cursor-Drift
 - Maus-IPC gedrosselt auf 30 fps, Deltas akkumuliert – verhindert Queue-Flooding
 - Virtueller Cursor wird beim Loslassen von `__RHOLD` zur Bildschirmmitte zurückgesetzt
-- Focus-Keeper: aktiver Game-View wird alle 200 ms neu fokussiert (verhindert Keyboard-Blockade)
-- `webContents.focus()` bei jedem `keydown`-Event und `updateViewBounds()`
 - Deadzone: 0.25 (verhindert Drift)
-- Button-Mapping konfigurierbar in Settings (Controller-Tab) und `config/gamepad.json`
+- Button-Mapping konfigurierbar in Settings (Controller-Tab, Buttons 0–19) und `config/gamepad.json`
+- Gamepad-Config wird live übernommen wenn Settings gespeichert werden (kein Neustart nötig)
 - Edge-Detection: Tastendruck wird nur einmal ausgelöst, kein Auto-Repeat
 - Maus-Cursor immer sichtbar via `insertCSS: cursor: default !important`
+- Button-Presse senden **keyDown + char + keyUp** via `sendInputEvent` (sofort, kein Delay)
+- **Space und J**: via CDP `Input.dispatchKeyEvent` mit 80ms Hold zwischen rawKeyDown und keyUp – Flyff pollt Input per `requestAnimationFrame`, keyUp im selben Tick lässt die Taste nie als "gedrückt" erscheinen; `sendInputEvent` funktioniert für Space/J nicht (isTrusted oder fehlende Felder)
+- Weitere problematische Keys bei Bedarf in `CDP_KEYS` eintragen (`main.js`)
 
 ### Standard-Controller-Layout (Steam Deck)
 | Button | Aktion |
@@ -49,7 +53,7 @@ eine Automation-Engine (Autoheal/Buff) und Gamepad-Steuerung.
 | A (0) | Linksklick (Angriff/Auswählen) |
 | B (1) | `.` – Clear Target (in Spiel unter Menu→Keys auf `.` legen) |
 | X (2) | Taste 3 |
-| Y (3) | Leertaste |
+| Y (3) | Leertaste (Jump) |
 | L1 (4) | Taste 1 (Heal) |
 | R1 (5) | Taste 2 (Buff) |
 | L2 (6) | Rechtsklick halten (Kamera drehen) |
@@ -60,8 +64,22 @@ eine Automation-Engine (Autoheal/Buff) und Gamepad-Steuerung.
 | D-Pad ↓ (13) | Zoom raus (Scrollrad) |
 | D-Pad → (15) | Tab (Skillbar wechseln) |
 
+### Auto-Targeting
+- Gamepad-Aktion `__TARGET` (zuweisbar im Controller-Tab)
+- Injiziert via `executeJavaScript` ein Spiral-Skript in den aktiven Game-View
+- Bewegt den Cursor spiralförmig von der Bildschirmmitte nach außen (Archimedean spiral)
+- Parameter: STEP=0.35 rad/tick, TIGHTNESS=6 px/rad (~37px Abstand), TICK_MS=16 → Scan bis 300px in ~2.3s
+- MutationObserver + synchrone Cursor-Style-Prüfung erkennen Ziel-Hover (`document.body.style.cursor` / Canvas)
+- Bei Treffer: MouseDown/MouseUp an der aktuellen Cursor-Position → Ziel wird selektiert
+- Konfigurierbarer Radius (px) in Settings → Controller → "Auto-Target" gespeichert in `gamepad.json` als `targetRadius`
+
+### Changelog
+- `CHANGELOG.md` liegt im Projekt-Root, wird ins AppImage gebündelt
+- Toolbar-Button `📋` öffnet Changelog-Overlay direkt in der App (über dem Game-View)
+- **Nach jeder Änderung CHANGELOG.md aktualisieren** – Version hochzählen + Eintrag hinzufügen
+
 ### Konfiguration & Persistenz
-- `electron-store` speichert: `activeAccount`, `hotkeys`, `windowBounds`, `credentials`
+- `electron-store` speichert: `activeAccount`, `hotkeys`, `windowBounds`
 - `automation.json` und `gamepad.json` werden in `app.getPath('userData')` gespeichert (`~/.config/flyff-wrapper/`)
 - Beim ersten Start wird die gebündelte Default-Config nach userData kopiert
 - AppImage-Updates überschreiben Nutzer-Configs **nicht**
@@ -78,12 +96,13 @@ eine Automation-Engine (Autoheal/Buff) und Gamepad-Steuerung.
 
 ### UI – Settings-Fenster
 - Unabhängiges Fenster (kein `parent: mainWindow`, `sandbox: true`) – verhindert Doppel-Input unter Wayland
-- `✕ Schließen`-Button im Footer (IPC `close-settings`)
-- Tab **Automation**: Tabelle mit Label, Taste (1–0, F1–F12 Dropdown), Intervall, Checkbox pro Aktion, für beide Accounts
-- Tab **Controller**: Button-Mapping Tabelle (16 Buttons, alle Sonderaktionen wählbar inkl. Scroll, Mausklick)
-- Tab **Accounts**: Benutzername/Passwort mit Auto-Fill-Option pro Account
+- UI vollständig auf Englisch
+- `✕ Close`-Button im Footer (IPC `close-settings`)
+- Tab **Automation**: Tabelle mit Label, Taste (1–0, F1–F12 Dropdown), Intervall, Checkbox; dynamisch erweiterbar; separiert pro Account
+- Tab **Controller**: Button-Mapping Tabelle (Buttons 0–19, alle Sonderaktionen wählbar inkl. Scroll, Mausklick, Auto-Target); konfigurierbarer Auto-Target-Radius
+- Tab **Accounts**: „Reset Session"-Buttons pro Account – löscht Cookies/Login der Partition und lädt Seite neu
 - Tab **Hotkeys**: Texteingabe für Account-Switch-Taste und Automation-Toggle-Taste
-- `💾 Speichern` schreibt Config sofort auf Disk und startet laufende Automationen mit neuer Config neu
+- `💾 Save` schreibt Config sofort auf Disk und startet laufende Automationen mit neuer Config neu
 
 ### Steam Deck Deployment
 - AppImage wird via `electron-builder` gebaut: `npm run build`
@@ -95,11 +114,9 @@ eine Automation-Engine (Autoheal/Buff) und Gamepad-Steuerung.
 ## Offene Punkte / mögliche Erweiterungen
 
 ### Funktionalität
-- [ ] **Automation-Aktionen hinzufügen/löschen** – Settings-Tabelle hat feste 8 Einträge, kein +/- Button
 - [ ] **Automation-Profil-Wahl in der Toolbar** – aktuell fest: account1 ↔ account2-Profil
 - [ ] **Reconnect-Logik** – wenn das Spiel die Session verliert, automatisch neu laden
 - [ ] **Benachrichtigung bei Automation-Fehler** – stille Fehler in `sendInputEvent` werden nur geloggt
-- [ ] **Gamepad-Config live neu laden** – Änderungen im Settings-UI aktiv sofort, aber `getGamepadConfig` beim Start in index.html neu laden nötig
 
 ### Code-Qualität
 - [ ] **IPC-Fehlerbehandlung im Renderer** – `window.flyff.*`-Aufrufe haben kein Error-Handling
@@ -115,7 +132,7 @@ flyff-wrapper/
 │   ├── automation.json       – Default-Config (Heal/Buff Tasten + Intervalle)
 │   └── gamepad.json          – Default Button-Index → Taste Mapping
 └── src/
-    ├── main.js               – Hauptprozess: Fenster, Views, IPC, Shortcuts, Focus-Keeper
+    ├── main.js               – Hauptprozess: Fenster, Views, IPC, Shortcuts
     ├── automation.js         – Timer-Engine (start/stop/isRunning pro Account)
     ├── preload.js            – contextBridge → window.flyff API
     └── ui/
@@ -150,4 +167,6 @@ scp dist/FlyffWrapper.AppImage deck@192.168.178.30:/home/deck/
 - Automation läuft auf dem **Hintergrund-View** via `sendInputEvent` ohne Fokus-Anforderung
 - Gamepad-Polling via `requestAnimationFrame` im Toolbar-Renderer; Maus-IPC max 30 fps
 - Configs werden in `app.getPath('userData')` gespeichert, nicht im AppImage-Bundle
-- Wayland: `ELECTRON_OZONE_PLATFORM_HINT=auto` im Startup-Skript gesetzt
+- Wayland: `ELECTRON_OZONE_PLATFORM_HINT=auto` im Startup-Skript gesetzt; `XMODIFIERS=""`, `GTK_IM_MODULE=""`, `QT_IM_MODULE=""` deaktivieren IBus/Fcitx (verhindert doppelte Eingaben)
+- **sendInputEvent für Tasten**: `keyDown` + `char` + `keyUp` – `char` entspricht DOM-`keypress` und ist für Space/Jump nötig; `KEY_NAME_MAP` konvertiert Accelerator-Namen für `char`-Events (`'Space'` → `' '`)
+- `before-input-event`-Fallback entfernt – war unter Wayland Quelle für Doppel-Inputs

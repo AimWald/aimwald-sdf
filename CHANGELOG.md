@@ -1,5 +1,85 @@
 # Changelog
 
+## [1.27.0] – 2026-04-28
+### Fixed
+- 80ms Hold und focus() aus normalem sendInputEvent-Pfad entfernt – reguläre Keys (I, 1, 2, M, …) funktionieren sofort und brauchen kein Hold; Hold bleibt nur im CDP-Pfad (Space/J)
+
+## [1.26.0] – 2026-04-28
+### Fixed
+- Jump (Space/J): CDP-Taste hält jetzt 80ms zwischen rawKeyDown und keyUp – Spiel pollt Input per rAF (~16ms), keyUp im selben Tick ließ die Taste nie als "gedrückt" erscheinen
+- Alle anderen Button-Keys: `view.webContents.focus()` + 80ms Hold vor sendInputEvent – verhindert dass Events ohne aktiven View-Fokus still gedroppt werden
+- J zu CDP_KEYS hinzugefügt (falls Jump in Flyff auf J umgestellt)
+
+## [1.25.0] – 2026-04-28
+### Fixed
+- Jump (Space): CDP `Input.dispatchKeyEvent` statt `dispatchEvent`/`sendInputEvent` – setzt alle Felder korrekt (`code:'Space'`, `key:' '`, `text:' '`, `windowsVirtualKeyCode:32`, `isTrusted:true`), identisch zu echtem OS-Keypress (SD-Tastatur)
+
+## [1.24.0] – 2026-04-28
+### Fixed
+- Jump (Space): Dispatch-Target von `document` auf `canvas` (fallback: `body`) geändert – DOM-Events bubblen nur nach OBEN (canvas→body→document→window), nicht nach unten; Dispatch auf `document` erreichte Canvas-level Listener nie
+
+## [1.23.0] – 2026-04-28
+### Fixed
+- Jump (Space): `sendInputEvent` setzt `event.code` für Space nicht zuverlässig → Space-Button nutzt jetzt `executeJavaScript` + `dispatchEvent` mit explizitem `code:'Space'`, `key:' '`, `keyCode:32`
+
+## [1.22.0] – 2026-04-28
+### Fixed
+- Jump (Space) via Controller: `char`-Event wird jetzt zusätzlich zu `keyDown`/`keyUp` gesendet – Flyff wertet `keypress` für Jump aus, das `keyDown` allein löste es nicht aus
+### Changed
+- Auto-Target Spiralsuche ~3.5× schneller: STEP 0.18→0.35, TIGHTNESS 4→6 (37px Abstand), TICK_MS 20→16 – Scan bis 300px Radius dauert jetzt ~2.3s statt ~8.3s
+
+## [1.21.0] – 2026-04-28
+### Changed
+- UI fully translated to English (toolbar tooltips, settings labels, button names, dropdown options)
+
+## [1.20.0] – 2026-04-28
+### Fixed
+- Leertaste (Space/Jump) und Enter funktionieren jetzt korrekt via Controller: `sendInputEvent` erwartet `' '` bzw. `'\r'`, nicht die Accelerator-Namen `'Space'`/`'Return'`
+
+## [1.19.0] – 2026-04-28
+### Fixed
+- Doppelte Tastatureingaben (Settings + Webpage): `XMODIFIERS=""`, `GTK_IM_MODULE=""`, `QT_IM_MODULE=""` im Launch-Skript – deaktiviert IBus/Fcitx Input-Method die unter Wayland/Bazzite Eingaben verdoppelt
+- `before-input-event`-Fallback vollständig entfernt – war auf Wayland nicht zuverlässig und hat Doubles mitverursacht
+### Removed
+- Auto-Fill Credentials (Benutzername/Passwort) aus Settings entfernt – Login erfolgt via Google auf der Webseite
+
+## [1.18.0] – 2026-04-28
+### Added
+- Settings → Accounts: „Session zurücksetzen"-Buttons pro Account – löscht Cookies und gespeicherte Login-Daten der Partition und lädt die Seite neu
+
+## [1.17.0] – 2026-04-28
+### Fixed
+- Doppelte Tastatureingaben beim Schreiben behoben: `before-input-event`-Fallback leitet Tasten jetzt nur weiter wenn der Game-View nicht bereits fokussiert ist (`isFocused()`-Check)
+
+## [1.16.0] – 2026-04-28
+### Fixed
+- Gamepad Button-Mapping wird jetzt live aktualisiert wenn Settings gespeichert werden – kein App-Neustart mehr nötig damit neue Zuweisungen wirken
+
+## [1.15.0] – 2026-04-28
+### Changed
+- Controller-Tab zeigt jetzt Buttons 0–19 (statt 0–15) – Back-Buttons L4/R4/L5/R5 (Index 16–19) sind zuweisbar, sofern Steam Input sie als Standard-Button durchreicht
+
+## [1.14.0] – 2026-04-28
+### Added
+- Auto-Targeting via Spiralsuche: `__TARGET` als neue Gamepad-Aktion – bewegt den Cursor spiralförmig von der Bildschirmmitte, klickt sobald das Spiel ein Ziel signalisiert (Cursor-Style-Änderung)
+- Konfigurierbarer Spiral-Radius (px) im Settings → Controller-Tab
+- Changelog-Button in der Toolbar (📋) öffnet Overlay mit Versionshistorie
+
+## [1.13.0] – 2026-04-28
+### Added
+- Automation-Aktionen können jetzt dynamisch hinzugefügt (`+ Aktion hinzufügen`) und gelöscht (`✕`) werden – keine feste Grenze von 8 Einträgen mehr
+- Live-Save: Änderungen an Automation-Aktionen (Label, Taste, Intervall, Checkbox, Add, Delete) werden sofort gespeichert und laufende Automationen ohne App-Neustart neu gestartet
+
+## [1.12.0] – 2026-04-28
+### Fixed
+- Rechter Stick bewegt die Maus jetzt nur noch wenn L2 (`__RHOLD`) gehalten wird – verhindert unsichtbaren Cursor-Drift ohne aktive Kameradrehung
+
+## [1.11.0] – 2026-04-28
+### Fixed
+- 200 ms Focus-Keeper entfernt – war Ursache für app-weite Doppel-Inputs (jede Taste wurde zweimal gesendet)
+- `webContents.focus()` aus Gamepad-Keydown-Handler entfernt – zweite Quelle für Doppel-Inputs
+- `before-input-event`-Fallback: wenn der Toolbar-Renderer versehentlich Keyboard-Focus hat, werden Tasten einmalig ans Game-View weitergeleitet ohne `focus()` aufzurufen
+
 ## [1.10.0] – 2025-04-28
 ### Fixed
 - `automation.json` und `gamepad.json` werden jetzt in `app.getPath('userData')` (`~/.config/flyff-wrapper/`) gespeichert – AppImage-Updates überschreiben gespeicherte Einstellungen nicht mehr

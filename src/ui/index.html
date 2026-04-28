@@ -80,42 +80,72 @@
       margin-left: auto;
     }
     #btn-close:hover { background: #7a2a2a; }
+
+    /* Changelog-Overlay */
+    #changelog-overlay {
+      display: none;
+      position: fixed;
+      inset: 30px 0 0 0;
+      background: #12122a;
+      z-index: 999;
+      overflow-y: auto;
+      padding: 14px 18px;
+      -webkit-app-region: no-drag;
+    }
+    #changelog-overlay h2 { color: #88aaff; font-size: 13px; border-bottom: 1px solid #2a2a4a; padding-bottom: 3px; margin: 10px 0 4px; }
+    #changelog-overlay h2:first-child { margin-top: 0; }
+    #changelog-overlay h3 { color: #6688cc; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; margin: 6px 0 3px; }
+    #changelog-overlay li  { color: #c0c0d8; font-size: 12px; margin: 2px 0 2px 14px; }
+    #changelog-overlay .cl-close {
+      position: sticky;
+      top: 0;
+      float: right;
+      background: #2a2a4a;
+      border: 1px solid #4a4a7a;
+      color: #aaa;
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    #changelog-overlay .cl-close:hover { background: #3a3a6a; }
   </style>
 </head>
 <body>
   <div class="toolbar">
 
-    <!-- Account-Auswahl -->
+    <!-- Account selection -->
     <span class="label no-drag">Acc:</span>
-    <button id="btn-acc1" class="active" onclick="switchAccount('account1')" title="Account 1 anzeigen">1</button>
-    <button id="btn-acc2"               onclick="switchAccount('account2')" title="Account 2 anzeigen">2</button>
+    <button id="btn-acc1" class="active" onclick="switchAccount('account1')" title="Show Account 1">1</button>
+    <button id="btn-acc2"               onclick="switchAccount('account2')" title="Show Account 2">2</button>
 
     <div class="sep"></div>
 
     <!-- Automation Account 1 -->
     <span class="label no-drag">Acc1:</span>
-    <button id="btn-start-account1" onclick="startAutomation('account1')" title="Automation Account 1 starten (F10)">▶</button>
-    <button id="btn-stop-account1"  onclick="stopAutomation('account1')"  title="Automation Account 1 stoppen">■</button>
+    <button id="btn-start-account1" onclick="startAutomation('account1')" title="Start Automation Account 1 (F10)">▶</button>
+    <button id="btn-stop-account1"  onclick="stopAutomation('account1')"  title="Stop Automation Account 1">■</button>
 
     <div class="sep"></div>
 
     <!-- Automation Account 2 -->
     <span class="label no-drag">Acc2:</span>
-    <button id="btn-start-account2" onclick="startAutomation('account2')" title="Automation Account 2 starten">▶</button>
-    <button id="btn-stop-account2"  onclick="stopAutomation('account2')"  title="Automation Account 2 stoppen">■</button>
+    <button id="btn-start-account2" onclick="startAutomation('account2')" title="Start Automation Account 2">▶</button>
+    <button id="btn-stop-account2"  onclick="stopAutomation('account2')"  title="Stop Automation Account 2">■</button>
 
     <div class="sep"></div>
 
-    <button onclick="window.flyff.openSettings()" title="Einstellungen (Tasten, Intervalle, Hotkeys)">⚙ Settings</button>
+    <button onclick="window.flyff.openSettings()" title="Settings (Keys, Intervals, Hotkeys)">⚙ Settings</button>
 
-    <!-- Versionsnummer -->
+    <!-- Version + Changelog -->
     <span id="app-version" class="label no-drag" style="color:#333; font-size:10px;"></span>
+    <button id="btn-changelog" onclick="openChangelog()" title="Show Changelog" style="padding:0 5px; font-size:10px; color:#444; border-color:#2a2a4a; background:#12122a;">📋</button>
 
-    <!-- Gamepad-Status-Indikator -->
-    <span id="gp-status" class="label no-drag" title="Gamepad-Status">🎮 <span id="gp-label">–</span></span>
+    <!-- Gamepad status indicator -->
+    <span id="gp-status" class="label no-drag" title="Gamepad Status">🎮 <span id="gp-label">–</span></span>
 
-    <!-- Schließen ganz rechts -->
-    <button id="btn-close" onclick="window.flyff.quitApp()" title="App beenden">✕</button>
+    <!-- Close button -->
+    <button id="btn-close" onclick="window.flyff.quitApp()" title="Quit">✕</button>
   </div>
 
   <script>
@@ -131,8 +161,10 @@
       // Gamepad-Config laden und Polling starten.
       // Polling läuft hier im Renderer-Hauptkontext, weil navigator.getGamepads()
       // im isolierten Preload-Kontext nicht zuverlässig verfügbar ist.
-      const gpConfig = await window.flyff.getGamepadConfig();
-      startGamepadPolling(gpConfig);
+      currentButtonMap = await window.flyff.getGamepadConfig();
+      startGamepadPolling();
+
+      window.flyff.on('gamepad-config-updated', cfg => { currentButtonMap = cfg; });
     }
 
     // ── UI-Hilfsfunktionen ────────────────────────────────────────────────────
@@ -176,7 +208,9 @@
 
     // ── Gamepad-Polling (läuft im Renderer-Hauptkontext) ─────────────────────
 
-    function startGamepadPolling(buttonMap) {
+    let currentButtonMap = null;
+
+    function startGamepadPolling() {
       const WASD_PRESS     = 0.40;
       const WASD_RELEASE   = 0.20;
       const STICK_DEADZONE = 0.25;
@@ -234,24 +268,22 @@
           updateAxis('S',  gp.axes[1] || 0);
           updateAxis('W', -(gp.axes[1] || 0));
 
-          // Rechter Stick → Mausdelta akkumulieren
-          const rx = gp.axes[2] || 0;
-          const ry = gp.axes[3] || 0;
-          if (Math.abs(rx) > STICK_DEADZONE) pendingDx += rx * SPEED_RIGHT;
-          if (Math.abs(ry) > STICK_DEADZONE) pendingDy += ry * SPEED_RIGHT;
-
           // Buttons: sofort, kein Throttle
+          let rHoldActive = false;
           gp.buttons.forEach((btn, idx) => {
             const key        = `${gp.index}_${idx}`;
             const pressed    = btn.pressed;
             const wasPressed = prevBtns[key];
-            const action     = buttonMap && buttonMap[String(idx)];
+            const action     = currentButtonMap && currentButtonMap[String(idx)];
+
+            if (action === '__RHOLD') rHoldActive = pressed;
 
             if (pressed && !wasPressed) {
               if      (action === '__LCLICK')      { window.flyff.sendMouseDown('left'); setTimeout(() => window.flyff.sendMouseUp('left'), 80); }
               else if (action === '__RHOLD')        window.flyff.sendMouseDown('right');
               else if (action === '__SCROLL_UP')    window.flyff.sendGamepadScroll(0,  120);
               else if (action === '__SCROLL_DOWN')  window.flyff.sendGamepadScroll(0, -120);
+              else if (action === '__TARGET')        window.flyff.searchTarget();
               else if (action)                      window.flyff.sendGamepadButton(action);
             } else if (!pressed && wasPressed && action === '__RHOLD') {
               window.flyff.sendMouseUp('right');
@@ -259,6 +291,14 @@
             }
             prevBtns[key] = pressed;
           });
+
+          // Rechter Stick → Mausdelta nur wenn L2 (__RHOLD) gehalten
+          if (rHoldActive) {
+            const rx = gp.axes[2] || 0;
+            const ry = gp.axes[3] || 0;
+            if (Math.abs(rx) > STICK_DEADZONE) pendingDx += rx * SPEED_RIGHT;
+            if (Math.abs(ry) > STICK_DEADZONE) pendingDy += ry * SPEED_RIGHT;
+          }
         }
 
         // Maus-IPC gebündelt max 30fps senden
@@ -276,6 +316,39 @@
     }
 
     init();
+
+    // ── Changelog-Overlay ─────────────────────────────────────────────────────
+
+    function renderMarkdown(md) {
+      const el = document.createElement('div');
+      md.split('\n').forEach(line => {
+        if (line.startsWith('## '))      { const h = document.createElement('h2'); h.textContent = line.slice(3); el.appendChild(h); }
+        else if (line.startsWith('### ')) { const h = document.createElement('h3'); h.textContent = line.slice(4); el.appendChild(h); }
+        else if (line.startsWith('- '))  { const ul = el.lastChild?.tagName === 'UL' ? el.lastChild : el.appendChild(document.createElement('ul')); const li = document.createElement('li'); li.textContent = line.slice(2); ul.appendChild(li); }
+        // Leerzeilen und andere Zeilen überspringen
+      });
+      return el;
+    }
+
+    async function openChangelog() {
+      const overlay = document.getElementById('changelog-overlay');
+      if (overlay.style.display === 'block') { overlay.style.display = 'none'; return; }
+      const content = document.getElementById('changelog-content');
+      if (!content.hasChildNodes()) {
+        const md = await window.flyff.getChangelog();
+        content.appendChild(renderMarkdown(md));
+      }
+      overlay.style.display = 'block';
+    }
+
+    function closeChangelog() {
+      document.getElementById('changelog-overlay').style.display = 'none';
+    }
   </script>
+
+  <div id="changelog-overlay">
+    <button class="cl-close" onclick="closeChangelog()">✕ Close</button>
+    <div id="changelog-content"></div>
+  </div>
 </body>
 </html>
