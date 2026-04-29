@@ -14,7 +14,9 @@ contextBridge.exposeInMainWorld('flyff', {
   // --- UI-Fenster ---
   openSettings:  () => ipcRenderer.send('open-settings'),
   closeSettings: () => ipcRenderer.send('close-settings'),
+  openQuestUrl:  (url) => ipcRenderer.send('open-quest-url', url),
   quitApp:       () => ipcRenderer.send('quit-app'),
+  setGameViewVisibility: (visible) => ipcRenderer.send('set-game-view-visibility', visible),
 
   // --- Daten abfragen (Promise) ---
   getState:            () => ipcRenderer.invoke('get-state'),
@@ -48,5 +50,9 @@ contextBridge.exposeInMainWorld('flyff', {
   resetCursor:        ()               => ipcRenderer.send('gamepad-reset-cursor'),
   searchTarget:       ()               => ipcRenderer.send('search-target'),
   getChangelog:       ()               => ipcRenderer.invoke('get-changelog'),
+  getMonsters:        ()               => ipcRenderer.invoke('get-monsters'),
+  getQuests:          ()               => ipcRenderer.invoke('get-quests'),
+  getQuestProgress:    ()               => ipcRenderer.invoke('get-quest-progress'),
+  saveQuestProgress:   (progress)       => ipcRenderer.send('save-quest-progress', progress),
   clearSession:       (account)        => ipcRenderer.invoke('clear-session', account),
 });

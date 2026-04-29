@@ -1,154 +1,214 @@
 # Changelog
 
+## [1.39.0] – 2026-04-29
+### Added
+- **Quest links**: All 492 quest names are now clickable and open the flyffipedia.com detail page in a separate, movable window. URLs extracted from the NaviKnight2765 spreadsheet XLSX hyperlinks.
+
+## [1.38.0] – 2026-04-29
+### Fixed
+- **Notes column alignment**: Notes text is now clamped to 2 lines via a wrapper div with `-webkit-line-clamp`; row heights stay consistent regardless of note length. Full text appears as a tooltip on hover.
+
+## [1.37.0] – 2026-04-29
+### Fixed
+- **Account switch while guide is open**: Pressing F9 no longer makes the game view appear over the guide overlay. An `overlayOpen` flag in `main.js` ensures `updateViewBounds()` keeps the view hidden until all overlays are closed.
+- **URL protocol guard**: `openQuestUrl()` now rejects any URL that does not start with `http://` or `https://`.
+
+## [1.36.0] – 2026-04-29
+### Added
+- **Complete quest database**: 492 quests (Lv. 1–183) imported from NaviKnight2765's spreadsheet (previously 5 placeholders).
+- New columns: **Items**, **Monsters**, **Notes** — 1:1 data from the spreadsheet.
+- Color-coded recommendation labels: Prioritize (green), Mandatory (yellow), Skip (grey).
+- Extended difficulty colors: Hard / Very Hard / Extreme / Impossible each have distinct colors.
+- Search now also covers Items, Rewards, and Notes fields.
+### Fixed
+- Crash in search when `questline` was empty (added null-check).
+- Quest IDs containing apostrophes (e.g. "Vagrant's Journey") no longer break the `onchange` handler.
+
+## [1.35.0] – 2026-04-29
+### Added
+- **Quest detail window**: Clicking a quest name in the Guide opens the full wiki/database description in a separate window that can be moved and closed independently.
+
+## [1.34.0] – 2026-04-29
+### Added
+- **Extended guide data**: All available columns from the spreadsheet integrated.
+- New columns: **NPC / Location** (who starts the quest and where) and **Inventory Slots**.
+- Extended search: now also finds quests by NPC name or location.
+- Optimized layout for 800p display.
+
+## [1.33.0] – 2026-04-29
+### Fixed
+- **Overlay visibility**: Guide and Changelog are now correctly displayed above the game view. The game view is automatically hidden while any overlay is open.
+
+## [1.32.0] – 2026-04-29
+### Added
+- **Quest progress tracking**: "Done" checkboxes for each quest in the Guide.
+- Progress is saved persistently in `electron-store` and restored on next launch.
+- Completed quests are visually dimmed and struck through.
+
+## [1.31.0] – 2026-04-29
+### Added
+- **Full data integration**: All 11 columns from the quest spreadsheet added to the Guide.
+- New columns: Recommendation, XP details (Exp, Exp2, Experience), Difficulty, Items, Monsters, Notable Rewards.
+- Optimized layout for 800p; compact XP summary and smart column widths.
+- Search now also covers quest monsters.
+
+## [1.30.0] – 2026-04-29
+### Added
+- **Madrigal Guide**: In-app guide overlay (📖 Guide button in toolbar) with quest and monster data.
+
+## [1.29.0] – 2026-04-29
+### Added
+- Initial monster list support (preparation for Madrigal Guide).
+- README.md created with credits for NaviKnight2765 (monster/quest data source).
+
 ## [1.28.0] – 2026-04-29
 ### Added
-- Macro-Buttons in der Toolbar: konfigurierbare Key-Sequenzen (z.B. Full Buff) per Button ausführen
-- Standard: „Full Buff Acc1" und „Full Buff Acc2" (F2, 1–9, F1 mit 200ms Abstand)
-- Automation wird während der Macro-Ausführung automatisch pausiert und danach fortgesetzt
-- Settings → Macros-Tab: Label, Account, Keys (kommagetrennt), Delay konfigurierbar; Macros dynamisch hinzufügen/löschen
+- **Macro buttons** in the toolbar: configurable key sequences (e.g. Full Buff) executed with a single button press.
+- Defaults: "Full Buff Acc1" and "Full Buff Acc2" (F2, 1–9, F1 with 200 ms delay).
+- Automation is automatically paused during macro execution and resumed afterwards.
+- Settings → Macros tab: configure label, account, keys (comma-separated), delay; add/remove macros dynamically.
 
 ## [1.27.0] – 2026-04-28
 ### Fixed
-- 80ms Hold und focus() aus normalem sendInputEvent-Pfad entfernt – reguläre Keys (I, 1, 2, M, …) funktionieren sofort und brauchen kein Hold; Hold bleibt nur im CDP-Pfad (Space/J)
+- Removed 80 ms hold and `focus()` from the regular `sendInputEvent` path — normal keys (I, 1, 2, M, …) are sent immediately; the hold remains only in the CDP path (Space/J).
 
 ## [1.26.0] – 2026-04-28
 ### Fixed
-- Jump (Space/J): CDP-Taste hält jetzt 80ms zwischen rawKeyDown und keyUp – Spiel pollt Input per rAF (~16ms), keyUp im selben Tick ließ die Taste nie als "gedrückt" erscheinen
-- Alle anderen Button-Keys: `view.webContents.focus()` + 80ms Hold vor sendInputEvent – verhindert dass Events ohne aktiven View-Fokus still gedroppt werden
-- J zu CDP_KEYS hinzugefügt (falls Jump in Flyff auf J umgestellt)
+- Jump (Space/J): CDP key now holds 80 ms between `rawKeyDown` and `keyUp` — the game polls input via rAF (~16 ms), so a `keyUp` in the same tick meant the key was never registered as pressed.
+- All other buttons: `view.webContents.focus()` + 80 ms hold before `sendInputEvent` — prevents events being silently dropped without an active view focus.
+- Added J to `CDP_KEYS` (in case Jump is rebound to J in Flyff).
 
 ## [1.25.0] – 2026-04-28
 ### Fixed
-- Jump (Space): CDP `Input.dispatchKeyEvent` statt `dispatchEvent`/`sendInputEvent` – setzt alle Felder korrekt (`code:'Space'`, `key:' '`, `text:' '`, `windowsVirtualKeyCode:32`, `isTrusted:true`), identisch zu echtem OS-Keypress (SD-Tastatur)
+- Jump (Space): switched to CDP `Input.dispatchKeyEvent` instead of `dispatchEvent`/`sendInputEvent` — sets all fields correctly (`code:'Space'`, `key:' '`, `text:' '`, `windowsVirtualKeyCode:32`, `isTrusted:true`), identical to a real OS keypress.
 
 ## [1.24.0] – 2026-04-28
 ### Fixed
-- Jump (Space): Dispatch-Target von `document` auf `canvas` (fallback: `body`) geändert – DOM-Events bubblen nur nach OBEN (canvas→body→document→window), nicht nach unten; Dispatch auf `document` erreichte Canvas-level Listener nie
+- Jump (Space): changed dispatch target from `document` to `canvas` (fallback: `body`) — DOM events bubble upward (canvas→body→document→window), not downward; dispatching on `document` never reached canvas-level listeners.
 
 ## [1.23.0] – 2026-04-28
 ### Fixed
-- Jump (Space): `sendInputEvent` setzt `event.code` für Space nicht zuverlässig → Space-Button nutzt jetzt `executeJavaScript` + `dispatchEvent` mit explizitem `code:'Space'`, `key:' '`, `keyCode:32`
+- Jump (Space): `sendInputEvent` does not reliably set `event.code` for Space — Space button now uses `executeJavaScript` + `dispatchEvent` with explicit `code:'Space'`, `key:' '`, `keyCode:32`.
 
 ## [1.22.0] – 2026-04-28
 ### Fixed
-- Jump (Space) via Controller: `char`-Event wird jetzt zusätzlich zu `keyDown`/`keyUp` gesendet – Flyff wertet `keypress` für Jump aus, das `keyDown` allein löste es nicht aus
+- Jump (Space) via controller: `char` event is now sent in addition to `keyDown`/`keyUp` — Flyff evaluates `keypress` for Jump, which `keyDown` alone did not trigger.
 ### Changed
-- Auto-Target Spiralsuche ~3.5× schneller: STEP 0.18→0.35, TIGHTNESS 4→6 (37px Abstand), TICK_MS 20→16 – Scan bis 300px Radius dauert jetzt ~2.3s statt ~8.3s
+- Auto-target spiral search ~3.5× faster: STEP 0.18→0.35, TIGHTNESS 4→6 (37 px spacing), TICK_MS 20→16 — scan to 300 px radius now takes ~2.3 s instead of ~8.3 s.
 
 ## [1.21.0] – 2026-04-28
 ### Changed
-- UI fully translated to English (toolbar tooltips, settings labels, button names, dropdown options)
+- UI fully translated to English (toolbar tooltips, settings labels, button names, dropdown options).
 
 ## [1.20.0] – 2026-04-28
 ### Fixed
-- Leertaste (Space/Jump) und Enter funktionieren jetzt korrekt via Controller: `sendInputEvent` erwartet `' '` bzw. `'\r'`, nicht die Accelerator-Namen `'Space'`/`'Return'`
+- Space (Jump) and Enter now work correctly via controller: `sendInputEvent` expects `' '` and `'\r'`, not the accelerator names `'Space'`/`'Return'`.
 
 ## [1.19.0] – 2026-04-28
 ### Fixed
-- Doppelte Tastatureingaben (Settings + Webpage): `XMODIFIERS=""`, `GTK_IM_MODULE=""`, `QT_IM_MODULE=""` im Launch-Skript – deaktiviert IBus/Fcitx Input-Method die unter Wayland/Bazzite Eingaben verdoppelt
-- `before-input-event`-Fallback vollständig entfernt – war auf Wayland nicht zuverlässig und hat Doubles mitverursacht
+- Double key inputs (Settings + webpage): `XMODIFIERS=""`, `GTK_IM_MODULE=""`, `QT_IM_MODULE=""` added to launch script — disables IBus/Fcitx input method that duplicated keystrokes under Wayland.
+- Removed `before-input-event` fallback entirely — was unreliable on Wayland and contributed to double inputs.
 ### Removed
-- Auto-Fill Credentials (Benutzername/Passwort) aus Settings entfernt – Login erfolgt via Google auf der Webseite
+- Auto-fill credentials (username/password) removed from Settings — login is handled via Google on the website.
 
 ## [1.18.0] – 2026-04-28
 ### Added
-- Settings → Accounts: „Session zurücksetzen"-Buttons pro Account – löscht Cookies und gespeicherte Login-Daten der Partition und lädt die Seite neu
+- Settings → Accounts: "Reset Session" buttons per account — clears cookies and stored login data for the partition and reloads the page.
 
 ## [1.17.0] – 2026-04-28
 ### Fixed
-- Doppelte Tastatureingaben beim Schreiben behoben: `before-input-event`-Fallback leitet Tasten jetzt nur weiter wenn der Game-View nicht bereits fokussiert ist (`isFocused()`-Check)
+- Fixed double key inputs when typing: `before-input-event` fallback now only forwards keys if the game view is not already focused (`isFocused()` check).
 
 ## [1.16.0] – 2026-04-28
 ### Fixed
-- Gamepad Button-Mapping wird jetzt live aktualisiert wenn Settings gespeichert werden – kein App-Neustart mehr nötig damit neue Zuweisungen wirken
+- Gamepad button mapping is now updated live when Settings are saved — no app restart required for new assignments to take effect.
 
 ## [1.15.0] – 2026-04-28
 ### Changed
-- Controller-Tab zeigt jetzt Buttons 0–19 (statt 0–15) – Back-Buttons L4/R4/L5/R5 (Index 16–19) sind zuweisbar, sofern Steam Input sie als Standard-Button durchreicht
+- Controller tab now shows buttons 0–19 (previously 0–15) — back buttons L4/R4/L5/R5 (index 16–19) are assignable if Steam Input passes them through.
 
 ## [1.14.0] – 2026-04-28
 ### Added
-- Auto-Targeting via Spiralsuche: `__TARGET` als neue Gamepad-Aktion – bewegt den Cursor spiralförmig von der Bildschirmmitte, klickt sobald das Spiel ein Ziel signalisiert (Cursor-Style-Änderung)
-- Konfigurierbarer Spiral-Radius (px) im Settings → Controller-Tab
-- Changelog-Button in der Toolbar (📋) öffnet Overlay mit Versionshistorie
+- Auto-targeting via spiral search: `__TARGET` as a new gamepad action — moves the cursor spirally from screen center and clicks when the game signals a target (cursor style change).
+- Configurable spiral radius (px) in Settings → Controller tab.
+- Changelog button in toolbar (📋) opens an overlay with version history.
 
 ## [1.13.0] – 2026-04-28
 ### Added
-- Automation-Aktionen können jetzt dynamisch hinzugefügt (`+ Aktion hinzufügen`) und gelöscht (`✕`) werden – keine feste Grenze von 8 Einträgen mehr
-- Live-Save: Änderungen an Automation-Aktionen (Label, Taste, Intervall, Checkbox, Add, Delete) werden sofort gespeichert und laufende Automationen ohne App-Neustart neu gestartet
+- Automation actions can now be added (`+ Add action`) and removed (`✕`) dynamically — no fixed limit of 8 entries.
+- Live-save: changes to automation actions (label, key, interval, checkbox, add, delete) are saved immediately and running automations are restarted without an app restart.
 
 ## [1.12.0] – 2026-04-28
 ### Fixed
-- Rechter Stick bewegt die Maus jetzt nur noch wenn L2 (`__RHOLD`) gehalten wird – verhindert unsichtbaren Cursor-Drift ohne aktive Kameradrehung
+- Right stick now only moves the mouse when L2 (`__RHOLD`) is held — prevents invisible cursor drift without active camera rotation.
 
 ## [1.11.0] – 2026-04-28
 ### Fixed
-- 200 ms Focus-Keeper entfernt – war Ursache für app-weite Doppel-Inputs (jede Taste wurde zweimal gesendet)
-- `webContents.focus()` aus Gamepad-Keydown-Handler entfernt – zweite Quelle für Doppel-Inputs
-- `before-input-event`-Fallback: wenn der Toolbar-Renderer versehentlich Keyboard-Focus hat, werden Tasten einmalig ans Game-View weitergeleitet ohne `focus()` aufzurufen
+- Removed 200 ms focus-keeper — was the cause of app-wide double inputs (every key was sent twice).
+- Removed `webContents.focus()` from the gamepad keydown handler — second source of double inputs.
+- `before-input-event` fallback: if the toolbar renderer accidentally has keyboard focus, keys are forwarded once to the game view without calling `focus()`.
 
 ## [1.10.0] – 2025-04-28
 ### Fixed
-- `automation.json` und `gamepad.json` werden jetzt in `app.getPath('userData')` (`~/.config/flyff-wrapper/`) gespeichert – AppImage-Updates überschreiben gespeicherte Einstellungen nicht mehr
+- `automation.json` and `gamepad.json` are now stored in `app.getPath('userData')` (`~/.config/flyff-wrapper/`) — AppImage updates no longer overwrite saved settings.
 
 ## [1.9.0] – 2025-04-28
 ### Changed
-- `gamepad.json`: L2 (Button 6) ist jetzt Kamera (Rechtsklick halten), X (Button 2) → Taste 3
+- `gamepad.json`: L2 (button 6) is now camera (hold right-click), X (button 2) → key 3.
 
 ## [1.8.0] – 2025-04-28
 ### Fixed
-- Cursor-Reset zurück zur Bildschirmmitte nur noch beim Loslassen von `__RHOLD` (Kamera-Button), nicht beim Zurückführen des Sticks
+- Cursor reset to screen center now only triggers when releasing `__RHOLD` (camera button), not when returning the stick to center.
 
 ## [1.7.0] – 2025-04-28
 ### Fixed
-- Maus-IPC wird nicht mehr gesendet wenn der Cursor an der Kante klemmt und die Position unverändert bleibt (verhindert Queue-Flood)
-- Cursor-Reset auf Bildschirmmitte nach Kameraschwenk (IPC `gamepad-reset-cursor`)
-- Cursor-Clamp korrigiert: `w-1` / `h-TOOLBAR_H-1` statt `w` / `h-TOOLBAR_H`
+- Mouse IPC is no longer sent when the cursor is stuck at the edge and the position hasn't changed (prevents IPC queue flooding).
+- Cursor reset to screen center after camera pan (IPC `gamepad-reset-cursor`).
+- Cursor clamp corrected: `w-1` / `h-TOOLBAR_H-1` instead of `w` / `h-TOOLBAR_H`.
 
 ## [1.6.0] – 2025-04-28
 ### Fixed
-- Focus-Keeper im Main-Prozess: aktiver Game-View wird alle 200 ms neu fokussiert, damit Keyboard-Events via `sendInputEvent` nie dauerhaft blockieren
+- Focus-keeper in main process: active game view is re-focused every 200 ms so keyboard events via `sendInputEvent` are never permanently blocked.
 
 ## [1.5.0] – 2025-04-28
 ### Fixed
-- `webContents.focus()` wird bei `gamepad-keydown` und in `updateViewBounds()` aufgerufen – Game-View behält Input-Focus länger
+- `webContents.focus()` is called on `gamepad-keydown` and in `updateViewBounds()` — game view retains input focus longer.
 
 ## [1.4.0] – 2025-04-28
 ### Fixed
-- Gamepad-Polling von `setInterval(16ms)` auf `requestAnimationFrame` umgestellt – kein Callback-Cascade wenn ein Frame zu lang dauert
-- Maus-IPC auf max. 30 fps gedrosselt, Deltas zwischen Frames akkumuliert – verhindert IPC-Queue-Flooding
+- Gamepad polling switched from `setInterval(16ms)` to `requestAnimationFrame` — no callback cascade when a frame takes too long.
+- Mouse IPC throttled to max 30 fps, deltas accumulated between frames — prevents IPC queue flooding.
 
 ## [1.3.0] – 2025-04-28
 ### Fixed
-- `autocomplete="new-password"` auf Benutzername-Feldern in Settings – verhindert Chromium-Autofill-Doppeleingabe bei `type="text"`
+- `autocomplete="new-password"` on username fields in Settings — prevents Chromium autofill double-input on `type="text"` fields.
 
 ## [1.2.0] – 2025-04-28
 ### Fixed
-- Settings-Fenster: `parent: mainWindow` entfernt und `sandbox: true` gesetzt – behebt doppelte Tastatureingaben durch gemeinsamen Keyboard-Event-Pfad unter Wayland
+- Settings window: removed `parent: mainWindow` and set `sandbox: true` — fixes double key inputs caused by shared keyboard event path under Wayland.
 
 ## [1.1.0] – 2025-04-28
 ### Added
-- Versionsnummer in der Toolbar sichtbar (grau, zwischen Settings und Gamepad-Status)
-- Settings: `✕ Schließen`-Button im Footer (IPC `close-settings`)
-- Controller: Scrollrad-Support (`__SCROLL_UP` / `__SCROLL_DOWN`) für Zoom via D-Pad
-- Controller: `.`-Taste (Clear Target) als Option im Button-Mapping
-- `preload.js`: `resetCursor`, `sendGamepadScroll`, `closeSettings` ergänzt
-
+- Version number visible in toolbar (grey, between Settings and gamepad status).
+- Settings: `✕ Close` button in footer (IPC `close-settings`).
+- Controller: scroll wheel support (`__SCROLL_UP` / `__SCROLL_DOWN`) for zoom via D-Pad.
+- Controller: `.` key (Clear Target) as an option in button mapping.
+- `preload.js`: added `resetCursor`, `sendGamepadScroll`, `closeSettings`.
 ### Changed
-- Automation-Tasten-Dropdown zeigt 1–0 zuerst, dann F1–F12
-- `automation.json` Standard-Keys: `1`, `2`, `3` statt `F1`, `F2`, `F3`
-- `gamepad.json` überarbeitet nach Steam-Deck-Layout (A=Linksklick, B=Clear Target, L1/R1=Skills 1/2, L2=Kamera, D↑/↓=Zoom, D→=Tab)
-- Controller: WASD-Hysterese (Press 0.40 / Release 0.20), Deadzone rechter Stick 0.25
-- Maus-Cursor im Spiel sichtbar (`insertCSS`: `cursor: default !important`)
-- Settings-Fenster: unabhängig von mainWindow (kein `parent`), `sandbox: true`
+- Automation key dropdown shows 1–0 first, then F1–F12.
+- `automation.json` default keys: `1`, `2`, `3` instead of `F1`, `F2`, `F3`.
+- `gamepad.json` revised for Steam Deck layout (A=left click, B=Clear Target, L1/R1=skills 1/2, L2=camera, D↑/↓=zoom, D→=Tab).
+- Controller: WASD hysteresis (press 0.40 / release 0.20), right stick deadzone 0.25.
+- Mouse cursor visible in game (`insertCSS`: `cursor: default !important`).
+- Settings window: independent from mainWindow (no `parent`), `sandbox: true`.
 
-## [1.0.0] – vor 2025-04-28
+## [1.0.0] – before 2025-04-28
 ### Added
-- Multiboxing mit zwei isolierten WebContentsViews (`persist:account1` / `persist:account2`)
-- Automation-Engine: konfigurierbare Aktionen pro Account (Taste + Intervall), läuft auch im Hintergrund
-- Gamepad-Polling im Toolbar-Renderer: linker Stick → WASD, rechter Stick → Maus/Kamera
-- Konfigurierbare Button-Mappings in `config/gamepad.json`
-- Settings-Fenster: Tabs für Automation, Controller, Accounts, Hotkeys
-- Auto-Fill für Login-Daten (optional, pro Account)
-- electron-builder AppImage-Packaging für Steam Deck
-- Startup-Skript `launch-flyff.sh` mit Wayland-Flags
+- Multiboxing with two isolated WebContentsViews (`persist:account1` / `persist:account2`).
+- Automation engine: configurable actions per account (key + interval), runs in background.
+- Gamepad polling in toolbar renderer: left stick → WASD, right stick → mouse/camera.
+- Configurable button mappings in `config/gamepad.json`.
+- Settings window: tabs for Automation, Controller, Accounts, Hotkeys.
+- Auto-fill for login credentials (optional, per account).
+- electron-builder AppImage packaging for Steam Deck.
+- Startup script `launch-flyff.sh` with Wayland flags.

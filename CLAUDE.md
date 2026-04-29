@@ -73,6 +73,17 @@ eine Automation-Engine (Autoheal/Buff) und Gamepad-Steuerung.
 - Bei Treffer: MouseDown/MouseUp an der aktuellen Cursor-Position → Ziel wird selektiert
 - Konfigurierbarer Radius (px) in Settings → Controller → "Auto-Target" gespeichert in `gamepad.json` als `targetRadius`
 
+### Madrigal Guide (📖 Guide-Button in der Toolbar)
+- Overlay (position: fixed, inset: 30px 0 0 0) legt sich über den Game-View; Game-View wird via `set-game-view-visibility` IPC versteckt, solange der Guide offen ist
+- **`overlayOpen`-Flag in `main.js`**: `updateViewBounds()` setzt Game-View nur sichtbar wenn `overlayOpen === false` – verhindert dass F9-Wechsel den View über den Guide legt
+- Tab **Quests**: 492 Quests (Lv. 1–183) aus NaviKnight2765' Spreadsheet; Spalten: Lv, Questline, Name, Rec, Exp, Diff, Items, Monsters, Inv, Rewards, Notes
+- Tab **Monsters**: 53 Monster-Einträge als kompaktes Grid
+- Live-Suche filtert über Name, Questline, Items, Monsters, Rewards, Notes, Rec und Level
+- **Checkbox „Done"** pro Quest – Status wird in `electron-store` unter `questProgress` gespeichert (Key: `"lv-line-name"`)
+- Quest-IDs werden mit `replace(/'/g, "\\'")` escaped bevor sie als inline-`onchange`-Parameter verwendet werden
+- `openQuestUrl()` akzeptiert nur `http://` / `https://` URLs (Protokoll-Guard)
+- Daten: `config/quests.json` (492 Einträge) und `config/monsters.json` (53 Einträge) – read-only, werden im AppImage gebündelt, nicht in userData
+
 ### Changelog
 - `CHANGELOG.md` liegt im Projekt-Root, wird ins AppImage gebündelt
 - Toolbar-Button `📋` öffnet Changelog-Overlay direkt in der App (über dem Game-View)
@@ -88,9 +99,10 @@ eine Automation-Engine (Autoheal/Buff) und Gamepad-Steuerung.
 - Neue Macros werden sofort nach Save als Toolbar-Button sichtbar (via `macros-updated` IPC-Event)
 
 ### Konfiguration & Persistenz
-- `electron-store` speichert: `activeAccount`, `hotkeys`, `windowBounds`
+- `electron-store` speichert: `activeAccount`, `hotkeys`, `windowBounds`, `questProgress`
 - `automation.json`, `gamepad.json` und `macros.json` werden in `app.getPath('userData')` gespeichert (`~/.config/flyff-wrapper/`)
-- Beim ersten Start wird die gebündelte Default-Config nach userData kopiert
+- `quests.json` und `monsters.json` sind **read-only** im AppImage-Bundle – nur via `bundledConfigPath`, nicht in userData
+- Beim ersten Start wird die gebündelte Default-Config (automation/gamepad/macros) nach userData kopiert
 - AppImage-Updates überschreiben Nutzer-Configs **nicht**
 - Beim Start wird der zuletzt aktive Account wiederhergestellt
 
@@ -118,6 +130,7 @@ eine Automation-Engine (Autoheal/Buff) und Gamepad-Steuerung.
 - AppImage wird via `electron-builder` gebaut: `npm run build`
 - Datei liegt auf dem Deck unter `/home/deck/FlyffWrapper.AppImage`
 - Startup-Skript: `/home/deck/launch-flyff.sh` (setzt Wayland-Flags, `--appimage-extract-and-run`)
+- Das Script löscht vor dem Start alle alten `/tmp/appimage_extracted_*`-Verzeichnisse – verhindert dass `/tmp` (tmpfs, 7.3 GB RAM) volläuft
 - Übertragen via: `scp dist/FlyffWrapper.AppImage deck@192.168.178.30:/home/deck/`
 - **Version immer in `package.json` hochzählen** vor dem Build – sichtbar in der Toolbar
 
@@ -141,13 +154,15 @@ flyff-wrapper/
 ├── config/
 │   ├── automation.json       – Default-Config (Heal/Buff Tasten + Intervalle)
 │   ├── gamepad.json          – Default Button-Index → Taste Mapping
-│   └── macros.json           – Default Macro-Buttons (Full Buff Acc1 + Acc2)
+│   ├── macros.json           – Default Macro-Buttons (Full Buff Acc1 + Acc2)
+│   ├── quests.json           – 492 Quests (Lv. 1–183), read-only, aus NaviKnight2765-Spreadsheet
+│   └── monsters.json         – 53 Monster-Einträge, read-only
 └── src/
     ├── main.js               – Hauptprozess: Fenster, Views, IPC, Shortcuts
     ├── automation.js         – Timer-Engine (start/stop/isRunning pro Account)
     ├── preload.js            – contextBridge → window.flyff API
     └── ui/
-        ├── index.html        – 30 px Toolbar + Gamepad-Polling (requestAnimationFrame)
+        ├── index.html        – 30 px Toolbar + Guide-Overlay + Gamepad-Polling
         └── settings.html     – Einstellungs-Fenster (5 Tabs inkl. Macros)
 ```
 

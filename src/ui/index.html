@@ -81,8 +81,8 @@
     }
     #btn-close:hover { background: #7a2a2a; }
 
-    /* Changelog-Overlay */
-    #changelog-overlay {
+    /* Changelog-Overlay & Guide-Overlay */
+    #changelog-overlay, #guide-overlay {
       display: none;
       position: fixed;
       inset: 30px 0 0 0;
@@ -92,11 +92,11 @@
       padding: 14px 18px;
       -webkit-app-region: no-drag;
     }
-    #changelog-overlay h2 { color: #88aaff; font-size: 13px; border-bottom: 1px solid #2a2a4a; padding-bottom: 3px; margin: 10px 0 4px; }
-    #changelog-overlay h2:first-child { margin-top: 0; }
+    #changelog-overlay h2, #guide-overlay h2 { color: #88aaff; font-size: 13px; border-bottom: 1px solid #2a2a4a; padding-bottom: 3px; margin: 10px 0 4px; }
+    #changelog-overlay h2:first-child, #guide-overlay h2:first-child { margin-top: 0; }
     #changelog-overlay h3 { color: #6688cc; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; margin: 6px 0 3px; }
     #changelog-overlay li  { color: #c0c0d8; font-size: 12px; margin: 2px 0 2px 14px; }
-    #changelog-overlay .cl-close {
+    #changelog-overlay .cl-close, #guide-overlay .guide-close {
       position: sticky;
       top: 0;
       float: right;
@@ -107,8 +107,62 @@
       border-radius: 3px;
       font-size: 11px;
       cursor: pointer;
+      z-index: 10;
     }
-    #changelog-overlay .cl-close:hover { background: #3a3a6a; }
+    #changelog-overlay .cl-close:hover, #guide-overlay .guide-close:hover { background: #3a3a6a; }
+
+    /* Guide UI Elements */
+    .guide-nav { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+    .guide-tab { padding: 4px 12px; border: 1px solid #3a3a6a; background: #1e1e3a; color: #aaa; border-radius: 3px; cursor: pointer; }
+    .guide-tab.active { background: #2a4a8a; color: #fff; border-color: #5a8ad8; }
+    .guide-search { flex-grow: 1; background: #0c0c1a; border: 1px solid #2a2a4a; color: #eee; padding: 4px 8px; border-radius: 3px; font-size: 11px; }
+
+    /* Monster Grid */
+    .monster-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 6px;
+    }
+    .monster-item { background: #1e1e3a; padding: 4px 8px; border-radius: 3px; border-left: 2px solid #5a8ad8; display: flex; justify-content: space-between; font-size: 10px; }
+    .monster-item .lv { color: #88ee88; font-weight: bold; }
+
+    /* Quest Table */
+    .quest-table { width: 100%; border-collapse: collapse; font-size: 9px; color: #c0c0d8; table-layout: fixed; }
+    .quest-table th { text-align: left; background: #1e1e3a; padding: 4px; color: #88aaff; border-bottom: 1px solid #2a2a4a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .quest-table td { padding: 4px; border-bottom: 1px solid #1a1a3a; vertical-align: top; word-wrap: break-word; overflow: hidden; }
+    .quest-table tr:hover { background: #1a1a3a; }
+
+    .quest-table .col-done     { width: 28px; text-align: center; }
+    .quest-table .col-lv       { width: 26px; color: #88ee88; font-weight: bold; }
+    .quest-table .col-line     { width: 90px; color: #6688cc; }
+    .quest-table .col-name           { width: 130px; color: #fff; font-weight: bold; }
+    .quest-table .col-name.link      { color: #88aaff; cursor: pointer; text-decoration: underline; }
+    .quest-table .col-name.link:hover{ color: #aaccff; }
+    .quest-table .col-rec      { width: 68px; font-style: italic; }
+    .quest-table .col-exp      { width: 85px; color: #dddd88; }
+    .quest-table .col-diff     { width: 52px; }
+    .quest-table .col-items    { width: 100px; color: #bbb; }
+    .quest-table .col-monsters { width: 100px; color: #bbb; }
+    .quest-table .col-inv      { width: 36px; color: #ffcc00; font-weight: bold; text-align: center; }
+    .quest-table .col-rew      { width: 90px; color: #eeaa88; }
+    .quest-table .col-notes    { width: 180px; overflow: hidden; }
+    .quest-table .col-notes .note-clip {
+      color: #888; font-style: italic;
+      display: -webkit-box; -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical; overflow: hidden;
+      max-height: 2.8em;
+    }
+
+    .quest-row.done { opacity: 0.4; }
+    .quest-row.done .col-name { text-decoration: line-through; color: #888; }
+
+    .diff-hard     { color: #ff6666; }
+    .diff-vhard    { color: #ff4400; font-weight: bold; }
+    .diff-extreme  { color: #ff00ff; font-weight: bold; }
+
+    .rec-priority  { color: #88ee88; }
+    .rec-mandatory { color: #ffcc44; }
+    .rec-skip      { color: #666; }
   </style>
 </head>
 <body>
@@ -142,6 +196,7 @@
 
     <!-- Version + Changelog -->
     <span id="app-version" class="label no-drag" style="color:#333; font-size:10px;"></span>
+    <button id="btn-guide" onclick="openGuide()" title="Madrigal Guide (Quests & Monsters)" style="padding:0 5px; font-size:10px; color:#aaa; border-color:#2a2a4a; background:#1e1e3a;">📖 Guide</button>
     <button id="btn-changelog" onclick="openChangelog()" title="Show Changelog" style="padding:0 5px; font-size:10px; color:#444; border-color:#2a2a4a; background:#12122a;">📋</button>
 
     <!-- Gamepad status indicator -->
@@ -356,23 +411,156 @@
 
     async function openChangelog() {
       const overlay = document.getElementById('changelog-overlay');
-      if (overlay.style.display === 'block') { overlay.style.display = 'none'; return; }
+      if (overlay.style.display === 'block') { closeChangelog(); return; }
+      
+      closeGuide(); // Guide schließen falls offen
+
       const content = document.getElementById('changelog-content');
       if (!content.hasChildNodes()) {
         const md = await window.flyff.getChangelog();
         content.appendChild(renderMarkdown(md));
       }
       overlay.style.display = 'block';
+      window.flyff.setGameViewVisibility(false);
     }
 
     function closeChangelog() {
       document.getElementById('changelog-overlay').style.display = 'none';
+      checkAllOverlaysClosed();
+    }
+
+    // ── Guide-Overlay (Quests & Monsters) ─────────────────────────────────────
+
+    let guideState = { activeTab: 'quests', quests: [], monsters: [], progress: {} };
+
+    async function openGuide() {
+      const overlay = document.getElementById('guide-overlay');
+      if (overlay.style.display === 'block') { closeGuide(); return; }
+      
+      closeChangelog(); // Changelog schließen falls offen
+
+      if (guideState.quests.length === 0) guideState.quests = await window.flyff.getQuests() || [];
+      if (guideState.monsters.length === 0) guideState.monsters = await window.flyff.getMonsters() || [];
+      guideState.progress = await window.flyff.getQuestProgress() || {};
+
+      renderGuide();
+      overlay.style.display = 'block';
+      window.flyff.setGameViewVisibility(false);
+    }
+
+    function closeGuide() {
+      document.getElementById('guide-overlay').style.display = 'none';
+      checkAllOverlaysClosed();
+    }
+
+    function checkAllOverlaysClosed() {
+      const changelog = document.getElementById('changelog-overlay');
+      const guide = document.getElementById('guide-overlay');
+      if (changelog.style.display !== 'block' && guide.style.display !== 'block') {
+        window.flyff.setGameViewVisibility(true);
+      }
+    }
+
+    function switchGuideTab(tab) {
+      guideState.activeTab = tab;
+      document.getElementById('tab-quests').classList.toggle('active', tab === 'quests');
+      document.getElementById('tab-monsters').classList.toggle('active', tab === 'monsters');
+      renderGuide();
+    }
+
+    function filterGuide() {
+      renderGuide();
+    }
+
+    function toggleQuestProgress(questId) {
+      guideState.progress[questId] = !guideState.progress[questId];
+      window.flyff.saveQuestProgress(guideState.progress);
+      renderGuide();
+    }
+
+    function renderGuide() {
+      const content = document.getElementById('guide-content');
+      const search  = document.getElementById('guide-search').value.toLowerCase();
+      content.innerHTML = '';
+
+      if (guideState.activeTab === 'quests') {
+        const filtered = guideState.quests.filter(q =>
+          q.name.toLowerCase().includes(search) ||
+          (q.line     || '').toLowerCase().includes(search) ||
+          (q.monsters || '').toLowerCase().includes(search) ||
+          (q.items    || '').toLowerCase().includes(search) ||
+          (q.rewards  || '').toLowerCase().includes(search) ||
+          (q.notes    || '').toLowerCase().includes(search) ||
+          (q.rec      || '').toLowerCase().includes(search) ||
+          ('lv.' + q.lv).includes(search)
+        );
+
+        let html = '<table class="quest-table"><thead><tr>';
+        html += '<th class="col-done">✓</th><th class="col-lv">Lv</th><th class="col-line">Questline</th><th class="col-name">Name</th><th class="col-rec">Rec</th><th class="col-exp">Exp</th><th class="col-diff">Diff</th><th class="col-items">Items</th><th class="col-monsters">Monsters</th><th class="col-inv">Inv</th><th class="col-rew">Rewards</th><th class="col-notes">Notes</th>';
+        html += '</tr></thead><tbody>';
+
+        filtered.forEach(q => {
+          const qId     = `${q.lv}-${q.line}-${q.name}`;
+          const qIdSafe = qId.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+          const isDone  = !!guideState.progress[qId];
+
+          const diffClass = q.diff === 'Hard'      ? 'diff-hard'    :
+                            q.diff === 'Very Hard'  ? 'diff-vhard'   :
+                            (q.diff === 'Extreme' || q.diff === 'Impossible') ? 'diff-extreme' : '';
+          const recClass  = q.rec === 'Prioritize' ? 'rec-priority'  :
+                            q.rec === 'Mandatory'  ? 'rec-mandatory' :
+                            q.rec === 'Skip'       ? 'rec-skip'      : '';
+          const invDisplay = q.inv === -1 ? 'Req.' : (q.inv > 0 ? '+' + q.inv : '');
+          const notesSafe  = (q.notes || '').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+          const expFull    = q.exp || '-';
+          const expShort   = q.exp2 ? `<br><small style="color:#aaa">${q.exp2}</small>` : '';
+
+          html += `<tr class="quest-row${isDone ? ' done' : ''}">
+            <td class="col-done"><input type="checkbox"${isDone ? ' checked' : ''} onchange="toggleQuestProgress('${qIdSafe}')"></td>
+            <td class="col-lv">${q.lv}</td>
+            <td class="col-line">${q.line || ''}</td>
+            <td class="col-name${q.url ? ' link' : ''}"${q.url ? ` onclick="window.flyff.openQuestUrl('${q.url.replace(/'/g, "\\'")}')"` : ''}>${q.name}</td>
+            <td class="col-rec ${recClass}">${q.rec || ''}</td>
+            <td class="col-exp">${expFull}${expShort}</td>
+            <td class="col-diff ${diffClass}">${q.diff || ''}</td>
+            <td class="col-items">${q.items || ''}</td>
+            <td class="col-monsters">${q.monsters || ''}</td>
+            <td class="col-inv">${invDisplay}</td>
+            <td class="col-rew">${q.rewards || ''}</td>
+            <td class="col-notes" title="${notesSafe}"><div class="note-clip">${q.notes || ''}</div></td>
+          </tr>`;
+        });
+        html += '</tbody></table>';
+        content.innerHTML = html;
+      } else {
+        const filtered = guideState.monsters.filter(m =>
+          m.name.toLowerCase().includes(search) ||
+          ('lv.' + m.lv).includes(search)
+        );
+        let html = '<div class="monster-grid">';
+        filtered.forEach(m => {
+          html += `<div class="monster-item"><span class="lv">Lv.${m.lv}</span><span class="name">${m.name}</span></div>`;
+        });
+        html += '</div>';
+        content.innerHTML = html;
+      }
     }
   </script>
 
   <div id="changelog-overlay">
     <button class="cl-close" onclick="closeChangelog()">✕ Close</button>
     <div id="changelog-content"></div>
+  </div>
+
+  <div id="guide-overlay">
+    <button class="guide-close" onclick="closeGuide()">✕ Close</button>
+    <h2>Madrigal Guide</h2>
+    <div class="guide-nav">
+      <div id="tab-quests" class="guide-tab active" onclick="switchGuideTab('quests')">Quests</div>
+      <div id="tab-monsters" class="guide-tab" onclick="switchGuideTab('monsters')">Monsters</div>
+      <input type="text" id="guide-search" class="guide-search" placeholder="Search (e.g. 'Lv.20' or 'Aibatt')..." oninput="filterGuide()">
+    </div>
+    <div id="guide-content"></div>
   </div>
 </body>
 </html>

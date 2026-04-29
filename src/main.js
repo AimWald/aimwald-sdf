@@ -57,9 +57,11 @@ function saveConfig(filename, data) {
 
 let mainWindow    = null;
 let settingsWindow = null;
+let questWindow    = null;
 let view1 = null;   // WebContentsView für Account 1
 let view2 = null;   // WebContentsView für Account 2
 let activeAccount = 'account1';
+let overlayOpen   = false;  // Guide oder Changelog sichtbar → Game-Views versteckt halten
 
 // Virtuelle Mausposition für Gamepad-Delta-Bewegung
 const cursor  = { x: DEFAULT_W / 2, y: DEFAULT_H / 2 };
@@ -133,7 +135,8 @@ function createGameViews() {
   updateViewBounds();
 }
 
-// Setzt Bounds und Sichtbarkeit der Views je nach aktivem Account
+// Setzt Bounds und Sichtbarkeit der Views je nach aktivem Account.
+// Ist ein Overlay offen, bleibt der aktive View versteckt bis es geschlossen wird.
 function updateViewBounds() {
   if (!mainWindow || !view1 || !view2) return;
   const [w, h] = mainWindow.getContentSize();
@@ -142,14 +145,14 @@ function updateViewBounds() {
 
   if (activeAccount === 'account1') {
     view1.setBounds(activeBounds);
-    view1.setVisible(true);
-    view1.webContents.focus();
+    view1.setVisible(!overlayOpen);
+    if (!overlayOpen) view1.webContents.focus();
     view2.setBounds(hiddenBounds);
     view2.setVisible(false);
   } else {
     view2.setBounds(activeBounds);
-    view2.setVisible(true);
-    view2.webContents.focus();
+    view2.setVisible(!overlayOpen);
+    if (!overlayOpen) view2.webContents.focus();
     view1.setBounds(hiddenBounds);
     view1.setVisible(false);
   }
@@ -238,6 +241,31 @@ function openSettings() {
   settingsWindow.loadFile(path.join(__dirname, 'ui', 'settings.html'));
   settingsWindow.setMenu(null);
   settingsWindow.on('closed', () => { settingsWindow = null; });
+}
+
+function openQuestUrl(url) {
+  if (!url || !/^https?:\/\//i.test(url)) return;
+  if (questWindow) {
+    questWindow.loadURL(url);
+    questWindow.focus();
+    return;
+  }
+
+  questWindow = new BrowserWindow({
+    width: 1000,
+    height: 750,
+    title: 'Flyff Wrapper – Quest Details',
+    backgroundColor: '#1a1a2e',
+    autoHideMenuBar: true,
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true
+    }
+  });
+
+  questWindow.loadURL(url);
+  questWindow.on('closed', () => { questWindow = null; });
 }
 
 // ── CDP-Tastendruck (für Keys die sendInputEvent nicht erreicht) ──────────────
@@ -344,6 +372,12 @@ function setupIPC() {
   ipcMain.on('stop-automation',     (_, acc)  => stopAutomation(acc));
   ipcMain.on('open-settings',       ()        => openSettings());
   ipcMain.on('close-settings',      ()        => settingsWindow?.close());
+  ipcMain.on('open-quest-url',      (_, url)  => openQuestUrl(url));
+
+  ipcMain.on('set-game-view-visibility', (_, visible) => {
+    overlayOpen = !visible;
+    updateViewBounds();
+  });
 
   // Zustand für Toolbar-Initialisierung liefern
   ipcMain.handle('get-state', () => ({
@@ -376,6 +410,26 @@ function setupIPC() {
     try {
       return fs.readFileSync(path.join(__dirname, '../CHANGELOG.md'), 'utf8');
     } catch { return ''; }
+  });
+
+  ipcMain.handle('get-monsters', () => {
+    try {
+      return JSON.parse(fs.readFileSync(path.join(__dirname, '../config/monsters.json'), 'utf8'));
+    } catch { return []; }
+  });
+
+  ipcMain.handle('get-quests', () => {
+    try {
+      return JSON.parse(fs.readFileSync(path.join(__dirname, '../config/quests.json'), 'utf8'));
+    } catch { return []; }
+  });
+
+  ipcMain.handle('get-quest-progress', () => {
+    return store.get('questProgress', {});
+  });
+
+  ipcMain.on('save-quest-progress', (_, progress) => {
+    store.set('questProgress', progress);
   });
 
   // Neue Automation-Config übernehmen und in Datei schreiben
