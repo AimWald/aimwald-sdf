@@ -52,6 +52,8 @@ contextBridge.exposeInMainWorld('flyff', {
   getChangelog:       ()               => ipcRenderer.invoke('get-changelog'),
   getMonsters:        ()               => ipcRenderer.invoke('get-monsters'),
   getQuests:          ()               => ipcRenderer.invoke('get-quests'),
+  getQuestlines:      ()               => ipcRenderer.invoke('get-questlines'),
+  getDailies:         ()               => ipcRenderer.invoke('get-dailies'),
   getQuestProgress:    ()               => ipcRenderer.invoke('get-quest-progress'),
   saveQuestProgress:   (progress)       => ipcRenderer.send('save-quest-progress', progress),
   clearSession:       (account)        => ipcRenderer.invoke('clear-session', account),

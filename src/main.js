@@ -424,6 +424,18 @@ function setupIPC() {
     } catch { return []; }
   });
 
+  ipcMain.handle('get-questlines', () => {
+    try {
+      return JSON.parse(fs.readFileSync(path.join(__dirname, '../config/questlines.json'), 'utf8'));
+    } catch { return []; }
+  });
+
+  ipcMain.handle('get-dailies', () => {
+    try {
+      return JSON.parse(fs.readFileSync(path.join(__dirname, '../config/dailies.json'), 'utf8'));
+    } catch { return []; }
+  });
+
   ipcMain.handle('get-quest-progress', () => {
     return store.get('questProgress', {});
   });

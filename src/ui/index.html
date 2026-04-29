@@ -127,9 +127,9 @@
     .monster-item .lv { color: #88ee88; font-weight: bold; }
 
     /* Quest Table */
-    .quest-table { width: 100%; border-collapse: collapse; font-size: 9px; color: #c0c0d8; table-layout: fixed; }
-    .quest-table th { text-align: left; background: #1e1e3a; padding: 4px; color: #88aaff; border-bottom: 1px solid #2a2a4a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .quest-table td { padding: 4px; border-bottom: 1px solid #1a1a3a; vertical-align: top; word-wrap: break-word; overflow: hidden; }
+    .quest-table { width: 100%; border-collapse: collapse; font-size: 10px; color: #c0c0d8; table-layout: fixed; }
+    .quest-table th { text-align: left; background: #1e1e3a; padding: 5px 4px; color: #88aaff; border-bottom: 1px solid #2a2a4a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .quest-table td { padding: 5px 4px; border-bottom: 1px solid #1a1a3a; vertical-align: top; word-wrap: break-word; }
     .quest-table tr:hover { background: #1a1a3a; }
 
     .quest-table .col-done     { width: 28px; text-align: center; }
@@ -141,16 +141,15 @@
     .quest-table .col-rec      { width: 68px; font-style: italic; }
     .quest-table .col-exp      { width: 85px; color: #dddd88; }
     .quest-table .col-diff     { width: 52px; }
-    .quest-table .col-items    { width: 100px; color: #bbb; }
-    .quest-table .col-monsters { width: 100px; color: #bbb; }
+    .quest-table .col-items    { width: 105px; color: #bbb; }
+    .quest-table .col-monsters { width: 105px; color: #bbb; }
     .quest-table .col-inv      { width: 36px; color: #ffcc00; font-weight: bold; text-align: center; }
-    .quest-table .col-rew      { width: 90px; color: #eeaa88; }
-    .quest-table .col-notes    { width: 180px; overflow: hidden; }
+    .quest-table .col-rew      { width: 95px; color: #eeaa88; }
+    .quest-table .col-notes    { width: 180px; }
     .quest-table .col-notes .note-clip {
       color: #888; font-style: italic;
-      display: -webkit-box; -webkit-line-clamp: 2;
+      display: -webkit-box; -webkit-line-clamp: 3;
       -webkit-box-orient: vertical; overflow: hidden;
-      max-height: 2.8em;
     }
 
     .quest-row.done { opacity: 0.4; }
@@ -163,6 +162,37 @@
     .rec-priority  { color: #88ee88; }
     .rec-mandatory { color: #ffcc44; }
     .rec-skip      { color: #666; }
+
+    /* Questlines Table */
+    .ql-table { width: 100%; border-collapse: collapse; font-size: 11px; color: #c0c0d8; }
+    .ql-table th { text-align: left; background: #1e1e3a; padding: 6px 8px; color: #88aaff; border-bottom: 1px solid #2a2a4a; white-space: nowrap; }
+    .ql-table td { padding: 7px 8px; border-bottom: 1px solid #1a1a3a; vertical-align: middle; }
+    .ql-table tr:hover { background: #1a1a3a; cursor: pointer; }
+    .ql-table tr:hover .col-ql-name { color: #aaccff; text-decoration: underline; }
+    .col-ql-name  { width: 190px; color: #fff; font-weight: bold; }
+    .col-ql-npc   { width: 200px; color: #99aacc; font-size: 10px; }
+    .col-ql-lv    { width: 80px; color: #88ee88; font-size: 10px; }
+    .col-ql-prog  { width: 220px; }
+    .col-ql-inv   { }
+
+    .ql-bar-wrap  { width: 100%; height: 10px; background: #1e1e3a; border-radius: 5px; overflow: hidden; margin-bottom: 4px; }
+    .ql-bar-fill  { height: 100%; background: #3a9a3a; border-radius: 5px; }
+    .ql-inv-wrap  { width: 100%; height: 6px; background: #1e1e3a; border-radius: 3px; overflow: hidden; margin-bottom: 3px; }
+    .ql-inv-fill  { height: 100%; background: #cc8833; border-radius: 3px; }
+    .ql-bar-label { font-size: 10px; color: #888; }
+
+    /* Dailies */
+    .daily-section { font-size: 13px; color: #88aaff; font-weight: bold; border-bottom: 1px solid #2a2a4a; padding: 10px 4px 5px; margin: 16px 0 8px; }
+    .daily-section:first-child { margin-top: 0; }
+    .daily-table { width: 100%; border-collapse: collapse; font-size: 11px; color: #c0c0d8; margin-bottom: 16px; }
+    .daily-table th { text-align: left; background: #1e1e3a; padding: 5px 8px; color: #88aaff; border-bottom: 1px solid #2a2a4a; white-space: nowrap; }
+    .daily-table td { padding: 7px 8px; border-bottom: 1px solid #1a1a3a; vertical-align: top; word-wrap: break-word; }
+    .daily-table tr:hover { background: #1a1a3a; }
+    .col-dlv   { width: 44px; color: #88ee88; font-weight: bold; }
+    .col-dname { width: 230px; color: #fff; font-weight: bold; }
+    .col-dexp  { width: 110px; color: #dddd88; }
+    .col-dmon  { color: #bbb; }
+    .col-dpenya{ width: 110px; color: #ffcc00; text-align: right; }
   </style>
 </head>
 <body>
@@ -431,16 +461,18 @@
 
     // ── Guide-Overlay (Quests & Monsters) ─────────────────────────────────────
 
-    let guideState = { activeTab: 'quests', quests: [], monsters: [], progress: {} };
+    let guideState = { activeTab: 'quests', quests: [], monsters: [], questlines: [], dailies: [], progress: {} };
 
     async function openGuide() {
       const overlay = document.getElementById('guide-overlay');
       if (overlay.style.display === 'block') { closeGuide(); return; }
-      
-      closeChangelog(); // Changelog schließen falls offen
 
-      if (guideState.quests.length === 0) guideState.quests = await window.flyff.getQuests() || [];
-      if (guideState.monsters.length === 0) guideState.monsters = await window.flyff.getMonsters() || [];
+      closeChangelog();
+
+      if (guideState.quests.length === 0)      guideState.quests      = await window.flyff.getQuests()      || [];
+      if (guideState.monsters.length === 0)    guideState.monsters    = await window.flyff.getMonsters()    || [];
+      if (guideState.questlines.length === 0)  guideState.questlines  = await window.flyff.getQuestlines()  || [];
+      if (guideState.dailies.length === 0)     guideState.dailies     = await window.flyff.getDailies()     || [];
       guideState.progress = await window.flyff.getQuestProgress() || {};
 
       renderGuide();
@@ -463,14 +495,13 @@
 
     function switchGuideTab(tab) {
       guideState.activeTab = tab;
-      document.getElementById('tab-quests').classList.toggle('active', tab === 'quests');
-      document.getElementById('tab-monsters').classList.toggle('active', tab === 'monsters');
+      ['quests', 'questlines', 'dailies', 'monsters'].forEach(t => {
+        document.getElementById('tab-' + t).classList.toggle('active', t === tab);
+      });
       renderGuide();
     }
 
-    function filterGuide() {
-      renderGuide();
-    }
+    function filterGuide() { renderGuide(); }
 
     function toggleQuestProgress(questId) {
       guideState.progress[questId] = !guideState.progress[questId];
@@ -478,72 +509,176 @@
       renderGuide();
     }
 
+    function filterByQuestline(lineName) {
+      document.getElementById('guide-search').value = lineName;
+      switchGuideTab('quests');
+    }
+
     function renderGuide() {
+      if      (guideState.activeTab === 'quests')     renderQuestsTab();
+      else if (guideState.activeTab === 'questlines') renderQuestlinesTab();
+      else if (guideState.activeTab === 'dailies')    renderDailiesTab();
+      else                                            renderMonstersTab();
+    }
+
+    function renderQuestsTab() {
       const content = document.getElementById('guide-content');
       const search  = document.getElementById('guide-search').value.toLowerCase();
-      content.innerHTML = '';
 
-      if (guideState.activeTab === 'quests') {
-        const filtered = guideState.quests.filter(q =>
-          q.name.toLowerCase().includes(search) ||
-          (q.line     || '').toLowerCase().includes(search) ||
-          (q.monsters || '').toLowerCase().includes(search) ||
-          (q.items    || '').toLowerCase().includes(search) ||
-          (q.rewards  || '').toLowerCase().includes(search) ||
-          (q.notes    || '').toLowerCase().includes(search) ||
-          (q.rec      || '').toLowerCase().includes(search) ||
-          ('lv.' + q.lv).includes(search)
-        );
+      const filtered = guideState.quests.filter(q =>
+        q.name.toLowerCase().includes(search) ||
+        (q.line     || '').toLowerCase().includes(search) ||
+        (q.monsters || '').toLowerCase().includes(search) ||
+        (q.items    || '').toLowerCase().includes(search) ||
+        (q.rewards  || '').toLowerCase().includes(search) ||
+        (q.notes    || '').toLowerCase().includes(search) ||
+        (q.rec      || '').toLowerCase().includes(search) ||
+        ('lv.' + q.lv).includes(search)
+      );
 
-        let html = '<table class="quest-table"><thead><tr>';
-        html += '<th class="col-done">✓</th><th class="col-lv">Lv</th><th class="col-line">Questline</th><th class="col-name">Name</th><th class="col-rec">Rec</th><th class="col-exp">Exp</th><th class="col-diff">Diff</th><th class="col-items">Items</th><th class="col-monsters">Monsters</th><th class="col-inv">Inv</th><th class="col-rew">Rewards</th><th class="col-notes">Notes</th>';
+      let html = '<table class="quest-table"><thead><tr>';
+      html += '<th class="col-done">✓</th><th class="col-lv">Lv</th><th class="col-line">Questline</th><th class="col-name">Name</th><th class="col-rec">Rec</th><th class="col-exp">Exp</th><th class="col-diff">Diff</th><th class="col-items">Items</th><th class="col-monsters">Monsters</th><th class="col-inv">Inv</th><th class="col-rew">Rewards</th><th class="col-notes">Notes</th>';
+      html += '</tr></thead><tbody>';
+
+      filtered.forEach(q => {
+        const qId     = `${q.lv}-${q.line}-${q.name}`;
+        const qIdSafe = qId.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        const isDone  = !!guideState.progress[qId];
+
+        const diffClass = q.diff === 'Hard'      ? 'diff-hard'    :
+                          q.diff === 'Very Hard'  ? 'diff-vhard'   :
+                          (q.diff === 'Extreme' || q.diff === 'Impossible') ? 'diff-extreme' : '';
+        const recClass  = q.rec === 'Prioritize' ? 'rec-priority'  :
+                          q.rec === 'Mandatory'  ? 'rec-mandatory' :
+                          q.rec === 'Skip'       ? 'rec-skip'      : '';
+        const invDisplay = q.inv === -1 ? 'Req.' : (q.inv > 0 ? '+' + q.inv : '');
+        const notesSafe  = (q.notes || '').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+
+        html += `<tr class="quest-row${isDone ? ' done' : ''}">
+          <td class="col-done"><input type="checkbox"${isDone ? ' checked' : ''} onchange="toggleQuestProgress('${qIdSafe}')"></td>
+          <td class="col-lv">${q.lv}</td>
+          <td class="col-line">${q.line || ''}</td>
+          <td class="col-name${q.url ? ' link' : ''}"${q.url ? ` onclick="window.flyff.openQuestUrl('${q.url.replace(/'/g, "\\'")}')"` : ''}>${q.name}</td>
+          <td class="col-rec ${recClass}">${q.rec || ''}</td>
+          <td class="col-exp">${q.exp || '-'}${q.exp2 ? `<br><small style="color:#aaa">${q.exp2}</small>` : ''}</td>
+          <td class="col-diff ${diffClass}">${q.diff || ''}</td>
+          <td class="col-items">${q.items || ''}</td>
+          <td class="col-monsters">${q.monsters || ''}</td>
+          <td class="col-inv">${invDisplay}</td>
+          <td class="col-rew">${q.rewards || ''}</td>
+          <td class="col-notes" title="${notesSafe}"><div class="note-clip">${q.notes || ''}</div></td>
+        </tr>`;
+      });
+      html += '</tbody></table>';
+      content.innerHTML = html;
+    }
+
+    function renderQuestlinesTab() {
+      const content = document.getElementById('guide-content');
+      const search  = document.getElementById('guide-search').value.toLowerCase();
+
+      // Compute per-questline stats from quest data + progress
+      const lineStats = {};
+      guideState.quests.forEach(q => {
+        const key = q.line || 'Unknown';
+        if (!lineStats[key]) lineStats[key] = { total: 0, done: 0, totalInv: 0, unlockedInv: 0 };
+        const s   = lineStats[key];
+        const qId = `${q.lv}-${q.line}-${q.name}`;
+        s.total++;
+        if (q.inv > 0) s.totalInv += q.inv;
+        if (guideState.progress[qId]) {
+          s.done++;
+          if (q.inv > 0) s.unlockedInv += q.inv;
+        }
+      });
+
+      const filtered = guideState.questlines.filter(ql =>
+        ql.name.toLowerCase().includes(search) ||
+        (ql.npc || '').toLowerCase().includes(search)
+      );
+
+      let html = '<table class="ql-table"><thead><tr>';
+      html += '<th class="col-ql-name">Questline</th><th class="col-ql-npc">Start NPC / Location</th><th class="col-ql-lv">Levels</th><th class="col-ql-prog">Quest Progress</th><th class="col-ql-inv">Inventory Slots</th>';
+      html += '</tr></thead><tbody>';
+
+      filtered.forEach(ql => {
+        const s    = lineStats[ql.name] || { total: 0, done: 0, totalInv: 0, unlockedInv: 0 };
+        const qPct = s.total ? Math.round(s.done / s.total * 100) : 0;
+        const iPct = s.totalInv ? Math.round(s.unlockedInv / s.totalInv * 100) : 0;
+        const lineSafe = ql.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+
+        const invCell = s.totalInv > 0
+          ? `<div class="ql-inv-wrap"><div class="ql-inv-fill" style="width:${iPct}%"></div></div>
+             <span class="ql-bar-label">${s.unlockedInv} / ${s.totalInv} slots unlocked</span>`
+          : '<span style="color:#444; font-size:10px">–</span>';
+
+        html += `<tr onclick="filterByQuestline('${lineSafe}')">
+          <td class="col-ql-name">${ql.name}</td>
+          <td class="col-ql-npc">${ql.npc || '–'}</td>
+          <td class="col-ql-lv">Lv. ${ql.lvFirst} – ${ql.lvLast}</td>
+          <td class="col-ql-prog">
+            <div class="ql-bar-wrap"><div class="ql-bar-fill" style="width:${qPct}%"></div></div>
+            <span class="ql-bar-label">${s.done} / ${s.total} quests (${qPct}%)</span>
+          </td>
+          <td class="col-ql-inv">${invCell}</td>
+        </tr>`;
+      });
+
+      html += '</tbody></table>';
+      html += '<div style="margin-top:10px; font-size:10px; color:#555">Click a questline to filter the Quests tab.</div>';
+      content.innerHTML = html;
+    }
+
+    function renderDailiesTab() {
+      const content = document.getElementById('guide-content');
+      const search  = document.getElementById('guide-search').value.toLowerCase();
+
+      const filtered = guideState.dailies.filter(d =>
+        d.name.toLowerCase().includes(search) ||
+        (d.monsters || '').toLowerCase().includes(search) ||
+        String(d.lv).includes(search)
+      );
+
+      const sections = ['Forsaken Tower', 'Kaillun'];
+      let html = '';
+
+      sections.forEach(section => {
+        const rows = filtered.filter(d => d.section === section);
+        if (rows.length === 0) return;
+        html += `<div class="daily-section">${section}</div>`;
+        html += '<table class="daily-table"><thead><tr>';
+        html += '<th class="col-dlv">Lv</th><th class="col-dname">Name</th><th class="col-dexp">Exp</th><th class="col-dmon">Monsters to Kill</th><th class="col-dpenya">Penya</th>';
         html += '</tr></thead><tbody>';
-
-        filtered.forEach(q => {
-          const qId     = `${q.lv}-${q.line}-${q.name}`;
-          const qIdSafe = qId.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-          const isDone  = !!guideState.progress[qId];
-
-          const diffClass = q.diff === 'Hard'      ? 'diff-hard'    :
-                            q.diff === 'Very Hard'  ? 'diff-vhard'   :
-                            (q.diff === 'Extreme' || q.diff === 'Impossible') ? 'diff-extreme' : '';
-          const recClass  = q.rec === 'Prioritize' ? 'rec-priority'  :
-                            q.rec === 'Mandatory'  ? 'rec-mandatory' :
-                            q.rec === 'Skip'       ? 'rec-skip'      : '';
-          const invDisplay = q.inv === -1 ? 'Req.' : (q.inv > 0 ? '+' + q.inv : '');
-          const notesSafe  = (q.notes || '').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-          const expFull    = q.exp || '-';
-          const expShort   = q.exp2 ? `<br><small style="color:#aaa">${q.exp2}</small>` : '';
-
-          html += `<tr class="quest-row${isDone ? ' done' : ''}">
-            <td class="col-done"><input type="checkbox"${isDone ? ' checked' : ''} onchange="toggleQuestProgress('${qIdSafe}')"></td>
-            <td class="col-lv">${q.lv}</td>
-            <td class="col-line">${q.line || ''}</td>
-            <td class="col-name${q.url ? ' link' : ''}"${q.url ? ` onclick="window.flyff.openQuestUrl('${q.url.replace(/'/g, "\\'")}')"` : ''}>${q.name}</td>
-            <td class="col-rec ${recClass}">${q.rec || ''}</td>
-            <td class="col-exp">${expFull}${expShort}</td>
-            <td class="col-diff ${diffClass}">${q.diff || ''}</td>
-            <td class="col-items">${q.items || ''}</td>
-            <td class="col-monsters">${q.monsters || ''}</td>
-            <td class="col-inv">${invDisplay}</td>
-            <td class="col-rew">${q.rewards || ''}</td>
-            <td class="col-notes" title="${notesSafe}"><div class="note-clip">${q.notes || ''}</div></td>
+        rows.forEach(d => {
+          html += `<tr>
+            <td class="col-dlv">${d.lv}</td>
+            <td class="col-dname">${d.name}</td>
+            <td class="col-dexp">${d.exp}</td>
+            <td class="col-dmon">${d.monsters || '–'}</td>
+            <td class="col-dpenya">${d.penya > 0 ? d.penya.toLocaleString() : '–'}</td>
           </tr>`;
         });
         html += '</tbody></table>';
-        content.innerHTML = html;
-      } else {
-        const filtered = guideState.monsters.filter(m =>
-          m.name.toLowerCase().includes(search) ||
-          ('lv.' + m.lv).includes(search)
-        );
-        let html = '<div class="monster-grid">';
-        filtered.forEach(m => {
-          html += `<div class="monster-item"><span class="lv">Lv.${m.lv}</span><span class="name">${m.name}</span></div>`;
-        });
-        html += '</div>';
-        content.innerHTML = html;
-      }
+      });
+
+      if (!html) html = '<div style="color:#555; padding:20px; text-align:center">No results</div>';
+      content.innerHTML = html;
+    }
+
+    function renderMonstersTab() {
+      const content = document.getElementById('guide-content');
+      const search  = document.getElementById('guide-search').value.toLowerCase();
+
+      const filtered = guideState.monsters.filter(m =>
+        m.name.toLowerCase().includes(search) ||
+        ('lv.' + m.lv).includes(search)
+      );
+      let html = '<div class="monster-grid">';
+      filtered.forEach(m => {
+        html += `<div class="monster-item"><span class="lv">Lv.${m.lv}</span><span class="name">${m.name}</span></div>`;
+      });
+      html += '</div>';
+      content.innerHTML = html;
     }
   </script>
 
@@ -556,9 +691,11 @@
     <button class="guide-close" onclick="closeGuide()">✕ Close</button>
     <h2>Madrigal Guide</h2>
     <div class="guide-nav">
-      <div id="tab-quests" class="guide-tab active" onclick="switchGuideTab('quests')">Quests</div>
-      <div id="tab-monsters" class="guide-tab" onclick="switchGuideTab('monsters')">Monsters</div>
-      <input type="text" id="guide-search" class="guide-search" placeholder="Search (e.g. 'Lv.20' or 'Aibatt')..." oninput="filterGuide()">
+      <div id="tab-quests"      class="guide-tab active" onclick="switchGuideTab('quests')">Quests</div>
+      <div id="tab-questlines"  class="guide-tab"        onclick="switchGuideTab('questlines')">Questlines</div>
+      <div id="tab-dailies"     class="guide-tab"        onclick="switchGuideTab('dailies')">Dailies</div>
+      <div id="tab-monsters"    class="guide-tab"        onclick="switchGuideTab('monsters')">Monsters</div>
+      <input type="text" id="guide-search" class="guide-search" placeholder="Search (e.g. 'Lv.20', questline name, monster...)..." oninput="filterGuide()">
     </div>
     <div id="guide-content"></div>
   </div>

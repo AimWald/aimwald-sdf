@@ -78,11 +78,16 @@ eine Automation-Engine (Autoheal/Buff) und Gamepad-Steuerung.
 - **`overlayOpen`-Flag in `main.js`**: `updateViewBounds()` setzt Game-View nur sichtbar wenn `overlayOpen === false` – verhindert dass F9-Wechsel den View über den Guide legt
 - Tab **Quests**: 492 Quests (Lv. 1–183) aus NaviKnight2765' Spreadsheet; Spalten: Lv, Questline, Name, Rec, Exp, Diff, Items, Monsters, Inv, Rewards, Notes
 - Tab **Monsters**: 53 Monster-Einträge als kompaktes Grid
+- Tab **Questlines**: 36 Questlines als Tabelle mit Start-NPC/Location, Level-Range und zwei Progress-Bars:
+  - Grüne Bar: Quests abgeschlossen (X/Y, berechnet live aus Done-Checkboxen)
+  - Orange Bar: Inventory Slots freigeschaltet (X/Y, Summe der `inv`-Felder aus `quests.json`)
+  - Klick auf eine Questline-Zeile filtert den Quests-Tab nach dieser Questline
+- Tab **Dailies**: Forsaken Tower Daily Quests (Lv. 86–152) und Kaillun Daily Quests (Lv. 162–172) mit Exp, Monsters to Kill, Penya-Reward
 - Live-Suche filtert über Name, Questline, Items, Monsters, Rewards, Notes, Rec und Level
 - **Checkbox „Done"** pro Quest – Status wird in `electron-store` unter `questProgress` gespeichert (Key: `"lv-line-name"`)
 - Quest-IDs werden mit `replace(/'/g, "\\'")` escaped bevor sie als inline-`onchange`-Parameter verwendet werden
 - `openQuestUrl()` akzeptiert nur `http://` / `https://` URLs (Protokoll-Guard)
-- Daten: `config/quests.json` (492 Einträge) und `config/monsters.json` (53 Einträge) – read-only, werden im AppImage gebündelt, nicht in userData
+- Daten: `config/quests.json` (492), `config/monsters.json` (53), `config/questlines.json` (36), `config/dailies.json` (39) – alle read-only im AppImage-Bundle
 
 ### Changelog
 - `CHANGELOG.md` liegt im Projekt-Root, wird ins AppImage gebündelt
@@ -101,7 +106,7 @@ eine Automation-Engine (Autoheal/Buff) und Gamepad-Steuerung.
 ### Konfiguration & Persistenz
 - `electron-store` speichert: `activeAccount`, `hotkeys`, `windowBounds`, `questProgress`
 - `automation.json`, `gamepad.json` und `macros.json` werden in `app.getPath('userData')` gespeichert (`~/.config/flyff-wrapper/`)
-- `quests.json` und `monsters.json` sind **read-only** im AppImage-Bundle – nur via `bundledConfigPath`, nicht in userData
+- `quests.json`, `monsters.json`, `questlines.json` und `dailies.json` sind **read-only** im AppImage-Bundle – nur via `bundledConfigPath`, nicht in userData
 - Beim ersten Start wird die gebündelte Default-Config (automation/gamepad/macros) nach userData kopiert
 - AppImage-Updates überschreiben Nutzer-Configs **nicht**
 - Beim Start wird der zuletzt aktive Account wiederhergestellt
@@ -156,7 +161,9 @@ flyff-wrapper/
 │   ├── gamepad.json          – Default Button-Index → Taste Mapping
 │   ├── macros.json           – Default Macro-Buttons (Full Buff Acc1 + Acc2)
 │   ├── quests.json           – 492 Quests (Lv. 1–183), read-only, aus NaviKnight2765-Spreadsheet
-│   └── monsters.json         – 53 Monster-Einträge, read-only
+│   ├── monsters.json         – 53 Monster-Einträge, read-only
+│   ├── questlines.json       – 36 Questlines mit NPC/Location und Level-Range, read-only
+│   └── dailies.json          – 39 Daily Quests (Forsaken Tower + Kaillun), read-only
 └── src/
     ├── main.js               – Hauptprozess: Fenster, Views, IPC, Shortcuts
     ├── automation.js         – Timer-Engine (start/stop/isRunning pro Account)

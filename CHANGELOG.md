@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.41.0] – 2026-04-29
+### Added
+- **Questlines tab** in the Guide: all 36 questlines from the spreadsheet with progress bars (quests completed / total), inventory slots unlocked vs. still available — computed live from your Done checkboxes. Clicking a questline row filters the Quests tab by that questline.
+- **Dailies tab** in the Guide: Forsaken Tower daily quests (Lv. 86–152) and Kaillun daily quests (Lv. 162–172) with exp, monsters to kill, and penya reward.
+- `config/questlines.json` (36 entries) and `config/dailies.json` (39 entries) added to AppImage bundle.
+### Changed
+- Quest table font size increased from 9px to 10px, padding increased — entries are more readable and long text wraps to multiple lines.
+
 ## [1.39.0] – 2026-04-29
 ### Added
 - **Quest links**: All 492 quest names are now clickable and open the flyffipedia.com detail page in a separate, movable window. URLs extracted from the NaviKnight2765 spreadsheet XLSX hyperlinks.
