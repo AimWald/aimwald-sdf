@@ -133,6 +133,9 @@
     <button id="btn-start-account2" onclick="startAutomation('account2')" title="Start Automation Account 2">▶</button>
     <button id="btn-stop-account2"  onclick="stopAutomation('account2')"  title="Stop Automation Account 2">■</button>
 
+    <!-- Macro buttons (dynamic) -->
+    <div id="macro-area" style="-webkit-app-region:no-drag; display:contents;"></div>
+
     <div class="sep"></div>
 
     <button onclick="window.flyff.openSettings()" title="Settings (Keys, Intervals, Hotkeys)">⚙ Settings</button>
@@ -151,12 +154,32 @@
   <script>
     // ── Initialisierung ───────────────────────────────────────────────────────
 
+    let macros = [];
+
+    function renderMacroButtons() {
+      const area = document.getElementById('macro-area');
+      area.innerHTML = '';
+      if (macros.length === 0) return;
+      const sep = document.createElement('div'); sep.className = 'sep';
+      area.appendChild(sep);
+      macros.forEach(m => {
+        const btn = document.createElement('button');
+        btn.textContent = m.label;
+        btn.title = `${m.label} → ${m.account === 'account1' ? 'Acc 1' : 'Acc 2'}`;
+        btn.onclick = () => window.flyff.runMacro(m.id);
+        area.appendChild(btn);
+      });
+    }
+
     async function init() {
       const state = await window.flyff.getState();
       applyAccountState(state.activeAccount);
       applyRunningState('account1', state.account1Running);
       applyRunningState('account2', state.account2Running);
       document.getElementById('app-version').textContent = 'v' + state.version;
+
+      macros = await window.flyff.getMacros() || [];
+      renderMacroButtons();
 
       // Gamepad-Config laden und Polling starten.
       // Polling läuft hier im Renderer-Hauptkontext, weil navigator.getGamepads()
@@ -165,6 +188,7 @@
       startGamepadPolling();
 
       window.flyff.on('gamepad-config-updated', cfg => { currentButtonMap = cfg; });
+      window.flyff.on('macros-updated', updated => { macros = updated; renderMacroButtons(); });
     }
 
     // ── UI-Hilfsfunktionen ────────────────────────────────────────────────────

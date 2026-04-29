@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.28.0] – 2026-04-29
+### Added
+- Macro-Buttons in der Toolbar: konfigurierbare Key-Sequenzen (z.B. Full Buff) per Button ausführen
+- Standard: „Full Buff Acc1" und „Full Buff Acc2" (F2, 1–9, F1 mit 200ms Abstand)
+- Automation wird während der Macro-Ausführung automatisch pausiert und danach fortgesetzt
+- Settings → Macros-Tab: Label, Account, Keys (kommagetrennt), Delay konfigurierbar; Macros dynamisch hinzufügen/löschen
+
 ## [1.27.0] – 2026-04-28
 ### Fixed
 - 80ms Hold und focus() aus normalem sendInputEvent-Pfad entfernt – reguläre Keys (I, 1, 2, M, …) funktionieren sofort und brauchen kein Hold; Hold bleibt nur im CDP-Pfad (Space/J)

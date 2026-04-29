@@ -176,6 +176,7 @@
     <div class="tab"        onclick="showTab('gamepad')">Controller</div>
     <div class="tab"        onclick="showTab('accounts')">Accounts</div>
     <div class="tab"        onclick="showTab('hotkeys')">Hotkeys</div>
+    <div class="tab"        onclick="showTab('macros')">Macros</div>
   </div>
 
   <!-- ── Automation tab ────────────────────────────────────────────────── -->
@@ -232,6 +233,25 @@
       </tbody>
     </table>
     <p style="color:#555; font-size:11px; margin-top:4px;">Larger radius = wider search area from screen center.</p>
+  </div>
+
+  <!-- ── Macros tab ──────────────────────────────────────────────────────── -->
+  <div id="tab-macros" class="tab-content">
+    <h3>Toolbar Macro Buttons</h3>
+    <p style="color:#555; font-size:11px; margin-bottom:8px;">Each macro adds a button to the toolbar. Keys are comma-separated (e.g. F2, 1, 2, 3, F1). Automation on the target account is paused during execution.</p>
+    <table id="tbl-macros">
+      <thead>
+        <tr>
+          <th>Label</th>
+          <th>Account</th>
+          <th>Keys (comma-separated)</th>
+          <th>Delay (ms)</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <button class="btn-add" onclick="addMacroRow()">+ Add macro</button>
   </div>
 
   <!-- ── Accounts tab ──────────────────────────────────────────────────── -->
@@ -306,13 +326,14 @@
 
     let loadedConfig    = null;
     let loadedGpConfig  = null;
+    let loadedMacros    = [];
 
     // ── Tab-Navigation ────────────────────────────────────────────────────────
 
     function showTab(name) {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      const tabIndex = ['automation','gamepad','accounts','hotkeys'].indexOf(name);
+      const tabIndex = ['automation','gamepad','accounts','hotkeys','macros'].indexOf(name);
       document.querySelectorAll('.tab')[tabIndex].classList.add('active');
       document.getElementById(`tab-${name}`).classList.add('active');
     }
@@ -425,6 +446,60 @@
       }));
     }
 
+    // ── Macro-Tabelle ─────────────────────────────────────────────────────────
+
+    function renderMacrosTable(macroList) {
+      const tbody = document.querySelector('#tbl-macros tbody');
+      tbody.innerHTML = '';
+      macroList.forEach((macro, i) => {
+        const tr = document.createElement('tr');
+
+        const tdLabel = document.createElement('td');
+        const inpLabel = document.createElement('input'); inpLabel.type='text'; inpLabel.value=macro.label||''; inpLabel.dataset.field='label'; inpLabel.style.minWidth='90px';
+        tdLabel.appendChild(inpLabel);
+
+        const tdAcc = document.createElement('td');
+        const selAcc = document.createElement('select'); selAcc.dataset.field='account';
+        ['account1','account2'].forEach(a => {
+          const o = document.createElement('option'); o.value=a; o.textContent=a==='account1'?'Acc 1':'Acc 2';
+          if (a === (macro.account||'account2')) o.selected=true;
+          selAcc.appendChild(o);
+        });
+        tdAcc.appendChild(selAcc);
+
+        const tdKeys = document.createElement('td');
+        const inpKeys = document.createElement('input'); inpKeys.type='text'; inpKeys.value=(macro.keys||[]).join(', '); inpKeys.dataset.field='keys'; inpKeys.placeholder='F2, 1, 2, 3, F1'; inpKeys.style.width='200px';
+        tdKeys.appendChild(inpKeys);
+
+        const tdDelay = document.createElement('td');
+        const inpDelay = document.createElement('input'); inpDelay.type='number'; inpDelay.min=50; inpDelay.max=5000; inpDelay.value=macro.delay||200; inpDelay.dataset.field='delay'; inpDelay.style.width='70px';
+        tdDelay.appendChild(inpDelay);
+
+        const tdDel = document.createElement('td');
+        const btnDel = document.createElement('button'); btnDel.className='btn-del'; btnDel.textContent='✕';
+        btnDel.addEventListener('click', () => { loadedMacros.splice(i,1); renderMacrosTable(loadedMacros); });
+        tdDel.appendChild(btnDel);
+
+        tr.appendChild(tdLabel); tr.appendChild(tdAcc); tr.appendChild(tdKeys); tr.appendChild(tdDelay); tr.appendChild(tdDel);
+        tbody.appendChild(tr);
+      });
+    }
+
+    function readMacrosTable() {
+      return Array.from(document.querySelectorAll('#tbl-macros tbody tr')).map((tr, i) => ({
+        id:      loadedMacros[i]?.id || ('macro_' + Date.now() + '_' + i),
+        label:   tr.querySelector('[data-field="label"]').value,
+        account: tr.querySelector('[data-field="account"]').value,
+        keys:    tr.querySelector('[data-field="keys"]').value.split(',').map(k => k.trim()).filter(Boolean),
+        delay:   parseInt(tr.querySelector('[data-field="delay"]').value, 10) || 200,
+      }));
+    }
+
+    function addMacroRow() {
+      loadedMacros.push({ id: 'macro_' + Date.now(), label: 'New Macro', account: 'account2', keys: [], delay: 200 });
+      renderMacrosTable(loadedMacros);
+    }
+
     // ── Gamepad-Tabelle ───────────────────────────────────────────────────────
 
     function renderGamepadTable(gpConfig) {
@@ -475,6 +550,9 @@
       const state = await window.flyff.getState();
       document.getElementById('hk-switch').value = state.hotkeys?.switchAccount     || 'F9';
       document.getElementById('hk-auto').value   = state.hotkeys?.toggleAutomation || 'F10';
+
+      loadedMacros = await window.flyff.getMacros() || [];
+      renderMacrosTable(loadedMacros);
     }
 
     // ── Speichern ─────────────────────────────────────────────────────────────
@@ -493,6 +571,11 @@
         switchAccount:    document.getElementById('hk-switch').value.trim() || 'F9',
         toggleAutomation: document.getElementById('hk-auto').value.trim()   || 'F10'
       });
+
+      // Macros
+      const macrosCfg = readMacrosTable();
+      window.flyff.saveMacros(macrosCfg);
+      loadedMacros = macrosCfg;
 
       const msg = document.getElementById('saved-msg');
       msg.style.display = 'inline';

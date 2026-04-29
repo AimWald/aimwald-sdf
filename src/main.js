@@ -513,6 +513,53 @@ function setupIPC() {
     mainWindow?.webContents.send('gamepad-config-updated', cfg);
   });
 
+  // Macro-Config laden
+  ipcMain.handle('get-macros', () => loadConfig('macros.json') || []);
+
+  // Macro-Config speichern und Toolbar aktualisieren
+  ipcMain.on('save-macros', (_, macros) => {
+    try { saveConfig('macros.json', macros); } catch (e) {
+      console.error('Fehler beim Speichern der Macro-Config:', e.message);
+    }
+    mainWindow?.webContents.send('macros-updated', macros);
+  });
+
+  // Macro ausführen: Automation pausieren, Keys sequenziell senden, Automation fortsetzen
+  ipcMain.on('run-macro', (_, macroId) => {
+    const macros = loadConfig('macros.json') || [];
+    const macro  = macros.find(m => m.id === macroId);
+    if (!macro) return;
+    const account = macro.account || 'account2';
+    const view    = account === 'account1' ? view1 : view2;
+    if (!view) return;
+
+    const wasRunning = automation.isRunning(account);
+    if (wasRunning) stopAutomation(account);
+
+    const delay      = macro.delay || 200;
+    const keys       = macro.keys  || [];
+    const startDelay = wasRunning ? 100 : 0;
+
+    keys.forEach((keyCode, i) => {
+      setTimeout(() => {
+        const cdpDef = CDP_KEYS[keyCode];
+        if (cdpDef) {
+          sendKeyCDP(view, cdpDef);
+        } else {
+          try {
+            view.webContents.sendInputEvent({ type: 'keyDown', keyCode });
+            view.webContents.sendInputEvent({ type: 'char',    keyCode: normalizeKey(keyCode) });
+            view.webContents.sendInputEvent({ type: 'keyUp',   keyCode });
+          } catch {}
+        }
+      }, startDelay + i * delay);
+    });
+
+    if (wasRunning) {
+      setTimeout(() => startAutomation(account), startDelay + keys.length * delay + 200);
+    }
+  });
+
 }
 
 // ── App-Lifecycle ─────────────────────────────────────────────────────────────

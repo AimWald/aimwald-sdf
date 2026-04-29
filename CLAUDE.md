@@ -78,9 +78,18 @@ eine Automation-Engine (Autoheal/Buff) und Gamepad-Steuerung.
 - Toolbar-Button `📋` öffnet Changelog-Overlay direkt in der App (über dem Game-View)
 - **Nach jeder Änderung CHANGELOG.md aktualisieren** – Version hochzählen + Eintrag hinzufügen
 
+### Macro-Buttons
+- Konfigurierbare Key-Sequenz-Buttons in der Toolbar (z.B. „Full Buff Acc1", „Full Buff Acc2")
+- Standard: F2, 1, 2, 3, 4, 5, 6, 7, 8, 9, F1 mit 200ms Abstand zwischen Keys
+- Automation des Ziel-Accounts wird während der Ausführung automatisch pausiert und danach fortgesetzt
+- Macros laufen auf dem konfigurierten Account – auch wenn dieser gerade im Hintergrund ist
+- Config: `config/macros.json` (Array mit `id`, `label`, `account`, `keys[]`, `delay`)
+- Settings → Tab **Macros**: Label, Account, Keys (kommagetrennt), Delay ms; dynamisch hinzufügen/löschen
+- Neue Macros werden sofort nach Save als Toolbar-Button sichtbar (via `macros-updated` IPC-Event)
+
 ### Konfiguration & Persistenz
 - `electron-store` speichert: `activeAccount`, `hotkeys`, `windowBounds`
-- `automation.json` und `gamepad.json` werden in `app.getPath('userData')` gespeichert (`~/.config/flyff-wrapper/`)
+- `automation.json`, `gamepad.json` und `macros.json` werden in `app.getPath('userData')` gespeichert (`~/.config/flyff-wrapper/`)
 - Beim ersten Start wird die gebündelte Default-Config nach userData kopiert
 - AppImage-Updates überschreiben Nutzer-Configs **nicht**
 - Beim Start wird der zuletzt aktive Account wiederhergestellt
@@ -102,6 +111,7 @@ eine Automation-Engine (Autoheal/Buff) und Gamepad-Steuerung.
 - Tab **Controller**: Button-Mapping Tabelle (Buttons 0–19, alle Sonderaktionen wählbar inkl. Scroll, Mausklick, Auto-Target); konfigurierbarer Auto-Target-Radius
 - Tab **Accounts**: „Reset Session"-Buttons pro Account – löscht Cookies/Login der Partition und lädt Seite neu
 - Tab **Hotkeys**: Texteingabe für Account-Switch-Taste und Automation-Toggle-Taste
+- Tab **Macros**: Macro-Buttons konfigurieren (Label, Account, Keys kommagetrennt, Delay); dynamisch hinzufügen/löschen
 - `💾 Save` schreibt Config sofort auf Disk und startet laufende Automationen mit neuer Config neu
 
 ### Steam Deck Deployment
@@ -130,14 +140,15 @@ flyff-wrapper/
 ├── CHANGELOG.md              – Versionshistorie
 ├── config/
 │   ├── automation.json       – Default-Config (Heal/Buff Tasten + Intervalle)
-│   └── gamepad.json          – Default Button-Index → Taste Mapping
+│   ├── gamepad.json          – Default Button-Index → Taste Mapping
+│   └── macros.json           – Default Macro-Buttons (Full Buff Acc1 + Acc2)
 └── src/
     ├── main.js               – Hauptprozess: Fenster, Views, IPC, Shortcuts
     ├── automation.js         – Timer-Engine (start/stop/isRunning pro Account)
     ├── preload.js            – contextBridge → window.flyff API
     └── ui/
         ├── index.html        – 30 px Toolbar + Gamepad-Polling (requestAnimationFrame)
-        └── settings.html     – Einstellungs-Fenster (4 Tabs)
+        └── settings.html     – Einstellungs-Fenster (5 Tabs inkl. Macros)
 ```
 
 > `src/gamepad.js` existiert noch im Repo, wird aber nicht mehr verwendet.

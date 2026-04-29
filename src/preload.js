@@ -20,14 +20,19 @@ contextBridge.exposeInMainWorld('flyff', {
   getState:            () => ipcRenderer.invoke('get-state'),
   getAutomationConfig: () => ipcRenderer.invoke('get-automation-config'),
   getGamepadConfig:    () => ipcRenderer.invoke('get-gamepad-config'),
+  getMacros:           () => ipcRenderer.invoke('get-macros'),
   // --- Konfiguration speichern ---
   saveAutomationConfig: (cfg)           => ipcRenderer.send('save-automation-config', cfg),
   saveGamepadConfig:    (cfg)           => ipcRenderer.send('save-gamepad-config', cfg),
   saveHotkeys:          (keys)          => ipcRenderer.send('save-hotkeys', keys),
+  saveMacros:           (macros)        => ipcRenderer.send('save-macros', macros),
+
+  // --- Macros ausführen ---
+  runMacro: (id) => ipcRenderer.send('run-macro', id),
 
   // --- Events empfangen ---
   on: (channel, cb) => {
-    const allowed = ['account-switched', 'automation-state-changed', 'gamepad-config-updated'];
+    const allowed = ['account-switched', 'automation-state-changed', 'gamepad-config-updated', 'macros-updated'];
     if (!allowed.includes(channel)) return;
     ipcRenderer.on(channel, (_event, ...args) => cb(...args));
   },
