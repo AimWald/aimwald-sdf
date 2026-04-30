@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.35);
+      cursor: crosshair;
+      overflow: hidden;
+      user-select: none;
+    }
+    #hint {
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.88);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font: 13px system-ui;
+      text-align: center;
+      pointer-events: none;
+      border: 1px solid #4af;
+      white-space: nowrap;
+    }
+    #selection {
+      position: fixed;
+      border: 2px solid #44aaff;
+      background: rgba(68,170,255,0.12);
+      display: none;
+      pointer-events: none;
+    }
+    #coords {
+      position: fixed;
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.78);
+      color: #88ddff;
+      padding: 5px 14px;
+      border-radius: 6px;
+      font: 12px monospace;
+      pointer-events: none;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="hint">Click and drag to select the HP bar area &nbsp;|&nbsp; <span style="color:#f88">Escape</span> = cancel</div>
+  <div id="selection"></div>
+  <div id="coords"></div>
+
+  <script>
+    const selEl    = document.getElementById('selection');
+    const coordsEl = document.getElementById('coords');
+    let startX = 0, startY = 0, dragging = false;
+
+    function updateSel(ex, ey) {
+      const x = Math.min(ex, startX);
+      const y = Math.min(ey, startY);
+      const w = Math.abs(ex - startX);
+      const h = Math.abs(ey - startY);
+      selEl.style.left   = x + 'px';
+      selEl.style.top    = y + 'px';
+      selEl.style.width  = w + 'px';
+      selEl.style.height = h + 'px';
+      coordsEl.textContent = `x:${x}  y:${y}  w:${w}  h:${h}`;
+    }
+
+    document.addEventListener('mousedown', e => {
+      startX = e.clientX;
+      startY = e.clientY;
+      dragging = true;
+      selEl.style.display    = 'block';
+      coordsEl.style.display = 'block';
+      updateSel(e.clientX, e.clientY);
+    });
+
+    document.addEventListener('mousemove', e => {
+      if (!dragging) return;
+      updateSel(e.clientX, e.clientY);
+    });
+
+    document.addEventListener('mouseup', e => {
+      if (!dragging) return;
+      dragging = false;
+      const x = Math.min(e.clientX, startX);
+      const y = Math.min(e.clientY, startY);
+      const w = Math.abs(e.clientX - startX);
+      const h = Math.abs(e.clientY - startY);
+      if (w > 4 && h > 4) {
+        window.flyff.hpPickerDone({ x, y, width: w, height: h });
+      } else {
+        window.flyff.hpPickerCancel();
+      }
+    });
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') window.flyff.hpPickerCancel();
+    });
+  </script>
+</body>
+</html>

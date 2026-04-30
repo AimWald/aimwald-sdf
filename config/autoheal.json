@@ -1,0 +1,16 @@
+{
+  "account1": {
+    "enabled": false,
+    "hpBarRect": null,
+    "threshold": 50,
+    "healKey": "1",
+    "intervalMs": 500
+  },
+  "account2": {
+    "enabled": false,
+    "hpBarRect": null,
+    "threshold": 50,
+    "healKey": "1",
+    "intervalMs": 500
+  }
+}

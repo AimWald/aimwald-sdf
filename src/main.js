@@ -58,6 +58,9 @@ function saveConfig(filename, data) {
 let mainWindow    = null;
 let settingsWindow = null;
 let questWindow    = null;
+let pickerWindow   = null;
+let currentPickerAccount = null;
+const hpHealIntervals = {};
 let view1 = null;   // WebContentsView für Account 1
 let view2 = null;   // WebContentsView für Account 2
 let activeAccount = 'account1';
@@ -310,6 +313,86 @@ const CDP_KEYS = {
   Space: { windowsVirtualKeyCode: 32, nativeVirtualKeyCode: 32, code: 'Space', key: ' ', text: ' ', unmodifiedText: ' ', autoRepeat: false },
   J:     { windowsVirtualKeyCode: 74, nativeVirtualKeyCode: 74, code: 'KeyJ',  key: 'j', text: 'j', unmodifiedText: 'j', autoRepeat: false }
 };
+
+// ── HP-basiertes Autoheal ─────────────────────────────────────────────────────
+// Zählt rötliche Pixel im konfigurierten HP-Bar-Rect.
+// Bitmap von capturePage ist BGRA (4 Bytes/Pixel).
+
+function estimateHpPercent(bitmap, width, height) {
+  if (!bitmap || bitmap.length < width * height * 4) return null;
+  let redCount = 0;
+  const total = width * height;
+  for (let i = 0; i < total; i++) {
+    const b = bitmap[i * 4];
+    const g = bitmap[i * 4 + 1];
+    const r = bitmap[i * 4 + 2];
+    if (r > 120 && r > g * 1.8 && r > b * 1.8) redCount++;
+  }
+  return Math.round((redCount / total) * 100);
+}
+
+function sendHealKey(view, keyCode) {
+  const cdpDef = CDP_KEYS[keyCode];
+  if (cdpDef) { sendKeyCDP(view, cdpDef); return; }
+  try {
+    view.webContents.sendInputEvent({ type: 'keyDown', keyCode });
+    view.webContents.sendInputEvent({ type: 'char',    keyCode: normalizeKey(keyCode) });
+    view.webContents.sendInputEvent({ type: 'keyUp',   keyCode });
+  } catch {}
+}
+
+function stopHpHeal(account) {
+  if (hpHealIntervals[account]) {
+    clearInterval(hpHealIntervals[account]);
+    delete hpHealIntervals[account];
+  }
+}
+
+function startHpHeal(account) {
+  stopHpHeal(account);
+  const cfg  = loadConfig('autoheal.json');
+  const acfg = cfg?.[account];
+  if (!acfg?.enabled || !acfg.hpBarRect) return;
+  const view = account === 'account1' ? view1 : view2;
+  const { hpBarRect, threshold, healKey, intervalMs } = acfg;
+
+  hpHealIntervals[account] = setInterval(async () => {
+    if (!view || !mainWindow) return;
+    try {
+      const img = await view.webContents.capturePage(hpBarRect);
+      const { width, height } = img.getSize();
+      if (!width || !height) return;
+      const hp = estimateHpPercent(img.toBitmap(), width, height);
+      if (hp !== null && hp < threshold) sendHealKey(view, healKey);
+    } catch {}
+  }, Math.max(intervalMs || 500, 200));
+}
+
+function openHpPicker(account) {
+  if (pickerWindow) { pickerWindow.close(); }
+  if (!mainWindow) return;
+  currentPickerAccount = account;
+  const bounds = mainWindow.getBounds();
+
+  pickerWindow = new BrowserWindow({
+    x: bounds.x,
+    y: bounds.y + TOOLBAR_H,
+    width:  bounds.width,
+    height: bounds.height - TOOLBAR_H,
+    transparent: true,
+    frame: false,
+    alwaysOnTop: true,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true
+    }
+  });
+  pickerWindow.loadFile(path.join(__dirname, 'ui', 'hp-picker.html'));
+  pickerWindow.setSkipTaskbar(true);
+  pickerWindow.on('closed', () => { pickerWindow = null; });
+}
 
 // ── Auto-Targeting: Spiralsuche im Game-View-Kontext ─────────────────────────
 // Wird via executeJavaScript in den aktiven WebContentsView injiziert.
@@ -598,6 +681,52 @@ function setupIPC() {
     mainWindow?.webContents.send('gamepad-config-updated', cfg);
   });
 
+  // Autoheal-Config laden
+  ipcMain.handle('get-autoheal-config', () => loadConfig('autoheal.json') || {});
+
+  // Autoheal-Config speichern und Timers neu starten
+  ipcMain.on('save-autoheal-config', (_, cfg) => {
+    try { saveConfig('autoheal.json', cfg); } catch (e) {
+      console.error('Fehler beim Speichern der Autoheal-Config:', e.message);
+    }
+    ['account1', 'account2'].forEach(acc => {
+      cfg[acc]?.enabled ? startHpHeal(acc) : stopHpHeal(acc);
+    });
+  });
+
+  // HP-Bar-Picker öffnen
+  ipcMain.on('open-hp-picker', (_, account) => openHpPicker(account));
+
+  // Picker: Rechteck wurde ausgewählt → in Config speichern, Settings benachrichtigen
+  ipcMain.on('hp-picker-done', (_, rect) => {
+    const account = currentPickerAccount;
+    if (!account) { pickerWindow?.close(); return; }
+    const cfg = loadConfig('autoheal.json') || {};
+    if (!cfg[account]) cfg[account] = {};
+    cfg[account].hpBarRect = rect;
+    try { saveConfig('autoheal.json', cfg); } catch {}
+    pickerWindow?.close();
+    settingsWindow?.webContents.send('autoheal-rect-picked', { account, rect });
+  });
+
+  // Picker: abgebrochen
+  ipcMain.on('hp-picker-cancel', () => { pickerWindow?.close(); });
+
+  // HP einmalig messen (Test-Button in Settings)
+  ipcMain.handle('test-hp-capture', async (_, account) => {
+    const cfg  = loadConfig('autoheal.json');
+    const acfg = cfg?.[account];
+    if (!acfg?.hpBarRect) return null;
+    const view = account === 'account1' ? view1 : view2;
+    if (!view) return null;
+    try {
+      const img = await view.webContents.capturePage(acfg.hpBarRect);
+      const { width, height } = img.getSize();
+      if (!width || !height) return null;
+      return estimateHpPercent(img.toBitmap(), width, height);
+    } catch { return null; }
+  });
+
   // Macro-Config laden
   ipcMain.handle('get-macros', () => loadConfig('macros.json') || []);
 
@@ -661,6 +790,7 @@ app.whenReady().then(async () => {
   createGameViews();
   setupIPC();
   registerShortcuts();
+  ['account1', 'account2'].forEach(acc => startHpHeal(acc));
 
 });
 

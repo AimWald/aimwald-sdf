@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.44.0] – 2026-04-30
+### Added
+- **HP-based Auto-Heal**: Settings → Auto-Heal tab — configurable per account (enable, heal key, HP threshold %, check interval ms). Uses `capturePage` on the configured HP bar area to count red pixels and estimate HP%.
+- **HP bar picker**: "📐 Pick" button opens a transparent snipping-tool-style overlay over the game view; click and drag to select the HP bar area, coordinates are saved automatically.
+- **HP test**: "🔍 Test" button captures the HP bar once and displays the estimated HP% in settings (useful for calibrating the threshold).
+- Feature can be disabled independently per account — recommended off on Steam Deck to avoid stutter; use timed Automation for background-account healing.
+
 ## [1.43.0] – 2026-04-30
 ### Added
 - **Dailies level filter**: "Your Level" input in the Dailies tab — shows only daily quests at or below the entered level. Forsaken Tower quests start at Lv. 86, Kaillun at Lv. 162. Empty field shows all quests.

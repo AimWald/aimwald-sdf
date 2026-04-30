@@ -32,9 +32,19 @@ contextBridge.exposeInMainWorld('flyff', {
   // --- Macros ausführen ---
   runMacro: (id) => ipcRenderer.send('run-macro', id),
 
+  // --- Auto-Heal ---
+  getAutoHealConfig:  ()        => ipcRenderer.invoke('get-autoheal-config'),
+  saveAutoHealConfig: (cfg)     => ipcRenderer.send('save-autoheal-config', cfg),
+  openHpPicker:       (account) => ipcRenderer.send('open-hp-picker', account),
+  testHpCapture:      (account) => ipcRenderer.invoke('test-hp-capture', account),
+
+  // --- HP-Picker (wird im Picker-Fenster aufgerufen) ---
+  hpPickerDone:   (rect) => ipcRenderer.send('hp-picker-done', rect),
+  hpPickerCancel: ()     => ipcRenderer.send('hp-picker-cancel'),
+
   // --- Events empfangen ---
   on: (channel, cb) => {
-    const allowed = ['account-switched', 'automation-state-changed', 'gamepad-config-updated', 'macros-updated'];
+    const allowed = ['account-switched', 'automation-state-changed', 'gamepad-config-updated', 'macros-updated', 'autoheal-rect-picked'];
     if (!allowed.includes(channel)) return;
     ipcRenderer.on(channel, (_event, ...args) => cb(...args));
   },

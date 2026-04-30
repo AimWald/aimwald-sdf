@@ -177,6 +177,7 @@
     <div class="tab"        onclick="showTab('accounts')">Accounts</div>
     <div class="tab"        onclick="showTab('hotkeys')">Hotkeys</div>
     <div class="tab"        onclick="showTab('macros')">Macros</div>
+    <div class="tab"        onclick="showTab('autoheal')">Auto-Heal</div>
   </div>
 
   <!-- ── Automation tab ────────────────────────────────────────────────── -->
@@ -254,6 +255,80 @@
     <button class="btn-add" onclick="addMacroRow()">+ Add macro</button>
   </div>
 
+  <!-- ── Auto-Heal tab ─────────────────────────────────────────────────── -->
+  <div id="tab-autoheal" class="tab-content">
+    <p style="color:#555; font-size:11px; margin-bottom:10px;">
+      Captures the HP bar area via pixel analysis and presses the heal key when HP drops below the threshold.<br>
+      Works best on the <b style="color:#aaa">active (visible)</b> account. For background healing, use the timed Automation instead.
+    </p>
+
+    <h3>Account 1 – HP Heal</h3>
+    <table class="hk-table">
+      <tbody>
+        <tr>
+          <td>Enable</td>
+          <td><input type="checkbox" id="ah1-enabled"></td>
+        </tr>
+        <tr>
+          <td>Heal key</td>
+          <td>
+            <select id="ah1-key"></select>
+          </td>
+        </tr>
+        <tr>
+          <td>Heal when HP below (%)</td>
+          <td><input type="number" id="ah1-threshold" min="1" max="99" style="width:60px" value="50"> %</td>
+        </tr>
+        <tr>
+          <td>Check interval (ms)</td>
+          <td><input type="number" id="ah1-interval" min="200" max="5000" style="width:70px" value="500"></td>
+        </tr>
+        <tr>
+          <td>HP bar area</td>
+          <td>
+            <span id="ah1-rect" style="color:#666; font-size:11px; font-family:monospace;">not set</span>
+            <button class="btn-add" style="margin:0 4px;" onclick="pickHpBar('account1')">📐 Pick</button>
+            <button class="btn-add" style="margin:0;" onclick="testHpBar('account1')">🔍 Test</button>
+            <span id="ah1-test" style="color:#88ff88; font-size:11px; margin-left:6px;"></span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Account 2 – HP Heal</h3>
+    <table class="hk-table">
+      <tbody>
+        <tr>
+          <td>Enable</td>
+          <td><input type="checkbox" id="ah2-enabled"></td>
+        </tr>
+        <tr>
+          <td>Heal key</td>
+          <td>
+            <select id="ah2-key"></select>
+          </td>
+        </tr>
+        <tr>
+          <td>Heal when HP below (%)</td>
+          <td><input type="number" id="ah2-threshold" min="1" max="99" style="width:60px" value="50"> %</td>
+        </tr>
+        <tr>
+          <td>Check interval (ms)</td>
+          <td><input type="number" id="ah2-interval" min="200" max="5000" style="width:70px" value="500"></td>
+        </tr>
+        <tr>
+          <td>HP bar area</td>
+          <td>
+            <span id="ah2-rect" style="color:#666; font-size:11px; font-family:monospace;">not set</span>
+            <button class="btn-add" style="margin:0 4px;" onclick="pickHpBar('account2')">📐 Pick</button>
+            <button class="btn-add" style="margin:0;" onclick="testHpBar('account2')">🔍 Test</button>
+            <span id="ah2-test" style="color:#88ff88; font-size:11px; margin-left:6px;"></span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
   <!-- ── Accounts tab ──────────────────────────────────────────────────── -->
   <div id="tab-accounts" class="tab-content">
     <h3>Reset Session</h3>
@@ -327,13 +402,14 @@
     let loadedConfig    = null;
     let loadedGpConfig  = null;
     let loadedMacros    = [];
+    let loadedAhConfig  = null;
 
     // ── Tab-Navigation ────────────────────────────────────────────────────────
 
     function showTab(name) {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      const tabIndex = ['automation','gamepad','accounts','hotkeys','macros'].indexOf(name);
+      const tabIndex = ['automation','gamepad','accounts','hotkeys','macros','autoheal'].indexOf(name);
       document.querySelectorAll('.tab')[tabIndex].classList.add('active');
       document.getElementById(`tab-${name}`).classList.add('active');
     }
@@ -553,6 +629,9 @@
 
       loadedMacros = await window.flyff.getMacros() || [];
       renderMacrosTable(loadedMacros);
+
+      loadedAhConfig = await window.flyff.getAutoHealConfig() || {};
+      renderAhConfig(loadedAhConfig);
     }
 
     // ── Speichern ─────────────────────────────────────────────────────────────
@@ -577,10 +656,98 @@
       window.flyff.saveMacros(macrosCfg);
       loadedMacros = macrosCfg;
 
+      // Auto-Heal
+      const ahCfg = readAhConfig();
+      window.flyff.saveAutoHealConfig(ahCfg);
+      loadedAhConfig = ahCfg;
+
       const msg = document.getElementById('saved-msg');
       msg.style.display = 'inline';
       setTimeout(() => { msg.style.display = 'none'; }, 2500);
     }
+
+    // ── Auto-Heal ──────────────────────────────────────────────────────────────
+
+    function buildAhKeySelect(id, selected) {
+      const sel = document.getElementById(id);
+      sel.innerHTML = '';
+      KEY_OPTIONS.forEach(k => {
+        const o = document.createElement('option');
+        o.value = k; o.textContent = k;
+        if (k === selected) o.selected = true;
+        sel.appendChild(o);
+      });
+    }
+
+    function formatRect(r) {
+      if (!r) return 'not set';
+      return `x:${r.x} y:${r.y} w:${r.width} h:${r.height}`;
+    }
+
+    function renderAhConfig(cfg) {
+      loadedAhConfig = cfg || {};
+      const a1 = cfg?.account1 || {};
+      const a2 = cfg?.account2 || {};
+
+      document.getElementById('ah1-enabled').checked   = !!a1.enabled;
+      document.getElementById('ah1-threshold').value   = a1.threshold  ?? 50;
+      document.getElementById('ah1-interval').value    = a1.intervalMs ?? 500;
+      document.getElementById('ah1-rect').textContent  = formatRect(a1.hpBarRect);
+      buildAhKeySelect('ah1-key', a1.healKey || '1');
+
+      document.getElementById('ah2-enabled').checked   = !!a2.enabled;
+      document.getElementById('ah2-threshold').value   = a2.threshold  ?? 50;
+      document.getElementById('ah2-interval').value    = a2.intervalMs ?? 500;
+      document.getElementById('ah2-rect').textContent  = formatRect(a2.hpBarRect);
+      buildAhKeySelect('ah2-key', a2.healKey || '1');
+    }
+
+    function readAhConfig() {
+      return {
+        account1: {
+          enabled:    document.getElementById('ah1-enabled').checked,
+          healKey:    document.getElementById('ah1-key').value,
+          threshold:  parseInt(document.getElementById('ah1-threshold').value, 10) || 50,
+          intervalMs: parseInt(document.getElementById('ah1-interval').value,  10) || 500,
+          hpBarRect:  loadedAhConfig?.account1?.hpBarRect ?? null,
+        },
+        account2: {
+          enabled:    document.getElementById('ah2-enabled').checked,
+          healKey:    document.getElementById('ah2-key').value,
+          threshold:  parseInt(document.getElementById('ah2-threshold').value, 10) || 50,
+          intervalMs: parseInt(document.getElementById('ah2-interval').value,  10) || 500,
+          hpBarRect:  loadedAhConfig?.account2?.hpBarRect ?? null,
+        },
+      };
+    }
+
+    function pickHpBar(account) {
+      window.flyff.openHpPicker(account);
+    }
+
+    async function testHpBar(account) {
+      const num = account === 'account1' ? '1' : '2';
+      const el  = document.getElementById(`ah${num}-test`);
+      el.textContent = 'measuring…';
+      const hp = await window.flyff.testHpCapture(account);
+      if (hp === null) {
+        el.textContent = 'failed – set HP bar area first';
+        el.style.color = '#f88';
+      } else {
+        el.textContent = `HP ≈ ${hp}%`;
+        el.style.color = hp < 50 ? '#f88' : '#88ff88';
+      }
+      setTimeout(() => { el.textContent = ''; }, 5000);
+    }
+
+    // Rect-Update aus dem Picker empfangen
+    window.flyff.on('autoheal-rect-picked', ({ account, rect }) => {
+      if (!loadedAhConfig) loadedAhConfig = {};
+      if (!loadedAhConfig[account]) loadedAhConfig[account] = {};
+      loadedAhConfig[account].hpBarRect = rect;
+      const num = account === 'account1' ? '1' : '2';
+      document.getElementById(`ah${num}-rect`).textContent = formatRect(rect);
+    });
 
     async function clearSession(account) {
       const label = account === 'account1' ? 'Account 1' : 'Account 2';
