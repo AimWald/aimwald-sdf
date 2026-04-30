@@ -82,9 +82,11 @@ eine Automation-Engine (Autoheal/Buff) und Gamepad-Steuerung.
   - Grüne Bar: Quests abgeschlossen (X/Y, berechnet live aus Done-Checkboxen)
   - Orange Bar: Inventory Slots freigeschaltet (X/Y, Summe der `inv`-Felder aus `quests.json`)
   - Klick auf eine Questline-Zeile filtert den Quests-Tab nach dieser Questline
-- Tab **Dailies**: Forsaken Tower Daily Quests (Lv. 86–152) und Kaillun Daily Quests (Lv. 162–172) mit Exp, Monsters to Kill, Penya-Reward
+- Tab **Dailies**: Forsaken Tower Daily Quests (Lv. 86–152) und Kaillun Daily Quests (Lv. 162–172) mit Exp, Monsters to Kill, Penya-Reward; **„Your Level"-Eingabefeld** filtert auf `lv <= eingabe` (leer = alle)
+- Tab **Quests** hat eine **Filter-Bar** (Open / Done / All); Standard ist „Open" → abgeschlossene Quests werden versteckt; Quest-Anzahl wird angezeigt
 - Live-Suche filtert über Name, Questline, Items, Monsters, Rewards, Notes, Rec und Level
 - **Checkbox „Done"** pro Quest – Status wird in `electron-store` unter `questProgress` gespeichert (Key: `"lv-line-name"`)
+- **Quest-Detail-Fenster**: öffnet flyffipedia.com-Link in separatem `BrowserWindow`; injiziert via `src/quest-preload.js` (contextBridge → `window.questWin.close()`) einen roten „✕ Close"-Button nach jedem `did-finish-load` – nötig weil Gamescope keine Fensterdekorationen anzeigt
 - Quest-IDs werden mit `replace(/'/g, "\\'")` escaped bevor sie als inline-`onchange`-Parameter verwendet werden
 - `openQuestUrl()` akzeptiert nur `http://` / `https://` URLs (Protokoll-Guard)
 - Daten: `config/quests.json` (492), `config/monsters.json` (53), `config/questlines.json` (36), `config/dailies.json` (39) – alle read-only im AppImage-Bundle
@@ -143,6 +145,7 @@ eine Automation-Engine (Autoheal/Buff) und Gamepad-Steuerung.
 
 ### Funktionalität
 - [ ] **HP-basiertes Healing via Pixel-Capture**: `webContents.capturePage(rect)` auf den HP-Bar-Bereich (kleines Rect, <1ms CPU), Pixel-Farbe auslesen um HP-% zu schätzen, bei Unterschreitung eines Schwellwerts konfigurierte Taste drücken. Kein OCR nötig (zu langsam: 200–600ms/Aufruf), kein Memory-Reading (bricht nach jedem Patch). Erst Position der HP-Bar auf 1280×800 kalibrieren.
+  - **Untersuchungsergebnis**: Flyff Universe rendert komplett auf einem einzigen WebGL-Canvas (2561×1320px bei DPR 1.5). Keine DOM-Elemente für HP, keine exponierten JS-Globals. Pixel-Capture ist der einzige machbare Ansatz ohne externe Dependencies.
 - [ ] **Automation-Profil-Wahl in der Toolbar** – aktuell fest: account1 ↔ account2-Profil
 - [ ] **Reconnect-Logik** – wenn das Spiel die Session verliert, automatisch neu laden
 - [ ] **Benachrichtigung bei Automation-Fehler** – stille Fehler in `sendInputEvent` werden nur geloggt
@@ -168,7 +171,8 @@ flyff-wrapper/
 └── src/
     ├── main.js               – Hauptprozess: Fenster, Views, IPC, Shortcuts
     ├── automation.js         – Timer-Engine (start/stop/isRunning pro Account)
-    ├── preload.js            – contextBridge → window.flyff API
+    ├── preload.js            – contextBridge → window.flyff API (Toolbar + Guide)
+    ├── quest-preload.js      – contextBridge → window.questWin.close() (Quest-Detail-Fenster)
     └── ui/
         ├── index.html        – 30 px Toolbar + Guide-Overlay + Gamepad-Polling
         └── settings.html     – Einstellungs-Fenster (5 Tabs inkl. Macros)
