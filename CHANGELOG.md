@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.42.0] – 2026-04-30
+### Added
+- **Quest filter bar**: Open / Done / All toggle in the Guide Quests tab. Default is "Open" — completed quests are hidden by default. Quest count shown above the table.
+### Fixed
+- **Quest detail window close button**: A floating "✕ Close" red button is now injected into every page loaded in the quest detail window (including when navigating within the site). Works in Gamescope where window decorations are absent.
+### Changed
+- Quest table font size increased from 10px to 13px for readability on Steam Deck; table is now horizontally scrollable if needed.
+
 ## [1.41.0] – 2026-04-29
 ### Added
 - **Questlines tab** in the Guide: all 36 questlines from the spreadsheet with progress bars (quests completed / total), inventory slots unlocked vs. still available — computed live from your Done checkboxes. Clicking a questline row filters the Quests tab by that questline.

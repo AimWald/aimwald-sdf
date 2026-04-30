@@ -243,6 +243,18 @@ function openSettings() {
   settingsWindow.on('closed', () => { settingsWindow = null; });
 }
 
+const CLOSE_BTN_JS = `(() => {
+  if (document.getElementById('__fw_close')) return;
+  const b = document.createElement('div');
+  b.id = '__fw_close';
+  b.textContent = '✕ Close';
+  b.style.cssText = 'position:fixed;top:12px;right:12px;z-index:2147483647;background:#cc2222;color:#fff;padding:9px 20px;border-radius:6px;cursor:pointer;font:bold 14px system-ui;box-shadow:0 2px 10px rgba(0,0,0,.6);';
+  b.onmouseenter = () => b.style.background = '#ee3333';
+  b.onmouseleave = () => b.style.background = '#cc2222';
+  b.onclick = () => window.questWin.close();
+  document.body.appendChild(b);
+})()`;
+
 function openQuestUrl(url) {
   if (!url || !/^https?:\/\//i.test(url)) return;
   if (questWindow) {
@@ -258,10 +270,15 @@ function openQuestUrl(url) {
     backgroundColor: '#1a1a2e',
     autoHideMenuBar: true,
     webPreferences: {
+      preload: path.join(__dirname, 'quest-preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true
+      sandbox: false
     }
+  });
+
+  questWindow.webContents.on('did-finish-load', () => {
+    questWindow?.webContents.executeJavaScript(CLOSE_BTN_JS).catch(() => {});
   });
 
   questWindow.loadURL(url);
@@ -373,6 +390,7 @@ function setupIPC() {
   ipcMain.on('open-settings',       ()        => openSettings());
   ipcMain.on('close-settings',      ()        => settingsWindow?.close());
   ipcMain.on('open-quest-url',      (_, url)  => openQuestUrl(url));
+  ipcMain.on('close-quest-window',  ()        => questWindow?.close());
 
   ipcMain.on('set-game-view-visibility', (_, visible) => {
     overlayOpen = !visible;
