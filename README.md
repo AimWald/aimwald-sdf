@@ -16,12 +16,12 @@ An Electron-based wrapper for [Flyff Universe](https://universe.flyff.com), opti
 
 ## Credits
 
-Quest data (all 492 quests, 36 questlines, daily quests, difficulty ratings, recommendations, inventory slot tracking) is sourced from the spreadsheet created and maintained by **NaviKnight2765**:
+**Quest data** (492 quests, 36 questlines, daily quests, difficulty ratings, recommendations, inventory slot tracking) — sourced from the spreadsheet by **NaviKnight2765**:
 
 - Reddit: [u/NaviKnight2765](https://www.reddit.com/user/NaviKnight2765/)
 - Original post: [I made a spreadsheet with detailed info about all quests and drops](https://www.reddit.com/r/FlyffUniverse/comments/1k0n6mo/i_made_a_spreadsheet_with_detailed_info_about_all/)
 
-Many thanks for the thorough and well-maintained resource.
+**Auto-targeting spiral search** — inspired by [Ariorh1337/flyff_bot](https://github.com/Ariorh1337/flyff_bot).
 
 ## Development
 

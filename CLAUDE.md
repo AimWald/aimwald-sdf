@@ -147,9 +147,6 @@ eine Automation-Engine (Autoheal/Buff) und Gamepad-Steuerung.
 - [ ] **Reconnect-Logik** – wenn das Spiel die Session verliert, automatisch neu laden
 - [ ] **Benachrichtigung bei Automation-Fehler** – stille Fehler in `sendInputEvent` werden nur geloggt
 
-### Credits / offen
-- [ ] **Auto-Targeting Spiral Search**: Quelle der Idee unbekannt (vom Gemini-Agenten implementiert, kein Quellenhinweis hinterlassen). Falls Ursprungs-Repo bekannt wird → in README Credits ergänzen.
-
 ### Code-Qualität
 - [ ] **IPC-Fehlerbehandlung im Renderer** – `window.flyff.*`-Aufrufe haben kein Error-Handling
 - [ ] **Unit-Tests** für `automation.js` (Timer-Logik) und Gamepad-Polling (Deadzone, Hysterese)
