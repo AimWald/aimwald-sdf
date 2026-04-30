@@ -142,9 +142,13 @@ eine Automation-Engine (Autoheal/Buff) und Gamepad-Steuerung.
 ## Offene Punkte / mögliche Erweiterungen
 
 ### Funktionalität
+- [ ] **HP-basiertes Healing via Pixel-Capture**: `webContents.capturePage(rect)` auf den HP-Bar-Bereich (kleines Rect, <1ms CPU), Pixel-Farbe auslesen um HP-% zu schätzen, bei Unterschreitung eines Schwellwerts konfigurierte Taste drücken. Kein OCR nötig (zu langsam: 200–600ms/Aufruf), kein Memory-Reading (bricht nach jedem Patch). Erst Position der HP-Bar auf 1280×800 kalibrieren.
 - [ ] **Automation-Profil-Wahl in der Toolbar** – aktuell fest: account1 ↔ account2-Profil
 - [ ] **Reconnect-Logik** – wenn das Spiel die Session verliert, automatisch neu laden
 - [ ] **Benachrichtigung bei Automation-Fehler** – stille Fehler in `sendInputEvent` werden nur geloggt
+
+### Credits / offen
+- [ ] **Auto-Targeting Spiral Search**: Quelle der Idee unbekannt (vom Gemini-Agenten implementiert, kein Quellenhinweis hinterlassen). Falls Ursprungs-Repo bekannt wird → in README Credits ergänzen.
 
 ### Code-Qualität
 - [ ] **IPC-Fehlerbehandlung im Renderer** – `window.flyff.*`-Aufrufe haben kein Error-Handling
