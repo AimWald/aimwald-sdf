@@ -468,7 +468,7 @@
 
     // ── Guide-Overlay (Quests & Monsters) ─────────────────────────────────────
 
-    let guideState = { activeTab: 'quests', questFilter: 'open', quests: [], monsters: [], questlines: [], dailies: [], progress: {} };
+    let guideState = { activeTab: 'quests', questFilter: 'open', dailyLevel: 0, quests: [], monsters: [], questlines: [], dailies: [], progress: {} };
 
     async function openGuide() {
       const overlay = document.getElementById('guide-overlay');
@@ -505,7 +505,13 @@
       ['quests', 'questlines', 'dailies', 'monsters'].forEach(t => {
         document.getElementById('tab-' + t).classList.toggle('active', t === tab);
       });
-      document.getElementById('quest-filter-bar').style.display = tab === 'quests' ? 'flex' : 'none';
+      document.getElementById('quest-filter-bar').style.display  = tab === 'quests'  ? 'flex' : 'none';
+      document.getElementById('daily-level-bar').style.display   = tab === 'dailies' ? 'flex' : 'none';
+      renderGuide();
+    }
+
+    function setDailyLevel(val) {
+      guideState.dailyLevel = parseInt(val) || 0;
       renderGuide();
     }
 
@@ -655,17 +661,28 @@
     }
 
     function renderDailiesTab() {
-      const content = document.getElementById('guide-content');
-      const search  = document.getElementById('guide-search').value.toLowerCase();
+      const content  = document.getElementById('guide-content');
+      const search   = document.getElementById('guide-search').value.toLowerCase();
+      const maxLv    = guideState.dailyLevel;
 
-      const filtered = guideState.dailies.filter(d =>
-        d.name.toLowerCase().includes(search) ||
-        (d.monsters || '').toLowerCase().includes(search) ||
-        String(d.lv).includes(search)
-      );
+      const filtered = guideState.dailies.filter(d => {
+        const matchSearch = d.name.toLowerCase().includes(search) ||
+          (d.monsters || '').toLowerCase().includes(search) ||
+          String(d.lv).includes(search);
+        const matchLevel = maxLv === 0 || d.lv <= maxLv;
+        return matchSearch && matchLevel;
+      });
 
       const sections = ['Forsaken Tower', 'Kaillun'];
       let html = '';
+
+      if (maxLv === 0) {
+        html += '<div style="font-size:11px;color:#555;margin-bottom:8px">Enter your level above to see only available quests.</div>';
+      } else if (filtered.length === 0) {
+        html += `<div style="color:#555;padding:20px;text-align:center">No daily quests available at level ${maxLv}. Forsaken Tower starts at Lv. 86.</div>`;
+        content.innerHTML = html;
+        return;
+      }
 
       sections.forEach(section => {
         const rows = filtered.filter(d => d.section === section);
@@ -686,7 +703,7 @@
         html += '</tbody></table>';
       });
 
-      if (!html) html = '<div style="color:#555; padding:20px; text-align:center">No results</div>';
+      if (!html) html = '<div style="color:#555;padding:20px;text-align:center">No results</div>';
       content.innerHTML = html;
     }
 
@@ -724,6 +741,12 @@
         <div id="qf-open" class="qf-btn active" onclick="setQuestFilter('open')">Open</div>
         <div id="qf-done" class="qf-btn"        onclick="setQuestFilter('done')">Done</div>
         <div id="qf-all"  class="qf-btn"        onclick="setQuestFilter('all')">All</div>
+      </div>
+      <div id="daily-level-bar" style="display:none; align-items:center; gap:6px;">
+        <span style="font-size:11px; color:#888;">Your Level:</span>
+        <input type="number" min="1" max="300" placeholder="e.g. 95"
+          style="width:70px; background:#0c0c1a; border:1px solid #2a2a4a; color:#eee; padding:3px 6px; border-radius:3px; font-size:11px;"
+          oninput="setDailyLevel(this.value)">
       </div>
       <input type="text" id="guide-search" class="guide-search" placeholder="Search (e.g. 'Lv.20', questline name, monster...)..." oninput="filterGuide()">
     </div>

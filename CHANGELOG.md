@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.43.0] – 2026-04-30
+### Added
+- **Dailies level filter**: "Your Level" input in the Dailies tab — shows only daily quests at or below the entered level. Forsaken Tower quests start at Lv. 86, Kaillun at Lv. 162. Empty field shows all quests.
+
 ## [1.42.0] – 2026-04-30
 ### Added
 - **Quest filter bar**: Open / Done / All toggle in the Guide Quests tab. Default is "Open" — completed quests are hidden by default. Quest count shown above the table.
