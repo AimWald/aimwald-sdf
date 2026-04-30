@@ -392,6 +392,7 @@ function setupIPC() {
   ipcMain.on('open-quest-url',      (_, url)  => openQuestUrl(url));
   ipcMain.on('close-quest-window',  ()        => questWindow?.close());
 
+
   ipcMain.on('set-game-view-visibility', (_, visible) => {
     overlayOpen = !visible;
     updateViewBounds();
