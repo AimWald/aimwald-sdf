@@ -1,6 +1,6 @@
 {
   "name": "flyff-wrapper",
-  "version": "1.48.0",
+  "version": "1.49.0",
   "description": "Electron Wrapper für Flyff Universe – Multiboxing, Automation, Gamepad",
   "main": "src/main.js",
   "author": "Evaldazz",

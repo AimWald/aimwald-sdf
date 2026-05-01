@@ -324,42 +324,35 @@ const CDP_KEYS = {
 // HP% = Füllkante / Balkenbreite × 100
 // Funktioniert für beliebige Balkenfarben (rot, blau, grün).
 
-function estimateHpFromBarFill(bitmap, width, height, barType) {
+function estimateHpFromBarFill(bitmap, width, height, barType, physLeft = null, physRight = null) {
   if (!bitmap || bitmap.length < width * height * 4) return null;
-  const margin = 3; 
-  let rightmost = -1;
 
-  // Scan all rows to find the most representative one
+  const scanL = physLeft  != null ? Math.max(0,         Math.round(physLeft)  - 1) : 2;
+  const scanR = physRight != null ? Math.min(width - 1, Math.round(physRight) + 1) : width - 3;
+
+  let rightmost = -1;
   for (let y = 1; y < height - 1; y++) {
-    for (let x = width - 1 - margin; x >= margin; x--) {
+    for (let x = scanR; x >= scanL; x--) {
       const i = (y * width + x) * 4;
       const b = bitmap[i], g = bitmap[i + 1], r = bitmap[i + 2]; // BGRA
-      
-      let isHit = false;
-      if (barType === 'hp') {
-        isHit = (r > 60 && r > g + 15 && r > b + 15);
-      } else if (barType === 'mp') {
-        isHit = (b > 60 && b > r + 15 && b > g + 15);
-      } else if (barType === 'fp') {
-        isHit = (g > 60 && g > r + 15 && g > b + 10);
-      } else {
-        const maxC = Math.max(r, g, b), minC = Math.min(r, g, b);
-        isHit = (maxC > 50 && (maxC - minC) > 30);
-      }
 
-      if (isHit) {
-        if (x > rightmost) rightmost = x;
-        break;
-      }
+      let isHit = false;
+      if (barType === 'hp') isHit = r > 60 && r > g + 15 && r > b + 15;
+      else if (barType === 'mp') isHit = b > 60 && b > r + 15 && b > g + 15;
+      else if (barType === 'fp') isHit = g > 60 && g > r + 15 && g > b + 10;
+      else { const mx = Math.max(r, g, b); isHit = mx > 50 && (mx - Math.min(r, g, b)) > 30; }
+
+      if (isHit) { if (x > rightmost) rightmost = x; break; }
     }
   }
 
   if (rightmost < 0) return 0;
-  
-  const innerWidth = width - 2 * margin;
-  if (innerWidth <= 0) return 0;
-  let pct = ((rightmost - margin + 1) / innerWidth) * 100;
-  return Math.round(Math.min(100, pct));
+
+  const L = physLeft  != null ? physLeft  : scanL;
+  const R = physRight != null ? physRight : scanR;
+  const span = R - L;
+  if (span <= 0) return 0;
+  return Math.round(Math.min(100, ((rightmost - L) / span) * 100));
 }
 
 // Scans each row for dominant color channel; groups CONSECUTIVE same-color rows
@@ -451,6 +444,7 @@ async function ocrPercent(img) {
       const { data: { text } } = await ocrWorker.recognize(scaled.toPNG());
       const clean = text.trim().replace(/\n/g, ' ');
       if (!clean) continue;
+      console.log(`[OCR] thresh=${thresh} text="${clean}"`);
 
       // Pattern: digits - separator - digits (e.g. "386 / 386")
       // Handles misread slashes like 7, |, I, l
@@ -496,7 +490,8 @@ function stopAutoHeal(account) {
   hpHealActive[account] = false;
 }
 
-async function runBarLoop(account, barType, barCfg, barRect, view) {
+async function runBarLoop(account, barType, barCfg, barEntry, view) {
+  const barRect = { x: barEntry.x, y: barEntry.y, width: barEntry.width, height: barEntry.height };
   const delay = Math.max(barCfg.intervalMs || 500, 200);
   let lastPressed = 0;
   const cooldown = 1500;
@@ -511,7 +506,10 @@ async function runBarLoop(account, barType, barCfg, barRect, view) {
           let pct = await ocrPercent(img);
           let src = 'OCR';
           if (pct == null || pct > 100) {
-            pct = estimateHpFromBarFill(img.toBitmap(), width, height, barType);
+            const dpr = width / barRect.width;
+            const physLeft  = barEntry.barLeft  != null ? barEntry.barLeft  * dpr : null;
+            const physRight = barEntry.barRight != null ? barEntry.barRight * dpr : null;
+            pct = estimateHpFromBarFill(img.toBitmap(), width, height, barType, physLeft, physRight);
             src = 'color';
           }
           if (pct !== null) {
@@ -544,11 +542,12 @@ function startAutoHeal(account) {
   hpHealActive[account] = true;
 
   for (const barType of bars) {
-    const barCfg  = acfg[barType];
-    const barRect = acfg.barBounds[barType];
-    if (!barCfg?.enabled || !barRect) continue;
-    console.log(`[AutoHeal] ${account} ${barType} started – key=${barCfg.key} threshold=${barCfg.threshold}% interval=${barCfg.intervalMs}ms`);
-    runBarLoop(account, barType, barCfg, barRect, view);
+    const barCfg   = acfg[barType];
+    const barEntry = acfg.barBounds[barType];
+    if (!barCfg?.enabled || !barEntry) continue;
+    const calStr = barEntry.barLeft != null ? ` cal=[${barEntry.barLeft.toFixed(0)},${barEntry.barRight.toFixed(0)}]` : '';
+    console.log(`[AutoHeal] ${account} ${barType} started – key=${barCfg.key} threshold=${barCfg.threshold}% interval=${barCfg.intervalMs}ms${calStr}`);
+    runBarLoop(account, barType, barCfg, barEntry, view);
   }
 }
 
@@ -896,18 +895,51 @@ function setupIPC() {
   ipcMain.on('open-hp-picker', (_, { account, barType }) => openHpPicker(account, barType).catch(e => console.error('HP picker:', e)));
 
   // Picker: Rechteck wurde ausgewählt → direkt als barBounds[barType] speichern
+  // Kalibriert barLeft/barRight aus dem Picker-Screenshot (funktioniert korrekt wenn Bars voll sind)
   ipcMain.on('hp-picker-done', (_, rect) => {
     const target = currentPickerTarget;
     if (!target) { pickerWindow?.close(); return; }
     const { account, barType } = target;
+
+    let barLeft = null, barRight = null;
+    if (lastPickerScreenshot) {
+      try {
+        const cropped = lastPickerScreenshot.crop({ x: rect.x, y: rect.y, width: rect.width, height: rect.height });
+        const bmp = cropped.toBitmap();
+        const { width: pw, height: ph } = cropped.getSize();
+        const dpr = pw / rect.width;
+        let left = pw, right = -1;
+        for (let y = 1; y < ph - 1; y++) {
+          for (let x = 0; x < pw; x++) {
+            const i = (y * pw + x) * 4;
+            const b = bmp[i], g = bmp[i + 1], r = bmp[i + 2];
+            let isHit = false;
+            if (barType === 'hp') isHit = r > 60 && r > g + 15 && r > b + 15;
+            else if (barType === 'mp') isHit = b > 60 && b > r + 15 && b > g + 15;
+            else if (barType === 'fp') isHit = g > 60 && g > r + 15 && g > b + 10;
+            if (isHit) { if (x < left) left = x; if (x > right) right = x; }
+          }
+        }
+        if (right > 0 && right > left) {
+          barLeft  = left  / dpr;
+          barRight = right / dpr;
+          console.log(`[AutoHeal] ${barType} calibrated: barLeft=${barLeft.toFixed(1)} barRight=${barRight.toFixed(1)} (CSS px, dpr=${dpr})`);
+        } else {
+          console.warn(`[AutoHeal] ${barType} calibration: no colored pixels found – re-pick with bars full for best accuracy`);
+        }
+      } catch (e) { console.error('[AutoHeal] calibration error:', e.message); }
+    }
+
     const cfg = loadConfig('autoheal.json') || {};
     if (!cfg[account]) cfg[account] = { barBounds: {}, hp: {}, mp: {}, fp: {} };
     if (!cfg[account].barBounds) cfg[account].barBounds = {};
-    cfg[account].barBounds[barType] = rect;
-    console.log(`[AutoHeal] ${account} ${barType} rect saved:`, JSON.stringify(rect));
+    const barEntry = { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+    if (barLeft !== null) { barEntry.barLeft = barLeft; barEntry.barRight = barRight; }
+    cfg[account].barBounds[barType] = barEntry;
+    console.log(`[AutoHeal] ${account} ${barType} rect saved:`, JSON.stringify(barEntry));
     try { saveConfig('autoheal.json', cfg); } catch {}
     pickerWindow?.close();
-    settingsWindow?.webContents.send('autoheal-rect-picked', { account, barType, rect });
+    settingsWindow?.webContents.send('autoheal-rect-picked', { account, barType, rect: barEntry });
   });
 
   // Picker: abgebrochen
@@ -922,16 +954,20 @@ function setupIPC() {
     if (!view) return { error: 'no-view' };
     const result = {};
     for (const barType of ['hp', 'mp', 'fp']) {
-      const barRect = acfg.barBounds[barType];
-      if (!barRect) { result[barType] = null; continue; }
+      const barEntry = acfg.barBounds[barType];
+      if (!barEntry) { result[barType] = null; continue; }
+      const barRect = { x: barEntry.x, y: barEntry.y, width: barEntry.width, height: barEntry.height };
       try {
         const img = await view.webContents.capturePage(barRect);
         const { width, height } = img.getSize();
         if (!width || !height) { result[barType] = null; continue; }
-        // Save debug PNG so we can inspect what the capture looks like
         fs.writeFileSync(path.join(app.getPath('userData'), `debug-${barType}.png`), img.toPNG());
-        console.log(`[AutoHeal] debug-${barType}.png saved (${width}×${height}px) rect=${JSON.stringify(barRect)}`);
-        result[barType] = estimateHpFromBarFill(img.toBitmap(), width, height, barType);
+        const calStr = barEntry.barLeft != null ? ` cal=[${barEntry.barLeft.toFixed(0)},${barEntry.barRight.toFixed(0)}]` : ' (no cal)';
+        console.log(`[AutoHeal] debug-${barType}.png saved (${width}×${height}px)${calStr}`);
+        const dpr = width / barRect.width;
+        const physLeft  = barEntry.barLeft  != null ? barEntry.barLeft  * dpr : null;
+        const physRight = barEntry.barRight != null ? barEntry.barRight * dpr : null;
+        result[barType] = estimateHpFromBarFill(img.toBitmap(), width, height, barType, physLeft, physRight);
       } catch (e) { result[barType] = null; console.error(`[AutoHeal] test ${barType}:`, e.message); }
     }
     return result;

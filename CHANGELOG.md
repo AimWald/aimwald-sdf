@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.49.0] – 2026-05-01
+### Fixed
+- **Auto-Heal color accuracy**: bar left/right edges are now calibrated from the picker screenshot at pick time. The rightmost colored pixel is used as `barRight`, giving exact 100% readings instead of the previous 3–5% under-report caused by a fixed 3px margin that didn't account for the bar's dark border.
+- **OCR debug logging**: OCR now logs the raw Tesseract text per threshold so failed reads are visible in the console, helping diagnose why OCR always falls back to color detection.
+- **Re-pick required** for existing selections to gain calibration data (picker screenshot must be taken with bars at 100%).
+
 ## [1.48.0] – 2026-05-01
 ### Changed
 - **Auto-Heal: OCR-primary, color-fallback** — each bar loop now reads numerical values (e.g. "386/386") via Tesseract.js first; color bar-fill scan is used only when OCR returns no result. OCR bounds are clamped to ≤ 100% to prevent garbage reads (e.g. misread "11339%") from triggering false heals.
