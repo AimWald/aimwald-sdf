@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.45.0] – 2026-05-01
+### Changed
+- **Auto-Heal: bar-fill scan instead of OCR** — scans the middle row of the selected HP bar rect from right to left for the fill edge; works for any bar color (red, blue, green); no tesseract overhead, interval down to 200 ms minimum.
+- **HP picker: screenshot background** — picker window now captures a screenshot of the game view and displays it as background instead of using compositor transparency. Works in Gamescope (Steam Deck Gaming Mode) where transparent windows show a black screen.
+
 ## [1.44.0] – 2026-04-30
 ### Added
 - **HP-based Auto-Heal**: Settings → Auto-Heal tab — configurable per account (enable, heal key, HP threshold %, check interval ms). Uses `capturePage` on the configured HP bar area to count red pixels and estimate HP%.

@@ -44,7 +44,7 @@ contextBridge.exposeInMainWorld('flyff', {
 
   // --- Events empfangen ---
   on: (channel, cb) => {
-    const allowed = ['account-switched', 'automation-state-changed', 'gamepad-config-updated', 'macros-updated', 'autoheal-rect-picked'];
+    const allowed = ['account-switched', 'automation-state-changed', 'gamepad-config-updated', 'macros-updated', 'autoheal-rect-picked', 'hp-picker-bg'];
     if (!allowed.includes(channel)) return;
     ipcRenderer.on(channel, (_event, ...args) => cb(...args));
   },

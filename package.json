@@ -1,6 +1,6 @@
 {
   "name": "flyff-wrapper",
-  "version": "1.44.0",
+  "version": "1.45.0",
   "description": "Electron Wrapper für Flyff Universe – Multiboxing, Automation, Gamepad",
   "main": "src/main.js",
   "scripts": {
@@ -9,7 +9,8 @@
     "build": "electron-builder --linux AppImage"
   },
   "dependencies": {
-    "electron-store": "^11.0.2"
+    "electron-store": "^11.0.2",
+    "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
     "electron": "^41.3.0",

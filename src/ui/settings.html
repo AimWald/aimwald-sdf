@@ -728,16 +728,20 @@
     async function testHpBar(account) {
       const num = account === 'account1' ? '1' : '2';
       const el  = document.getElementById(`ah${num}-test`);
+      el.style.color = '#aaa';
       el.textContent = 'measuring…';
-      const hp = await window.flyff.testHpCapture(account);
-      if (hp === null) {
-        el.textContent = 'failed – set HP bar area first';
+      const r = await window.flyff.testHpCapture(account);
+      if (!r || r.error) {
+        el.textContent = r?.error || 'failed';
+        el.style.color = '#f88';
+      } else if (r.hp === null) {
+        el.textContent = `OCR read nothing – check selected area (${r.width}×${r.height}px) → ${r.debugPath}`;
         el.style.color = '#f88';
       } else {
-        el.textContent = `HP ≈ ${hp}%`;
-        el.style.color = hp < 50 ? '#f88' : '#88ff88';
+        el.style.color = r.hp < 50 ? '#f88' : '#88ff88';
+        el.textContent = `HP ≈ ${r.hp}%  (${r.width}×${r.height}px)`;
       }
-      setTimeout(() => { el.textContent = ''; }, 5000);
+      setTimeout(() => { el.textContent = ''; }, 15000);
     }
 
     // Rect-Update aus dem Picker empfangen

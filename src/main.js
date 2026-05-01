@@ -1,6 +1,6 @@
 'use strict';
 
-const { app, BrowserWindow, WebContentsView, globalShortcut, ipcMain } = require('electron');
+const { app, BrowserWindow, WebContentsView, globalShortcut, ipcMain, nativeImage } = require('electron');
 const path = require('path');
 const fs   = require('fs');
 const automation = require('./automation.js');
@@ -60,7 +60,8 @@ let settingsWindow = null;
 let questWindow    = null;
 let pickerWindow   = null;
 let currentPickerAccount = null;
-const hpHealIntervals = {};
+const hpHealActive = {};  // account → boolean: steuert den async Heal-Loop
+let ocrWorker = null;
 let view1 = null;   // WebContentsView für Account 1
 let view2 = null;   // WebContentsView für Account 2
 let activeAccount = 'account1';
@@ -314,21 +315,47 @@ const CDP_KEYS = {
   J:     { windowsVirtualKeyCode: 74, nativeVirtualKeyCode: 74, code: 'KeyJ',  key: 'j', text: 'j', unmodifiedText: 'j', autoRepeat: false }
 };
 
-// ── HP-basiertes Autoheal ─────────────────────────────────────────────────────
-// Zählt rötliche Pixel im konfigurierten HP-Bar-Rect.
-// Bitmap von capturePage ist BGRA (4 Bytes/Pixel).
+// ── HP-basiertes Autoheal – Bar-Fill-Scan ────────────────────────────────────
+// Scannt die Mittellinie des gewählten Rects von rechts nach links.
+// Erstes gesättigtes (gefärbtes, nicht-graues) Pixel = rechte Füllkante.
+// HP% = Füllkante / Balkenbreite × 100
+// Funktioniert für beliebige Balkenfarben (rot, blau, grün).
 
-function estimateHpPercent(bitmap, width, height) {
+function estimateHpFromBarFill(bitmap, width, height) {
   if (!bitmap || bitmap.length < width * height * 4) return null;
-  let redCount = 0;
-  const total = width * height;
-  for (let i = 0; i < total; i++) {
-    const b = bitmap[i * 4];
-    const g = bitmap[i * 4 + 1];
-    const r = bitmap[i * 4 + 2];
-    if (r > 120 && r > g * 1.8 && r > b * 1.8) redCount++;
+  const margin = 3;                          // Rand überspringen (Border)
+  const yA = Math.floor(height / 3);
+  const yB = Math.floor(2 * height / 3);
+  const needed = Math.max(1, Math.floor((yB - yA + 1) / 2));
+
+  for (let x = width - 1 - margin; x >= margin; x--) {
+    let hits = 0;
+    for (let y = yA; y <= yB; y++) {
+      const i = (y * width + x) * 4;
+      const r = bitmap[i + 2], g = bitmap[i + 1], b = bitmap[i];
+      const maxC = Math.max(r, g, b), minC = Math.min(r, g, b);
+      if (maxC > 50 && (maxC - minC) > 35) hits++;
+    }
+    if (hits >= needed) {
+      return Math.round(((x - margin + 1) / (width - 2 * margin)) * 100);
+    }
   }
-  return Math.round((redCount / total) * 100);
+  return 0;
+}
+
+// OCR-Worker (für spätere Nutzung, wird nicht automatisch gestartet)
+async function initOcr() {
+  try {
+    const { createWorker } = require('tesseract.js');
+    ocrWorker = await createWorker('eng', 1, { logger: () => {} });
+    await ocrWorker.setParameters({
+      tessedit_char_whitelist: '0123456789.%',
+      tessedit_pageseg_mode:   '7',
+    });
+    console.log('OCR worker ready');
+  } catch (e) {
+    console.error('OCR init failed:', e.message);
+  }
 }
 
 function sendHealKey(view, keyCode) {
@@ -342,10 +369,7 @@ function sendHealKey(view, keyCode) {
 }
 
 function stopHpHeal(account) {
-  if (hpHealIntervals[account]) {
-    clearInterval(hpHealIntervals[account]);
-    delete hpHealIntervals[account];
-  }
+  hpHealActive[account] = false;
 }
 
 function startHpHeal(account) {
@@ -355,33 +379,52 @@ function startHpHeal(account) {
   if (!acfg?.enabled || !acfg.hpBarRect) return;
   const view = account === 'account1' ? view1 : view2;
   const { hpBarRect, threshold, healKey, intervalMs } = acfg;
+  const delay = Math.max(intervalMs || 500, 200);
 
-  hpHealIntervals[account] = setInterval(async () => {
-    if (!view || !mainWindow) return;
-    try {
-      const img = await view.webContents.capturePage(hpBarRect);
-      const { width, height } = img.getSize();
-      if (!width || !height) return;
-      const hp = estimateHpPercent(img.toBitmap(), width, height);
-      if (hp !== null && hp < threshold) sendHealKey(view, healKey);
-    } catch {}
-  }, Math.max(intervalMs || 500, 200));
+  hpHealActive[account] = true;
+
+  (async function loop() {
+    while (hpHealActive[account]) {
+      const t0 = Date.now();
+      try {
+        if (view && mainWindow) {
+          const img = await view.webContents.capturePage(hpBarRect);
+          const { width, height } = img.getSize();
+          if (width && height) {
+            const hp = estimateHpFromBarFill(img.toBitmap(), width, height);
+            if (hp !== null && hp < threshold) sendHealKey(view, healKey);
+          }
+        }
+      } catch {}
+      const wait = Math.max(0, delay - (Date.now() - t0));
+      await new Promise(r => setTimeout(r, wait));
+    }
+  })();
 }
 
-function openHpPicker(account) {
-  if (pickerWindow) { pickerWindow.close(); }
+async function openHpPicker(account) {
+  if (pickerWindow) pickerWindow.close();
   if (!mainWindow) return;
   currentPickerAccount = account;
   const bounds = mainWindow.getBounds();
+
+  // Game-View-Screenshot als Hintergrund – funktioniert auch in Gamescope (kein Compositor nötig)
+  let bgDataUrl = null;
+  try {
+    const activeView = activeAccount === 'account1' ? view1 : view2;
+    const [w, h] = mainWindow.getContentSize();
+    const img = await activeView.webContents.capturePage({ x: 0, y: 0, width: w, height: h - TOOLBAR_H });
+    bgDataUrl = img.toDataURL();
+  } catch {}
 
   pickerWindow = new BrowserWindow({
     x: bounds.x,
     y: bounds.y + TOOLBAR_H,
     width:  bounds.width,
     height: bounds.height - TOOLBAR_H,
-    transparent: true,
     frame: false,
     alwaysOnTop: true,
+    backgroundColor: '#000000',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -391,6 +434,9 @@ function openHpPicker(account) {
   });
   pickerWindow.loadFile(path.join(__dirname, 'ui', 'hp-picker.html'));
   pickerWindow.setSkipTaskbar(true);
+  pickerWindow.webContents.on('did-finish-load', () => {
+    if (bgDataUrl) pickerWindow?.webContents.send('hp-picker-bg', bgDataUrl);
+  });
   pickerWindow.on('closed', () => { pickerWindow = null; });
 }
 
@@ -695,7 +741,7 @@ function setupIPC() {
   });
 
   // HP-Bar-Picker öffnen
-  ipcMain.on('open-hp-picker', (_, account) => openHpPicker(account));
+  ipcMain.on('open-hp-picker', (_, account) => openHpPicker(account).catch(e => console.error('HP picker:', e)));
 
   // Picker: Rechteck wurde ausgewählt → in Config speichern, Settings benachrichtigen
   ipcMain.on('hp-picker-done', (_, rect) => {
@@ -712,19 +758,24 @@ function setupIPC() {
   // Picker: abgebrochen
   ipcMain.on('hp-picker-cancel', () => { pickerWindow?.close(); });
 
-  // HP einmalig messen (Test-Button in Settings)
+  // HP einmalig messen via Bar-Fill-Scan (Test-Button in Settings)
   ipcMain.handle('test-hp-capture', async (_, account) => {
     const cfg  = loadConfig('autoheal.json');
     const acfg = cfg?.[account];
-    if (!acfg?.hpBarRect) return null;
+    if (!acfg?.hpBarRect) return { error: 'no-rect' };
     const view = account === 'account1' ? view1 : view2;
-    if (!view) return null;
+    if (!view) return { error: 'no-view' };
     try {
       const img = await view.webContents.capturePage(acfg.hpBarRect);
       const { width, height } = img.getSize();
-      if (!width || !height) return null;
-      return estimateHpPercent(img.toBitmap(), width, height);
-    } catch { return null; }
+      if (!width || !height) return { error: `empty-image (rect: ${JSON.stringify(acfg.hpBarRect)})` };
+
+      const debugPath = path.join(app.getPath('userData'), 'hp-debug.png');
+      fs.writeFileSync(debugPath, img.toPNG());
+
+      const hp = estimateHpFromBarFill(img.toBitmap(), width, height);
+      return { hp, width, height, debugPath };
+    } catch (e) { return { error: e.message }; }
   });
 
   // Macro-Config laden

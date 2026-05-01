@@ -7,10 +7,16 @@
     html, body {
       width: 100%;
       height: 100%;
-      background: rgba(0,0,0,0.35);
+      background: #000 no-repeat center/cover;
       cursor: crosshair;
       overflow: hidden;
       user-select: none;
+    }
+    /* Dunkles Overlay über dem Screenshot – kein Compositor nötig */
+    #overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
     }
     #hint {
       position: fixed;
@@ -26,13 +32,23 @@
       pointer-events: none;
       border: 1px solid #4af;
       white-space: nowrap;
+      z-index: 10;
     }
     #selection {
       position: fixed;
       border: 2px solid #44aaff;
-      background: rgba(68,170,255,0.12);
+      background: rgba(68,170,255,0.15);
       display: none;
       pointer-events: none;
+      z-index: 10;
+    }
+    /* Ausschnitt im Overlay – zeigt Screenshot klar, Rest gedimmt */
+    #cutout {
+      position: fixed;
+      box-shadow: 0 0 0 9999px rgba(0,0,0,0.45);
+      display: none;
+      pointer-events: none;
+      z-index: 5;
     }
     #coords {
       position: fixed;
@@ -46,18 +62,28 @@
       font: 12px monospace;
       pointer-events: none;
       display: none;
+      z-index: 10;
     }
   </style>
 </head>
 <body>
-  <div id="hint">Click and drag to select the HP bar area &nbsp;|&nbsp; <span style="color:#f88">Escape</span> = cancel</div>
+  <div id="overlay"></div>
+  <div id="hint">Click and drag to select the HP bar &nbsp;|&nbsp; <span style="color:#f88">Escape</span> = cancel</div>
+  <div id="cutout"></div>
   <div id="selection"></div>
   <div id="coords"></div>
 
   <script>
     const selEl    = document.getElementById('selection');
+    const cutEl    = document.getElementById('cutout');
     const coordsEl = document.getElementById('coords');
     let startX = 0, startY = 0, dragging = false;
+
+    // Hintergrundbild vom Main-Prozess empfangen
+    window.flyff.on('hp-picker-bg', dataUrl => {
+      document.body.style.backgroundImage = `url(${dataUrl})`;
+      document.body.style.backgroundSize  = '100% 100%';
+    });
 
     function updateSel(ex, ey) {
       const x = Math.min(ex, startX);
@@ -68,6 +94,10 @@
       selEl.style.top    = y + 'px';
       selEl.style.width  = w + 'px';
       selEl.style.height = h + 'px';
+      cutEl.style.left   = x + 'px';
+      cutEl.style.top    = y + 'px';
+      cutEl.style.width  = w + 'px';
+      cutEl.style.height = h + 'px';
       coordsEl.textContent = `x:${x}  y:${y}  w:${w}  h:${h}`;
     }
 
@@ -76,6 +106,7 @@
       startY = e.clientY;
       dragging = true;
       selEl.style.display    = 'block';
+      cutEl.style.display    = 'block';
       coordsEl.style.display = 'block';
       updateSel(e.clientX, e.clientY);
     });
