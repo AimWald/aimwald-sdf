@@ -3,6 +3,12 @@
   "version": "1.46.0",
   "description": "Electron Wrapper für Flyff Universe – Multiboxing, Automation, Gamepad",
   "main": "src/main.js",
+  "author": "Evaldazz",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Evaldazz/flyff-wrapper.git"
+  },
   "scripts": {
     "start": "electron . --disable-gpu-sandbox",
     "start-nogpu": "electron . --disable-gpu",
@@ -22,7 +28,8 @@
     "files": [
       "src/**/*",
       "config/**/*",
-      "CHANGELOG.md"
+      "CHANGELOG.md",
+      "eng.traineddata"
     ],
     "linux": {
       "target": "AppImage",
