@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.53.0] – 2026-05-01
+### Fixed
+- **HP always 100% / stale frames**: Background throttling is now toggled dynamically. `setBackgroundThrottling(false)` is called when Auto-Heal starts (fresh frames needed for `capturePage`) and `setBackgroundThrottling(true)` when it stops (background view renders ~1 fps → no thermal load). Previously throttling was either always-on (stale HP frames) or always-off (thermal throttling at 30 fps for 60 s).
+
 ## [1.52.0] – 2026-05-01
 ### Fixed
 - **Performance drops / thermal throttling**: Re-enabled `backgroundThrottling` (was incorrectly set to `false` for both game views). With throttling disabled, the background Flyff Universe WebGL instance rendered at full 60 fps even while invisible, causing the Steam Deck APU to overheat and thermal-throttle for 30–60 s. Background view now renders at ~1 fps when hidden, which is sufficient for `capturePage` to read current HP/MP/FP values.

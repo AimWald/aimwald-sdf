@@ -477,6 +477,9 @@ function sendHealKey(view, keyCode) {
 
 function stopAutoHeal(account) {
   hpHealActive[account] = false;
+  const view = account === 'account1' ? view1 : view2;
+  // Restore throttling so the background view doesn't burn GPU when heal is off
+  try { view?.webContents.setBackgroundThrottling(true); } catch {}
 }
 
 async function runBarLoop(account, barType, barCfg, barEntry, view) {
@@ -523,6 +526,8 @@ function startAutoHeal(account) {
   if (!anyEnabled) return;
 
   const view = account === 'account1' ? view1 : view2;
+  // Disable throttling so capturePage gets fresh frames; restored in stopAutoHeal
+  try { view.webContents.setBackgroundThrottling(false); } catch {}
   hpHealActive[account] = true;
 
   for (const barType of bars) {
