@@ -112,7 +112,7 @@ function createGameViews() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
-      backgroundThrottling: true
+      backgroundThrottling: false
     }
   });
 
@@ -122,7 +122,7 @@ function createGameViews() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
-      backgroundThrottling: true
+      backgroundThrottling: false
     }
   });
 
@@ -477,16 +477,17 @@ function sendHealKey(view, keyCode) {
 
 function stopAutoHeal(account) {
   hpHealActive[account] = false;
-  const view = account === 'account1' ? view1 : view2;
-  // Restore throttling so the background view doesn't burn GPU when heal is off
-  try { view?.webContents.setBackgroundThrottling(true); } catch {}
 }
 
 async function runBarLoop(account, barType, barCfg, barEntry, view) {
   const barRect = { x: barEntry.x, y: barEntry.y, width: barEntry.width, height: barEntry.height };
-  const delay = Math.max(barCfg.intervalMs || 500, 200);
-  let lastPressed = 0;
+  const delay   = Math.max(barCfg.intervalMs || 500, 200);
   const cooldown = 1500;
+  // Support both new multi-action format and legacy single key/threshold
+  const actions = barCfg.actions?.length
+    ? barCfg.actions
+    : [{ key: barCfg.key, threshold: barCfg.threshold }];
+  const lastPressed = actions.map(() => 0);
 
   while (hpHealActive[account]) {
     const t0 = Date.now();
@@ -500,11 +501,15 @@ async function runBarLoop(account, barType, barCfg, barEntry, view) {
           const physRight = barEntry.barRight != null ? barEntry.barRight * dpr : null;
           const pct = estimateHpFromBarFill(img.toBitmap(), width, height, barType, physLeft, physRight);
           if (pct !== null) {
-            console.log(`[AutoHeal] ${account} ${barType.toUpperCase()}=${pct}% threshold=${barCfg.threshold}%`);
-            if (pct < barCfg.threshold && Date.now() - lastPressed > cooldown) {
-              console.log(`[AutoHeal] ${account} ${barType}: pressing ${barCfg.key}`);
-              sendHealKey(view, barCfg.key);
-              lastPressed = Date.now();
+            console.log(`[AutoHeal] ${account} ${barType.toUpperCase()}=${pct}%`);
+            const now = Date.now();
+            for (let i = 0; i < actions.length; i++) {
+              const { key, threshold } = actions[i];
+              if (pct < threshold && now - lastPressed[i] > cooldown) {
+                console.log(`[AutoHeal] ${account} ${barType}: pressing ${key} (<${threshold}%)`);
+                sendHealKey(view, key);
+                lastPressed[i] = now;
+              }
             }
           }
         }
@@ -526,8 +531,6 @@ function startAutoHeal(account) {
   if (!anyEnabled) return;
 
   const view = account === 'account1' ? view1 : view2;
-  // Disable throttling so capturePage gets fresh frames; restored in stopAutoHeal
-  try { view.webContents.setBackgroundThrottling(false); } catch {}
   hpHealActive[account] = true;
 
   for (const barType of bars) {

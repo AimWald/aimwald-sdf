@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.54.0] – 2026-05-01
+### Added
+- **Auto-Heal: multi-action per bar** — each HP/MP/FP bar now supports multiple key+threshold pairs. Example: press key `1` when HP < 50%, and press key `9` when HP < 20%. Each action has an independent 1.5 s cooldown so the emergency key is not blocked by the regular one. Configured in Settings → Auto-Heal via `+ action` buttons. Backward-compatible with existing single-action configs.
+
+### Fixed
+- **HP always 100%**: Reverted `backgroundThrottling` back to `false` in webPreferences. Setting it to `true` caused the hidden view to render at ~1 fps and `capturePage` returned a stale frame from before the fight started. The previous dynamic `setBackgroundThrottling` workaround was ineffective because Electron reapplies the webPreferences value on every page load, overriding the runtime call.
+
 ## [1.53.0] – 2026-05-01
 ### Fixed
 - **HP always 100% / stale frames**: Background throttling is now toggled dynamically. `setBackgroundThrottling(false)` is called when Auto-Heal starts (fresh frames needed for `capturePage`) and `setBackgroundThrottling(true)` when it stops (background view renders ~1 fps → no thermal load). Previously throttling was either always-on (stale HP frames) or always-off (thermal throttling at 30 fps for 60 s).

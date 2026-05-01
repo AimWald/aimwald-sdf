@@ -21,6 +21,17 @@ eine Automation-Engine (Autoheal/Buff) und Gamepad-Steuerung.
 - **F11** wechselt Vollbild ein/aus (fest belegt, nicht konfigurierbar)
 - Fenstergröße wird in `electron-store` gespeichert und beim nächsten Start wiederhergestellt
 
+### Auto-Heal (HP/MP/FP Pixel-Capture)
+- `webContents.capturePage(rect)` auf den HP/MP/FP-Bar-Bereich (kleines Rect, <1ms CPU); gibt BGRA-Bitmap zurück
+- Farb-Scan von rechts nach links findet den rechtesten gefärbten Pixel → ergibt % des Füllstands
+- Kalibrierung: Picker-Screenshot wird auf das gewählte Rect gecroppt, linker/rechter gefärbter Pixel werden als `barLeft`/`barRight` gespeichert → exakte 100% und 0% Readings
+- **Multi-Action pro Bar**: jede Bar (HP, MP, FP) hat ein `actions`-Array `[{key, threshold}, …]` mit unabhängigen 1,5 s Cooldowns – z.B. Taste 1 bei HP < 50%, Taste 9 bei HP < 20%
+- Läuft auf dem **Hintergrund-View** (inaktiver Account) ohne Fokus-Anforderung
+- `backgroundThrottling: false` in webPreferences – Hintergrund-View rendert mit 60 fps damit `capturePage` frische Frames liefert (nicht den letzten gespeicherten Frame)
+- OCR (Tesseract.js) wurde entfernt – blockiert den Main-Thread für 200–600 ms pro Aufruf
+- Config: `~/.config/flyff-wrapper/autoheal.json` mit `barBounds` (x/y/w/h + barLeft/barRight) pro Bar, `enabled`, `intervalMs`, `actions` pro Account
+- Settings → Auto-Heal: 📐-Button öffnet Picker (Screenshot + Drag-Select), 🔍-Button testet aktuellen %-Wert, `+ action`-Button fügt weitere Key+Threshold-Paare hinzu
+
 ### Automation-Engine
 - Konfigurierbare Aktions-Liste pro Account (Label, Taste 1–0/F1–F12, Intervall ms, an/aus)
 - Aktionen können dynamisch hinzugefügt (`+ Aktion`) und gelöscht (`✕`) werden – keine feste Obergrenze
@@ -144,8 +155,6 @@ eine Automation-Engine (Autoheal/Buff) und Gamepad-Steuerung.
 ## Offene Punkte / mögliche Erweiterungen
 
 ### Funktionalität
-- [ ] **HP-basiertes Healing via Pixel-Capture**: `webContents.capturePage(rect)` auf den HP-Bar-Bereich (kleines Rect, <1ms CPU), Pixel-Farbe auslesen um HP-% zu schätzen, bei Unterschreitung eines Schwellwerts konfigurierte Taste drücken. Kein OCR nötig (zu langsam: 200–600ms/Aufruf), kein Memory-Reading (bricht nach jedem Patch). Erst Position der HP-Bar auf 1280×800 kalibrieren.
-  - **Untersuchungsergebnis**: Flyff Universe rendert komplett auf einem einzigen WebGL-Canvas (2561×1320px bei DPR 1.5). Keine DOM-Elemente für HP, keine exponierten JS-Globals. Pixel-Capture ist der einzige machbare Ansatz ohne externe Dependencies.
 - [ ] **Automation-Profil-Wahl in der Toolbar** – aktuell fest: account1 ↔ account2-Profil
 - [ ] **Reconnect-Logik** – wenn das Spiel die Session verliert, automatisch neu laden
 - [ ] **Benachrichtigung bei Automation-Fehler** – stille Fehler in `sendInputEvent` werden nur geloggt
