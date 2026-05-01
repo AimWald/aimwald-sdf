@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.54.1] – 2026-05-01
+### Changed
+- **Performance Optimization**: Re-enabled background throttling for game views. This reduces CPU/GPU load on the Steam Deck when accounts are in the background, preventing performance drops during multiboxing.
+
 ## [1.54.0] – 2026-05-01
 ### Added
 - **Auto-Heal: multi-action per bar** — each HP/MP/FP bar now supports multiple key+threshold pairs. Example: press key `1` when HP < 50%, and press key `9` when HP < 20%. Each action has an independent 1.5 s cooldown so the emergency key is not blocked by the regular one. Configured in Settings → Auto-Heal via `+ action` buttons. Backward-compatible with existing single-action configs.
