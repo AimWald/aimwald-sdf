@@ -337,9 +337,9 @@ function estimateHpFromBarFill(bitmap, width, height, barType, physLeft = null, 
       const b = bitmap[i], g = bitmap[i + 1], r = bitmap[i + 2]; // BGRA
 
       let isHit = false;
-      if (barType === 'hp') isHit = r > 60 && r > g + 15 && r > b + 15;
-      else if (barType === 'mp') isHit = b > 60 && b > r + 15 && b > g + 15;
-      else if (barType === 'fp') isHit = g > 60 && g > r + 15 && g > b + 10;
+      if (barType === 'hp') isHit = r > 70 && r > g + 40 && r > b + 40;
+      else if (barType === 'mp') isHit = b > 70 && b > r + 20 && b > g + 20;
+      else if (barType === 'fp') isHit = g > 70 && g > r + 25 && g > b + 15;
       else { const mx = Math.max(r, g, b); isHit = mx > 50 && (mx - Math.min(r, g, b)) > 30; }
 
       if (isHit) { if (x > rightmost) rightmost = x; break; }
@@ -355,49 +355,63 @@ function estimateHpFromBarFill(bitmap, width, height, barType, physLeft = null, 
   return Math.round(Math.min(100, ((rightmost - L) / span) * 100));
 }
 
-// Scans each row for dominant color channel; groups CONSECUTIVE same-color rows
-// into bands. Uses full selection width so fill % is always relative to total bar width.
+// Scans each row for dominant color channel; groups consecutive same-color rows
+// into bands. Returns { hp, mp, fp } as absolute screen coordinate rects.
 function detectAllBars(bitmap, imgWidth, imgHeight, statusRect) {
   const rowTypes = [];
   for (let y = 0; y < imgHeight; y++) {
     let rSum = 0, gSum = 0, bSum = 0, count = 0;
+    let minX = imgWidth, maxX = 0;
+
     for (let x = 0; x < imgWidth; x++) {
       const i = (y * imgWidth + x) * 4;
       const B = bitmap[i], G = bitmap[i + 1], R = bitmap[i + 2]; // BGRA
-      if      (R > 80 && R > G + 25 && R > B + 25) { rSum++; count++; }
-      else if (B > 80 && B > R + 25 && B > G + 25) { bSum++; count++; }
-      else if (G > 80 && G > R + 25 && G > B + 15) { gSum++; count++; }
+      
+      let match = false;
+      // Stricter HP check (Dominance > 40) to ignore brown UI elements
+      if      (R > 80 && R > G + 40 && R > B + 40) match = 'hp';
+      else if (B > 80 && B > R + 25 && B > G + 25) match = 'mp';
+      else if (G > 80 && G > R + 25 && G > B + 15) match = 'fp';
+
+      if (match) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (match === 'hp') rSum++;
+        else if (match === 'mp') bSum++;
+        else gSum++;
+        count++;
+      }
     }
-    if (count >= 8) {
+
+    if (count >= 10) {
       let type;
       if (rSum >= bSum && rSum >= gSum) type = 'hp';
       else if (gSum >= rSum && gSum >= bSum) type = 'fp';
       else type = 'mp';
-      rowTypes.push({ y, type });
+      rowTypes.push({ y, type, minX, maxX });
     }
   }
 
-  // Merge only consecutive rows of the same type (gap tolerance 2px)
-  const bands = [];
-  for (const { y, type } of rowTypes) {
-    const last = bands[bands.length - 1];
-    if (last && last.type === type && y <= last.endY + 2) {
-      last.endY = y;
-    } else {
-      bands.push({ type, startY: y, endY: y });
-    }
-  }
-
-  // Pick tallest band per type; use FULL selection width for correct fill detection
   const result = {};
-  for (const { type, startY, endY } of bands) {
-    const h = endY - startY + 1;
-    if (!result[type] || h > result[type].height) {
+  for (const type of ['hp', 'mp', 'fp']) {
+    const rows = rowTypes.filter(r => r.type === type);
+    if (rows.length > 5) {
+      const startY = Math.min(...rows.map(r => r.y));
+      const endY   = Math.max(...rows.map(r => r.y));
+      const minX   = Math.min(...rows.map(r => r.minX));
+      const maxX   = Math.max(...rows.map(r => r.maxX));
+      
+      const h = endY - startY + 1;
+      const w = maxX - minX + 1;
+      const padding = 2; // Vertical padding for safer OCR/Color scan
+
       result[type] = {
-        x: statusRect.x,
-        y: statusRect.y + startY,
-        width: statusRect.width,
-        height: Math.max(h, 4)
+        x: statusRect.x + minX,
+        y: statusRect.y + startY - padding,
+        width: w,
+        height: h + (padding * 2),
+        barLeft: 0,   // Relative to this rect's x
+        barRight: w   // Relative to this rect's x
       };
     }
   }

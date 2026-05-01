@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.54.3] – 2026-05-01
+### Fixed
+- **HP Detection Accuracy**: Significantly tightened the color dominance threshold for the HP bar (Rot > Grün+40 & Blau+40). This prevents the brownish/reddish UI frame of the status window from being misidentified as a full HP bar, which previously caused HP to be "stuck" at 100%.
+- **Improved Auto-Alignment**: The bar detection logic now explicitly calculates the horizontal edges (minX/maxX) of each colored bar during selection, further isolating the monitoring area from the window frame.
+
 ## [1.54.1] – 2026-05-01
 ### Changed
 - **Performance Optimization**: Re-enabled background throttling for game views. This reduces CPU/GPU load on the Steam Deck when accounts are in the background, preventing performance drops during multiboxing.
