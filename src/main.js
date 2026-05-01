@@ -368,47 +368,58 @@ function detectAllBars(bitmap, imgWidth, imgHeight, statusRect) {
   const rowTypes = [];
   for (let y = 0; y < imgHeight; y++) {
     let rSum = 0, gSum = 0, bSum = 0, count = 0;
+    let minX = imgWidth, maxX = 0;
+
     for (let x = 0; x < imgWidth; x++) {
       const i = (y * imgWidth + x) * 4;
       const B = bitmap[i], G = bitmap[i + 1], R = bitmap[i + 2]; // BGRA
       
-      // Use the same dominance logic for detection
-      if (R > 80 && R > G + 30 && R > B + 30) { rSum += R; count++; }
-      else if (B > 80 && B > R + 30 && B > G + 30) { bSum += B; count++; }
-      else if (G > 80 && G > R + 30 && G > B + 20) { gSum += G; count++; }
+      let match = false;
+      if (R > 70 && R > G + 20 && R > B + 20) match = 'hp';
+      else if (B > 70 && B > R + 20 && B > G + 20) match = 'mp';
+      else if (G > 70 && G > R + 20 && G > B + 15) match = 'fp';
+
+      if (match) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (match === 'hp') rSum++;
+        else if (match === 'mp') bSum++;
+        else gSum++;
+        count++;
+      }
     }
-    
-    if (count >= Math.max(3, Math.floor(imgWidth * 0.08))) {
+
+    if (count >= 10) {
       let type;
-      if (rSum >= gSum && rSum >= bSum) type = 'hp';
+      if (rSum >= bSum && rSum >= gSum) type = 'hp';
       else if (gSum >= rSum && gSum >= bSum) type = 'fp';
       else type = 'mp';
-      rowTypes.push({ y, type });
-    }
-  }
-
-  const bands = [];
-  for (const { y, type } of rowTypes) {
-    const last = bands[bands.length - 1];
-    if (last && last.type === type && y <= last.endY + 3) {
-      last.endY = y;
-    } else {
-      bands.push({ type, startY: y, endY: y });
+      rowTypes.push({ y, type, minX, maxX });
     }
   }
 
   const result = {};
-  for (const { type, startY, endY } of bands) {
-    const h = endY - startY + 1;
-    if (!result[type] || h > result[type].height) {
+  for (const type of ['hp', 'mp', 'fp']) {
+    const rows = rowTypes.filter(r => r.type === type);
+    if (rows.length > 5) {
+      const startY = Math.min(...rows.map(r => r.y));
+      const endY   = Math.max(...rows.map(r => r.y));
+      const minX   = Math.min(...rows.map(r => r.minX));
+      const maxX   = Math.max(...rows.map(r => r.maxX));
+      
+      const h = endY - startY + 1;
+      const w = maxX - minX + 1;
+      const targetH = Math.max(h, 14); // Minimum for OCR
+
       result[type] = {
-        x: statusRect.x,
-        y: statusRect.y + startY,
-        width: statusRect.width,
-        height: Math.max(h, 4)
+        x: statusRect.x + minX,
+        y: statusRect.y + startY - Math.floor((targetH - h) / 2),
+        width: w,
+        height: targetH
       };
     }
   }
+  console.log(`[AutoHeal] Detected bars:`, JSON.stringify(result));
   return result;
 }
 
@@ -417,7 +428,8 @@ async function initOcr() {
     const { createWorker } = require('tesseract.js');
     ocrWorker = await createWorker('eng', 1, { logger: () => {} });
     await ocrWorker.setParameters({
-      tessedit_char_whitelist: '0123456789./%',
+      // Allow more characters that look like slashes or numbers
+      tessedit_char_whitelist: '0123456789./%|\\Ili ',
       tessedit_pageseg_mode:   '7',  // single text line
     });
     console.log('OCR worker ready');
@@ -426,34 +438,55 @@ async function initOcr() {
   }
 }
 
-// Weißen Text auf farbigem/dunklem Hintergrund → schwarzer Text auf weiß.
-// Erkennt "386 / 386" (current/max) und "82.94%" (Prozent-Format).
 async function ocrPercent(img) {
   if (!ocrWorker) return null;
   try {
     const { width, height } = img.getSize();
-    const src = img.toBitmap();
-    const dst = Buffer.alloc(src.length, 255);
-    for (let i = 0; i < width * height; i++) {
-      const bright = (src[i*4+2] + src[i*4+1] + src[i*4]) / 3;
-      const val = bright > 160 ? 0 : 255;
-      dst[i*4] = dst[i*4+1] = dst[i*4+2] = val;
-      dst[i*4+3] = 255;
-    }
-    const processed = nativeImage.createFromBitmap(dst, { width, height });
-    const { data: { text } } = await ocrWorker.recognize(processed.toPNG());
+    if (width < 15 || height < 8) return null;
 
-    // "386 / 386" oder "386/386" → current / max
-    let m = text.match(/(\d+)\s*[/\\]\s*(\d+)/);
-    if (m) {
-      const cur = parseInt(m[1]), max = parseInt(m[2]);
-      if (max > 0) return Math.round((cur / max) * 100);
+    const src = img.toBitmap();
+    // Use multi-thresholding with 3x scaling for high precision
+    const thresholds = [150, 190, 225];
+    let bestResult = null;
+
+    for (const thresh of thresholds) {
+      const dst = Buffer.alloc(src.length, 255);
+      for (let i = 0; i < width * height; i++) {
+        const bright = (src[i*4] + src[i*4+1] + src[i*4+2]) / 3;
+        dst[i*4] = dst[i*4+1] = dst[i*4+2] = (bright > thresh) ? 0 : 255;
+        dst[i*4+3] = 255;
+      }
+      const processed = nativeImage.createFromBitmap(dst, { width, height });
+      const scaled = processed.resize({ width: width * 3, height: height * 3 });
+      
+      const { data: { text } } = await ocrWorker.recognize(scaled.toPNG());
+      const clean = text.trim().replace(/\n/g, ' ');
+      if (!clean) continue;
+
+      // Pattern: digits - separator - digits (e.g. "386 / 386")
+      // Handles misread slashes like 7, |, I, l
+      let m = clean.match(/(\d+)\s*[^\d ]+\s*(\d+)/);
+      if (!m) m = clean.match(/(\d+)\s+(\d+)/); // Just two numbers with space
+      
+      if (m) {
+        const cur = parseInt(m[1]), max = parseInt(m[2]);
+        if (max > 0 && cur <= max * 1.1) {
+          bestResult = Math.round((cur / max) * 100);
+          console.log(`[OCR Raw] "${clean}" -> ${bestResult}% (thresh ${thresh})`);
+          break; 
+        }
+      }
+      
+      // Percent fallback
+      m = clean.match(/(\d+(?:\.\d+)?)\s*%/);
+      if (m) { 
+        bestResult = parseFloat(m[1]); 
+        console.log(`[OCR Raw] "${clean}" -> ${bestResult}% (thresh ${thresh})`);
+        break; 
+      }
     }
-    // "82.94%" – Fallback für Prozent-Elemente
-    m = text.match(/(\d+(?:\.\d+)?)\s*%/);
-    if (m) return parseFloat(m[1]);
-    return null;
-  } catch { return null; }
+    return bestResult;
+  } catch (e) { return null; }
 }
 
 function sendHealKey(view, keyCode) {
@@ -479,7 +512,15 @@ async function runBarLoop(account, barType, barCfg, barRect, view) {
     const t0 = Date.now();
     try {
       if (view && mainWindow) {
-        let img = await view.webContents.capturePage(barRect);
+        // Expand rect vertically by 2px on each side for better OCR coverage
+        const ocrRect = {
+          x: barRect.x,
+          y: Math.max(0, barRect.y - 2),
+          width: barRect.width,
+          height: barRect.height + 4
+        };
+        
+        let img = await view.webContents.capturePage(ocrRect);
         
         // Primary: OCR
         let pct = await ocrPercent(img);

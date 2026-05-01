@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.47.2] – 2026-05-01
+### Fixed
+- **DPI Scaling (Scale Factor)**: Implemented automatic coordinate translation between logical and physical pixels. Selection boxes are now correctly mapped on high-DPI displays (like Steam Deck).
+- **Picker Alignment**: The selection window is now perfectly centered over the game view, eliminating the 30px vertical offset from the toolbar.
+- **Strict Color Checks**: Refined bar detection to require significant color dominance, effectively ignoring UI labels and borders.
+
+## [1.47.1] – 2026-05-01
+### Added
+- **Horizontal Auto-Alignment**: The system now automatically detects the left and right edges of colored bars, clipping away labels ("HP/MP") to focus OCR only on numbers.
+- **Adaptive OCR Binarization**: OCR now cycles through multiple contrast thresholds to find the best readability for varying game backgrounds.
+- **3x OCR Scaling**: Increased image upscaling to 3x for improved character recognition on small bar fonts.
+- **Robust Parsing**: Added support for misread slashes (e.g., '7', '|', 'I') in the numerical regex parser.
+
 ## [1.47.0] – 2026-05-01
 ### Added
 - **OCR-First Auto-Heal**: The system now prioritizes reading numerical values (e.g., "386 / 386") and percentages directly from the bars using Tesseract.js. This provides much higher precision for bars with text overlays.
