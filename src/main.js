@@ -111,7 +111,8 @@ function createGameViews() {
       partition: 'persist:account1',  // Isolierte Session für Account 1
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false
+      sandbox: false,
+      backgroundThrottling: false
     }
   });
 
@@ -120,7 +121,8 @@ function createGameViews() {
       partition: 'persist:account2',  // Isolierte Session für Account 2
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false
+      sandbox: false,
+      backgroundThrottling: false
     }
   });
 
@@ -146,20 +148,20 @@ function updateViewBounds() {
   if (!mainWindow || !view1 || !view2) return;
   const [w, h] = mainWindow.getContentSize();
   const activeBounds = { x: 0, y: TOOLBAR_H, width: w, height: h - TOOLBAR_H };
-  const hiddenBounds  = { x: 0, y: TOOLBAR_H, width: 0, height: 0 };
+  const hiddenBounds  = { x: -w - 100, y: TOOLBAR_H, width: w, height: h - TOOLBAR_H };
 
   if (activeAccount === 'account1') {
     view1.setBounds(activeBounds);
     view1.setVisible(!overlayOpen);
     if (!overlayOpen) view1.webContents.focus();
     view2.setBounds(hiddenBounds);
-    view2.setVisible(false);
+    view2.setVisible(true);
   } else {
     view2.setBounds(activeBounds);
     view2.setVisible(!overlayOpen);
     if (!overlayOpen) view2.webContents.focus();
     view1.setBounds(hiddenBounds);
-    view1.setVisible(false);
+    view1.setVisible(true);
   }
 }
 
@@ -333,8 +335,9 @@ function estimateHpFromBarFill(bitmap, width, height) {
       const r = bitmap[i + 2], g = bitmap[i + 1], b = bitmap[i];
       const maxC = Math.max(r, g, b), minC = Math.min(r, g, b);
       
-      // brightness 30, saturation 25. catches very dark pixels.
-      if (maxC > 30 && (maxC - minC) > 25) {
+      // Increased thresholds to better distinguish from dark backgrounds.
+      // Brightness > 50 and Saturation > 35.
+      if (maxC > 50 && (maxC - minC) > 35) {
         if (x > rightmost) rightmost = x;
         break;
       }
@@ -348,6 +351,13 @@ function estimateHpFromBarFill(bitmap, width, height) {
   
   let pct = ((rightmost - margin + 1) / innerWidth) * 100;
   if (pct > 100) pct = 100;
+
+  // Debug: log a sample when stuck at 100%
+  if (pct === 100 && Math.random() < 0.05) {
+     const i = (Math.floor(height/2) * width + (width - 2)) * 4;
+     console.log(`[Debug] 100% Sample at x=${width-2}: R=${bitmap[i+2]} G=${bitmap[i+1]} B=${bitmap[i]}`);
+  }
+
   return Math.round(pct);
 }
 

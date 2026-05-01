@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.46.2] – 2026-05-01
+### Fixed
+- **Background Auto-Heal**: Hidden accounts now keep rendering off-screen, ensuring `capturePage` receives fresh frames even when an account is in the background.
+- **Improved Detection Thresholds**: Increased brightness and saturation requirements to better distinguish the active bar fill from dark UI backgrounds, preventing values from getting "stuck" at 100%.
+- **Background Throttling**: Disabled Electron's background throttling for game views to ensure consistent timer execution for automation.
+
 ## [1.46.1] – 2026-05-01
 ### Fixed
 - **Bar-Fill Precision**: Reduced scanning margins to 1px, allowing for reliable 100% detection.
