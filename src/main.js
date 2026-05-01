@@ -324,18 +324,17 @@ const CDP_KEYS = {
 
 function estimateHpFromBarFill(bitmap, width, height) {
   if (!bitmap || bitmap.length < width * height * 4) return null;
-  const margin = 3;
+  const margin = 1; 
   let rightmost = -1;
 
-  // Jede Reihe einzeln auswerten, Maximum nehmen.
-  // Weiße Text-Pixel (Sättigung 0) werden ignoriert – Reihen ohne Text
-  // liefern die korrekte Füllkante; das Maximum ist immer richtig.
   for (let y = 1; y < height - 1; y++) {
     for (let x = width - 1 - margin; x >= margin; x--) {
       const i = (y * width + x) * 4;
       const r = bitmap[i + 2], g = bitmap[i + 1], b = bitmap[i];
       const maxC = Math.max(r, g, b), minC = Math.min(r, g, b);
-      if (maxC > 50 && (maxC - minC) > 35) {
+      
+      // brightness 30, saturation 25. catches very dark pixels.
+      if (maxC > 30 && (maxC - minC) > 25) {
         if (x > rightmost) rightmost = x;
         break;
       }
@@ -343,13 +342,19 @@ function estimateHpFromBarFill(bitmap, width, height) {
   }
 
   if (rightmost < 0) return 0;
-  return Math.round(((rightmost - margin + 1) / (width - 2 * margin)) * 100);
+  
+  const innerWidth = width - 2 * margin;
+  if (innerWidth <= 0) return 0;
+  
+  let pct = ((rightmost - margin + 1) / innerWidth) * 100;
+  if (pct > 100) pct = 100;
+  return Math.round(pct);
 }
 
 // Scans each row for dominant color channel; groups consecutive same-color rows
 // into bands. Returns { hp, mp, fp } as absolute screen coordinate rects.
 function detectAllBars(bitmap, imgWidth, imgHeight, statusRect) {
-  const MIN_SAT = 35, MIN_BRIGHT = 50;
+  const MIN_SAT = 25, MIN_BRIGHT = 30;
   const MIN_PX = Math.max(3, Math.floor(imgWidth * 0.08));
 
   const rowTypes = [];
@@ -464,18 +469,23 @@ async function runBarLoop(account, barType, barCfg, barRect, view) {
     const t0 = Date.now();
     try {
       if (view && mainWindow) {
-        const img = await view.webContents.capturePage(barRect);
-        const { width, height } = img.getSize();
-        if (width && height) {
-          const bitmap = img.toBitmap();
-          const pct = estimateHpFromBarFill(bitmap, width, height);
-          if (pct !== null) {
-            console.log(`[AutoHeal] ${account} ${barType.toUpperCase()}=${pct}% threshold=${barCfg.threshold}%`);
-            if (pct < barCfg.threshold && Date.now() - lastPressed > cooldown) {
-              console.log(`[AutoHeal] ${account} ${barType}: pressing ${barCfg.key}`);
-              sendHealKey(view, barCfg.key);
-              lastPressed = Date.now();
-            }
+        let img = await view.webContents.capturePage(barRect);
+        let pct = estimateHpFromBarFill(img.toBitmap(), img.getSize().width, img.getSize().height);
+
+        // Safety check: 0% is often a capture glitch (UI flicker).
+        // If we get 0%, wait 100ms and re-capture once to confirm.
+        if (pct === 0) {
+          await new Promise(r => setTimeout(r, 100));
+          img = await view.webContents.capturePage(barRect);
+          pct = estimateHpFromBarFill(img.toBitmap(), img.getSize().width, img.getSize().height);
+        }
+
+        if (pct !== null) {
+          console.log(`[AutoHeal] ${account} ${barType.toUpperCase()}=${pct}% threshold=${barCfg.threshold}%`);
+          if (pct < barCfg.threshold && Date.now() - lastPressed > cooldown) {
+            console.log(`[AutoHeal] ${account} ${barType}: pressing ${barCfg.key}`);
+            sendHealKey(view, barCfg.key);
+            lastPressed = Date.now();
           }
         }
       }

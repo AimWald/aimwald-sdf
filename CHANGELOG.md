@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.46.1] – 2026-05-01
+### Fixed
+- **Bar-Fill Precision**: Reduced scanning margins to 1px, allowing for reliable 100% detection.
+- **False-Positive Protection**: Implemented a double-check for 0% readings (waits 100ms and re-captures) to prevent "phantom" key presses caused by UI flickers or transient capture errors.
+- **Improved Sensitivity**: Lowered color saturation/brightness thresholds to better detect dark bar colors.
+
 ## [1.46.0] – 2026-05-01
 ### Added
 - **Multi-Bar Auto-Heal**: Support for HP, MP, and FP bars simultaneously. Each bar can have its own enable toggle, hotkey, threshold %, and check interval.
