@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.46.0] – 2026-05-01
+### Added
+- **Multi-Bar Auto-Heal**: Support for HP, MP, and FP bars simultaneously. Each bar can have its own enable toggle, hotkey, threshold %, and check interval.
+- **Auto-Detection**: The status window picker now automatically detects individual HP, MP, and FP bars by color signature within the selected status area.
+- **Enhanced Pixel Analysis**: Improved bar-fill scanning that skips white text pixels (labels) to find the correct fill edge reliably even when text is overlapping the bar.
+- **OCR Support**: Integrated Tesseract.js (Experimental) to optionally read numerical values ("386/386") or percentages from bars for higher precision.
+### Changed
+- **Auto-Heal Config**: Schema in `autoheal.json` updated to a per-bar structure; settings UI updated with a multi-row table per account.
+
 ## [1.45.0] – 2026-05-01
 ### Changed
 - **Auto-Heal: bar-fill scan instead of OCR** — scans the middle row of the selected HP bar rect from right to left for the fill edge; works for any bar color (red, blue, green); no tesseract overhead, interval down to 200 ms minimum.

@@ -1,16 +1,16 @@
 {
   "account1": {
-    "enabled": false,
-    "hpBarRect": null,
-    "threshold": 50,
-    "healKey": "1",
-    "intervalMs": 500
+    "statusRect": null,
+    "barBounds": {},
+    "hp": { "enabled": false, "threshold": 50, "key": "1", "intervalMs": 500 },
+    "mp": { "enabled": false, "threshold": 30, "key": "2", "intervalMs": 1000 },
+    "fp": { "enabled": false, "threshold": 30, "key": "3", "intervalMs": 1000 }
   },
   "account2": {
-    "enabled": false,
-    "hpBarRect": null,
-    "threshold": 50,
-    "healKey": "1",
-    "intervalMs": 500
+    "statusRect": null,
+    "barBounds": {},
+    "hp": { "enabled": false, "threshold": 50, "key": "1", "intervalMs": 500 },
+    "mp": { "enabled": false, "threshold": 30, "key": "2", "intervalMs": 1000 },
+    "fp": { "enabled": false, "threshold": 30, "key": "3", "intervalMs": 1000 }
   }
 }

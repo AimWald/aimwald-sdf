@@ -62,6 +62,7 @@ let pickerWindow   = null;
 let currentPickerAccount = null;
 const hpHealActive = {};  // account → boolean: steuert den async Heal-Loop
 let ocrWorker = null;
+let lastPickerScreenshot = null;
 let view1 = null;   // WebContentsView für Account 1
 let view2 = null;   // WebContentsView für Account 2
 let activeAccount = 'account1';
@@ -323,39 +324,121 @@ const CDP_KEYS = {
 
 function estimateHpFromBarFill(bitmap, width, height) {
   if (!bitmap || bitmap.length < width * height * 4) return null;
-  const margin = 3;                          // Rand überspringen (Border)
-  const yA = Math.floor(height / 3);
-  const yB = Math.floor(2 * height / 3);
-  const needed = Math.max(1, Math.floor((yB - yA + 1) / 2));
+  const margin = 3;
+  let rightmost = -1;
 
-  for (let x = width - 1 - margin; x >= margin; x--) {
-    let hits = 0;
-    for (let y = yA; y <= yB; y++) {
+  // Jede Reihe einzeln auswerten, Maximum nehmen.
+  // Weiße Text-Pixel (Sättigung 0) werden ignoriert – Reihen ohne Text
+  // liefern die korrekte Füllkante; das Maximum ist immer richtig.
+  for (let y = 1; y < height - 1; y++) {
+    for (let x = width - 1 - margin; x >= margin; x--) {
       const i = (y * width + x) * 4;
       const r = bitmap[i + 2], g = bitmap[i + 1], b = bitmap[i];
       const maxC = Math.max(r, g, b), minC = Math.min(r, g, b);
-      if (maxC > 50 && (maxC - minC) > 35) hits++;
-    }
-    if (hits >= needed) {
-      return Math.round(((x - margin + 1) / (width - 2 * margin)) * 100);
+      if (maxC > 50 && (maxC - minC) > 35) {
+        if (x > rightmost) rightmost = x;
+        break;
+      }
     }
   }
-  return 0;
+
+  if (rightmost < 0) return 0;
+  return Math.round(((rightmost - margin + 1) / (width - 2 * margin)) * 100);
 }
 
-// OCR-Worker (für spätere Nutzung, wird nicht automatisch gestartet)
+// Scans each row for dominant color channel; groups consecutive same-color rows
+// into bands. Returns { hp, mp, fp } as absolute screen coordinate rects.
+function detectAllBars(bitmap, imgWidth, imgHeight, statusRect) {
+  const MIN_SAT = 35, MIN_BRIGHT = 50;
+  const MIN_PX = Math.max(3, Math.floor(imgWidth * 0.08));
+
+  const rowTypes = [];
+  for (let y = 0; y < imgHeight; y++) {
+    let rSum = 0, gSum = 0, bSum = 0, count = 0;
+    for (let x = 0; x < imgWidth; x++) {
+      const i = (y * imgWidth + x) * 4;
+      const B = bitmap[i], G = bitmap[i + 1], R = bitmap[i + 2]; // BGRA
+      const maxC = Math.max(R, G, B), minC = Math.min(R, G, B);
+      if (maxC > MIN_BRIGHT && (maxC - minC) > MIN_SAT) {
+        rSum += R; gSum += G; bSum += B; count++;
+      }
+    }
+    if (count >= MIN_PX) {
+      let type;
+      if (rSum >= gSum && rSum >= bSum) type = 'hp';
+      else if (gSum >= rSum && gSum >= bSum) type = 'fp';
+      else type = 'mp';
+      rowTypes.push({ y, type });
+    }
+  }
+
+  const bands = [];
+  for (const { y, type } of rowTypes) {
+    const last = bands[bands.length - 1];
+    if (last && last.type === type && y <= last.endY + 3) {
+      last.endY = y;
+    } else {
+      bands.push({ type, startY: y, endY: y });
+    }
+  }
+
+  const result = {};
+  for (const { type, startY, endY } of bands) {
+    const h = endY - startY + 1;
+    if (!result[type] || h > result[type].height) {
+      result[type] = {
+        x: statusRect.x,
+        y: statusRect.y + startY,
+        width: statusRect.width,
+        height: Math.max(h, 4)
+      };
+    }
+  }
+  return result;
+}
+
 async function initOcr() {
   try {
     const { createWorker } = require('tesseract.js');
     ocrWorker = await createWorker('eng', 1, { logger: () => {} });
     await ocrWorker.setParameters({
-      tessedit_char_whitelist: '0123456789.%',
-      tessedit_pageseg_mode:   '7',
+      tessedit_char_whitelist: '0123456789./%',
+      tessedit_pageseg_mode:   '7',  // single text line
     });
     console.log('OCR worker ready');
   } catch (e) {
     console.error('OCR init failed:', e.message);
   }
+}
+
+// Weißen Text auf farbigem/dunklem Hintergrund → schwarzer Text auf weiß.
+// Erkennt "386 / 386" (current/max) und "82.94%" (Prozent-Format).
+async function ocrPercent(img) {
+  if (!ocrWorker) return null;
+  try {
+    const { width, height } = img.getSize();
+    const src = img.toBitmap();
+    const dst = Buffer.alloc(src.length, 255);
+    for (let i = 0; i < width * height; i++) {
+      const bright = (src[i*4+2] + src[i*4+1] + src[i*4]) / 3;
+      const val = bright > 160 ? 0 : 255;
+      dst[i*4] = dst[i*4+1] = dst[i*4+2] = val;
+      dst[i*4+3] = 255;
+    }
+    const processed = nativeImage.createFromBitmap(dst, { width, height });
+    const { data: { text } } = await ocrWorker.recognize(processed.toPNG());
+
+    // "386 / 386" oder "386/386" → current / max
+    let m = text.match(/(\d+)\s*[/\\]\s*(\d+)/);
+    if (m) {
+      const cur = parseInt(m[1]), max = parseInt(m[2]);
+      if (max > 0) return Math.round((cur / max) * 100);
+    }
+    // "82.94%" – Fallback für Prozent-Elemente
+    m = text.match(/(\d+(?:\.\d+)?)\s*%/);
+    if (m) return parseFloat(m[1]);
+    return null;
+  } catch { return null; }
 }
 
 function sendHealKey(view, keyCode) {
@@ -368,38 +451,60 @@ function sendHealKey(view, keyCode) {
   } catch {}
 }
 
-function stopHpHeal(account) {
+function stopAutoHeal(account) {
   hpHealActive[account] = false;
 }
 
-function startHpHeal(account) {
-  stopHpHeal(account);
-  const cfg  = loadConfig('autoheal.json');
-  const acfg = cfg?.[account];
-  if (!acfg?.enabled || !acfg.hpBarRect) return;
-  const view = account === 'account1' ? view1 : view2;
-  const { hpBarRect, threshold, healKey, intervalMs } = acfg;
-  const delay = Math.max(intervalMs || 500, 200);
+async function runBarLoop(account, barType, barCfg, barRect, view) {
+  const delay = Math.max(barCfg.intervalMs || 500, 200);
+  let lastPressed = 0;
+  const cooldown = 1500;
 
-  hpHealActive[account] = true;
-
-  (async function loop() {
-    while (hpHealActive[account]) {
-      const t0 = Date.now();
-      try {
-        if (view && mainWindow) {
-          const img = await view.webContents.capturePage(hpBarRect);
-          const { width, height } = img.getSize();
-          if (width && height) {
-            const hp = estimateHpFromBarFill(img.toBitmap(), width, height);
-            if (hp !== null && hp < threshold) sendHealKey(view, healKey);
+  while (hpHealActive[account]) {
+    const t0 = Date.now();
+    try {
+      if (view && mainWindow) {
+        const img = await view.webContents.capturePage(barRect);
+        const { width, height } = img.getSize();
+        if (width && height) {
+          const bitmap = img.toBitmap();
+          const pct = estimateHpFromBarFill(bitmap, width, height);
+          if (pct !== null) {
+            console.log(`[AutoHeal] ${account} ${barType.toUpperCase()}=${pct}% threshold=${barCfg.threshold}%`);
+            if (pct < barCfg.threshold && Date.now() - lastPressed > cooldown) {
+              console.log(`[AutoHeal] ${account} ${barType}: pressing ${barCfg.key}`);
+              sendHealKey(view, barCfg.key);
+              lastPressed = Date.now();
+            }
           }
         }
-      } catch {}
-      const wait = Math.max(0, delay - (Date.now() - t0));
-      await new Promise(r => setTimeout(r, wait));
-    }
-  })();
+      }
+    } catch (e) { console.error(`[AutoHeal] ${account} ${barType} error:`, e.message); }
+    const wait = Math.max(0, delay - (Date.now() - t0));
+    await new Promise(r => setTimeout(r, wait));
+  }
+}
+
+function startAutoHeal(account) {
+  stopAutoHeal(account);
+  const cfg  = loadConfig('autoheal.json');
+  const acfg = cfg?.[account];
+  if (!acfg?.barBounds || Object.keys(acfg.barBounds).length === 0) return;
+
+  const bars = ['hp', 'mp', 'fp'];
+  const anyEnabled = bars.some(b => acfg[b]?.enabled);
+  if (!anyEnabled) return;
+
+  const view = account === 'account1' ? view1 : view2;
+  hpHealActive[account] = true;
+
+  for (const barType of bars) {
+    const barCfg  = acfg[barType];
+    const barRect = acfg.barBounds[barType];
+    if (!barCfg?.enabled || !barRect) continue;
+    console.log(`[AutoHeal] ${account} ${barType} started – key=${barCfg.key} threshold=${barCfg.threshold}% interval=${barCfg.intervalMs}ms`);
+    runBarLoop(account, barType, barCfg, barRect, view);
+  }
 }
 
 async function openHpPicker(account) {
@@ -415,6 +520,7 @@ async function openHpPicker(account) {
     const [w, h] = mainWindow.getContentSize();
     const img = await activeView.webContents.capturePage({ x: 0, y: 0, width: w, height: h - TOOLBAR_H });
     bgDataUrl = img.toDataURL();
+    lastPickerScreenshot = img;
   } catch {}
 
   pickerWindow = new BrowserWindow({
@@ -730,52 +836,70 @@ function setupIPC() {
   // Autoheal-Config laden
   ipcMain.handle('get-autoheal-config', () => loadConfig('autoheal.json') || {});
 
-  // Autoheal-Config speichern und Timers neu starten
+  // Autoheal-Config speichern und Loops neu starten
   ipcMain.on('save-autoheal-config', (_, cfg) => {
     try { saveConfig('autoheal.json', cfg); } catch (e) {
-      console.error('Fehler beim Speichern der Autoheal-Config:', e.message);
+      console.error('Error saving autoheal config:', e.message);
     }
     ['account1', 'account2'].forEach(acc => {
-      cfg[acc]?.enabled ? startHpHeal(acc) : stopHpHeal(acc);
+      const anyEnabled = ['hp', 'mp', 'fp'].some(b => cfg[acc]?.[b]?.enabled);
+      anyEnabled ? startAutoHeal(acc) : stopAutoHeal(acc);
     });
   });
 
   // HP-Bar-Picker öffnen
   ipcMain.on('open-hp-picker', (_, account) => openHpPicker(account).catch(e => console.error('HP picker:', e)));
 
-  // Picker: Rechteck wurde ausgewählt → in Config speichern, Settings benachrichtigen
-  ipcMain.on('hp-picker-done', (_, rect) => {
+  // Picker: Rechteck wurde ausgewählt → Bars detektieren, Config speichern, Settings benachrichtigen
+  ipcMain.on('hp-picker-done', async (_, rect) => {
     const account = currentPickerAccount;
     if (!account) { pickerWindow?.close(); return; }
     const cfg = loadConfig('autoheal.json') || {};
-    if (!cfg[account]) cfg[account] = {};
-    cfg[account].hpBarRect = rect;
+    if (!cfg[account]) cfg[account] = { hp: {}, mp: {}, fp: {} };
+    cfg[account].statusRect = rect;
+    cfg[account].barBounds  = {};
+
+    if (lastPickerScreenshot) {
+      try {
+        const cropped = lastPickerScreenshot.crop({ x: rect.x, y: rect.y, width: rect.width, height: rect.height });
+        const { width, height } = cropped.getSize();
+        if (width && height) {
+          const bitmap = cropped.toBitmap();
+          cfg[account].barBounds = detectAllBars(bitmap, width, height, rect);
+          console.log(`[AutoHeal] ${account} detected bars:`, JSON.stringify(cfg[account].barBounds));
+        }
+      } catch (e) { console.error('[AutoHeal] bar detection failed:', e.message); }
+    }
+
     try { saveConfig('autoheal.json', cfg); } catch {}
     pickerWindow?.close();
-    settingsWindow?.webContents.send('autoheal-rect-picked', { account, rect });
+    settingsWindow?.webContents.send('autoheal-rect-picked', {
+      account, rect, barBounds: cfg[account].barBounds
+    });
   });
 
   // Picker: abgebrochen
   ipcMain.on('hp-picker-cancel', () => { pickerWindow?.close(); });
 
-  // HP einmalig messen via Bar-Fill-Scan (Test-Button in Settings)
+  // Alle Bars einmalig messen (Test-Button)
   ipcMain.handle('test-hp-capture', async (_, account) => {
     const cfg  = loadConfig('autoheal.json');
     const acfg = cfg?.[account];
-    if (!acfg?.hpBarRect) return { error: 'no-rect' };
+    if (!acfg?.barBounds || Object.keys(acfg.barBounds).length === 0) return { error: 'no-rect' };
     const view = account === 'account1' ? view1 : view2;
     if (!view) return { error: 'no-view' };
-    try {
-      const img = await view.webContents.capturePage(acfg.hpBarRect);
-      const { width, height } = img.getSize();
-      if (!width || !height) return { error: `empty-image (rect: ${JSON.stringify(acfg.hpBarRect)})` };
-
-      const debugPath = path.join(app.getPath('userData'), 'hp-debug.png');
-      fs.writeFileSync(debugPath, img.toPNG());
-
-      const hp = estimateHpFromBarFill(img.toBitmap(), width, height);
-      return { hp, width, height, debugPath };
-    } catch (e) { return { error: e.message }; }
+    const result = {};
+    for (const barType of ['hp', 'mp', 'fp']) {
+      const barRect = acfg.barBounds[barType];
+      if (!barRect) { result[barType] = null; continue; }
+      try {
+        const img = await view.webContents.capturePage(barRect);
+        const { width, height } = img.getSize();
+        if (!width || !height) { result[barType] = null; continue; }
+        result[barType] = estimateHpFromBarFill(img.toBitmap(), width, height);
+      } catch { result[barType] = null; }
+    }
+    return result;
   });
 
   // Macro-Config laden
@@ -841,7 +965,8 @@ app.whenReady().then(async () => {
   createGameViews();
   setupIPC();
   registerShortcuts();
-  ['account1', 'account2'].forEach(acc => startHpHeal(acc));
+  await initOcr();
+  ['account1', 'account2'].forEach(acc => startAutoHeal(acc));
 
 });
 

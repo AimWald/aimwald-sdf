@@ -258,72 +258,78 @@
   <!-- ── Auto-Heal tab ─────────────────────────────────────────────────── -->
   <div id="tab-autoheal" class="tab-content">
     <p style="color:#555; font-size:11px; margin-bottom:10px;">
-      Captures the HP bar area via pixel analysis and presses the heal key when HP drops below the threshold.<br>
-      Works best on the <b style="color:#aaa">active (visible)</b> account. For background healing, use the timed Automation instead.
+      Pick the full status window — HP/MP/FP bars are detected automatically by color.<br>
+      Works best on the <b style="color:#aaa">active (visible)</b> account. Use timed Automation for background healing.
     </p>
 
-    <h3>Account 1 – HP Heal</h3>
-    <table class="hk-table">
+    <h3>Account 1</h3>
+    <div style="margin-bottom:6px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+      <span style="color:#666; font-size:11px; font-family:monospace;" id="ah1-rect">not set</span>
+      <button class="btn-add" style="margin:0;" onclick="pickStatusWindow('account1')">📐 Pick</button>
+      <button class="btn-add" style="margin:0;" onclick="testStatusCapture('account1')">🔍 Test</button>
+      <span id="ah1-test" style="color:#88ff88; font-size:11px;"></span>
+    </div>
+    <table>
+      <thead>
+        <tr><th>Bar</th><th>Enable</th><th>Key</th><th>Threshold</th><th>Interval (ms)</th></tr>
+      </thead>
       <tbody>
         <tr>
-          <td>Enable</td>
-          <td><input type="checkbox" id="ah1-enabled"></td>
+          <td style="color:#ff7777; font-weight:600;">❤ HP</td>
+          <td><input type="checkbox" id="ah1-hp-enabled"></td>
+          <td><select id="ah1-hp-key"></select></td>
+          <td><input type="number" id="ah1-hp-threshold" min="1" max="99" style="width:50px" value="50"> %</td>
+          <td><input type="number" id="ah1-hp-interval" min="200" max="5000" style="width:65px" value="500"></td>
         </tr>
         <tr>
-          <td>Heal key</td>
-          <td>
-            <select id="ah1-key"></select>
-          </td>
+          <td style="color:#7799ff; font-weight:600;">💧 MP</td>
+          <td><input type="checkbox" id="ah1-mp-enabled"></td>
+          <td><select id="ah1-mp-key"></select></td>
+          <td><input type="number" id="ah1-mp-threshold" min="1" max="99" style="width:50px" value="30"> %</td>
+          <td><input type="number" id="ah1-mp-interval" min="200" max="5000" style="width:65px" value="1000"></td>
         </tr>
         <tr>
-          <td>Heal when HP below (%)</td>
-          <td><input type="number" id="ah1-threshold" min="1" max="99" style="width:60px" value="50"> %</td>
-        </tr>
-        <tr>
-          <td>Check interval (ms)</td>
-          <td><input type="number" id="ah1-interval" min="200" max="5000" style="width:70px" value="500"></td>
-        </tr>
-        <tr>
-          <td>HP bar area</td>
-          <td>
-            <span id="ah1-rect" style="color:#666; font-size:11px; font-family:monospace;">not set</span>
-            <button class="btn-add" style="margin:0 4px;" onclick="pickHpBar('account1')">📐 Pick</button>
-            <button class="btn-add" style="margin:0;" onclick="testHpBar('account1')">🔍 Test</button>
-            <span id="ah1-test" style="color:#88ff88; font-size:11px; margin-left:6px;"></span>
-          </td>
+          <td style="color:#77ff99; font-weight:600;">⚡ FP</td>
+          <td><input type="checkbox" id="ah1-fp-enabled"></td>
+          <td><select id="ah1-fp-key"></select></td>
+          <td><input type="number" id="ah1-fp-threshold" min="1" max="99" style="width:50px" value="30"> %</td>
+          <td><input type="number" id="ah1-fp-interval" min="200" max="5000" style="width:65px" value="1000"></td>
         </tr>
       </tbody>
     </table>
 
-    <h3>Account 2 – HP Heal</h3>
-    <table class="hk-table">
+    <h3>Account 2</h3>
+    <div style="margin-bottom:6px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+      <span style="color:#666; font-size:11px; font-family:monospace;" id="ah2-rect">not set</span>
+      <button class="btn-add" style="margin:0;" onclick="pickStatusWindow('account2')">📐 Pick</button>
+      <button class="btn-add" style="margin:0;" onclick="testStatusCapture('account2')">🔍 Test</button>
+      <span id="ah2-test" style="color:#88ff88; font-size:11px;"></span>
+    </div>
+    <table>
+      <thead>
+        <tr><th>Bar</th><th>Enable</th><th>Key</th><th>Threshold</th><th>Interval (ms)</th></tr>
+      </thead>
       <tbody>
         <tr>
-          <td>Enable</td>
-          <td><input type="checkbox" id="ah2-enabled"></td>
+          <td style="color:#ff7777; font-weight:600;">❤ HP</td>
+          <td><input type="checkbox" id="ah2-hp-enabled"></td>
+          <td><select id="ah2-hp-key"></select></td>
+          <td><input type="number" id="ah2-hp-threshold" min="1" max="99" style="width:50px" value="50"> %</td>
+          <td><input type="number" id="ah2-hp-interval" min="200" max="5000" style="width:65px" value="500"></td>
         </tr>
         <tr>
-          <td>Heal key</td>
-          <td>
-            <select id="ah2-key"></select>
-          </td>
+          <td style="color:#7799ff; font-weight:600;">💧 MP</td>
+          <td><input type="checkbox" id="ah2-mp-enabled"></td>
+          <td><select id="ah2-mp-key"></select></td>
+          <td><input type="number" id="ah2-mp-threshold" min="1" max="99" style="width:50px" value="30"> %</td>
+          <td><input type="number" id="ah2-mp-interval" min="200" max="5000" style="width:65px" value="1000"></td>
         </tr>
         <tr>
-          <td>Heal when HP below (%)</td>
-          <td><input type="number" id="ah2-threshold" min="1" max="99" style="width:60px" value="50"> %</td>
-        </tr>
-        <tr>
-          <td>Check interval (ms)</td>
-          <td><input type="number" id="ah2-interval" min="200" max="5000" style="width:70px" value="500"></td>
-        </tr>
-        <tr>
-          <td>HP bar area</td>
-          <td>
-            <span id="ah2-rect" style="color:#666; font-size:11px; font-family:monospace;">not set</span>
-            <button class="btn-add" style="margin:0 4px;" onclick="pickHpBar('account2')">📐 Pick</button>
-            <button class="btn-add" style="margin:0;" onclick="testHpBar('account2')">🔍 Test</button>
-            <span id="ah2-test" style="color:#88ff88; font-size:11px; margin-left:6px;"></span>
-          </td>
+          <td style="color:#77ff99; font-weight:600;">⚡ FP</td>
+          <td><input type="checkbox" id="ah2-fp-enabled"></td>
+          <td><select id="ah2-fp-key"></select></td>
+          <td><input type="number" id="ah2-fp-threshold" min="1" max="99" style="width:50px" value="30"> %</td>
+          <td><input type="number" id="ah2-fp-interval" min="200" max="5000" style="width:65px" value="1000"></td>
         </tr>
       </tbody>
     </table>
@@ -684,73 +690,90 @@
       return `x:${r.x} y:${r.y} w:${r.width} h:${r.height}`;
     }
 
+    const AH_DEFAULTS = {
+      hp: { key: '1', threshold: 50, intervalMs: 500 },
+      mp: { key: '2', threshold: 30, intervalMs: 1000 },
+      fp: { key: '3', threshold: 30, intervalMs: 1000 },
+    };
+
     function renderAhConfig(cfg) {
       loadedAhConfig = cfg || {};
-      const a1 = cfg?.account1 || {};
-      const a2 = cfg?.account2 || {};
-
-      document.getElementById('ah1-enabled').checked   = !!a1.enabled;
-      document.getElementById('ah1-threshold').value   = a1.threshold  ?? 50;
-      document.getElementById('ah1-interval').value    = a1.intervalMs ?? 500;
-      document.getElementById('ah1-rect').textContent  = formatRect(a1.hpBarRect);
-      buildAhKeySelect('ah1-key', a1.healKey || '1');
-
-      document.getElementById('ah2-enabled').checked   = !!a2.enabled;
-      document.getElementById('ah2-threshold').value   = a2.threshold  ?? 50;
-      document.getElementById('ah2-interval').value    = a2.intervalMs ?? 500;
-      document.getElementById('ah2-rect').textContent  = formatRect(a2.hpBarRect);
-      buildAhKeySelect('ah2-key', a2.healKey || '1');
+      for (const n of ['1', '2']) {
+        const acc  = `account${n}`;
+        const acfg = cfg?.[acc] || {};
+        document.getElementById(`ah${n}-rect`).textContent = formatRect(acfg.statusRect);
+        for (const bar of ['hp', 'mp', 'fp']) {
+          const bcfg = acfg[bar] || {};
+          const def  = AH_DEFAULTS[bar];
+          document.getElementById(`ah${n}-${bar}-enabled`).checked  = !!bcfg.enabled;
+          buildAhKeySelect(`ah${n}-${bar}-key`, bcfg.key ?? def.key);
+          document.getElementById(`ah${n}-${bar}-threshold`).value  = bcfg.threshold  ?? def.threshold;
+          document.getElementById(`ah${n}-${bar}-interval`).value   = bcfg.intervalMs ?? def.intervalMs;
+        }
+      }
     }
 
     function readAhConfig() {
-      return {
-        account1: {
-          enabled:    document.getElementById('ah1-enabled').checked,
-          healKey:    document.getElementById('ah1-key').value,
-          threshold:  parseInt(document.getElementById('ah1-threshold').value, 10) || 50,
-          intervalMs: parseInt(document.getElementById('ah1-interval').value,  10) || 500,
-          hpBarRect:  loadedAhConfig?.account1?.hpBarRect ?? null,
-        },
-        account2: {
-          enabled:    document.getElementById('ah2-enabled').checked,
-          healKey:    document.getElementById('ah2-key').value,
-          threshold:  parseInt(document.getElementById('ah2-threshold').value, 10) || 50,
-          intervalMs: parseInt(document.getElementById('ah2-interval').value,  10) || 500,
-          hpBarRect:  loadedAhConfig?.account2?.hpBarRect ?? null,
-        },
-      };
+      const cfg = {};
+      for (const n of ['1', '2']) {
+        const acc  = `account${n}`;
+        const acfg = loadedAhConfig?.[acc] || {};
+        cfg[acc] = { statusRect: acfg.statusRect ?? null, barBounds: acfg.barBounds ?? {} };
+        for (const bar of ['hp', 'mp', 'fp']) {
+          const def = AH_DEFAULTS[bar];
+          cfg[acc][bar] = {
+            enabled:   document.getElementById(`ah${n}-${bar}-enabled`).checked,
+            key:       document.getElementById(`ah${n}-${bar}-key`).value,
+            threshold: parseInt(document.getElementById(`ah${n}-${bar}-threshold`).value, 10) || def.threshold,
+            intervalMs:parseInt(document.getElementById(`ah${n}-${bar}-interval`).value,  10) || def.intervalMs,
+          };
+        }
+      }
+      return cfg;
     }
 
-    function pickHpBar(account) {
+    function pickStatusWindow(account) {
       window.flyff.openHpPicker(account);
     }
 
-    async function testHpBar(account) {
-      const num = account === 'account1' ? '1' : '2';
-      const el  = document.getElementById(`ah${num}-test`);
+    async function testStatusCapture(account) {
+      const n  = account === 'account1' ? '1' : '2';
+      const el = document.getElementById(`ah${n}-test`);
       el.style.color = '#aaa';
       el.textContent = 'measuring…';
       const r = await window.flyff.testHpCapture(account);
       if (!r || r.error) {
         el.textContent = r?.error || 'failed';
         el.style.color = '#f88';
-      } else if (r.hp === null) {
-        el.textContent = `OCR read nothing – check selected area (${r.width}×${r.height}px) → ${r.debugPath}`;
+        return;
+      }
+      const parts = [];
+      if (r.hp != null) parts.push(`HP=${r.hp}%`);
+      if (r.mp != null) parts.push(`MP=${r.mp}%`);
+      if (r.fp != null) parts.push(`FP=${r.fp}%`);
+      if (parts.length === 0) {
+        el.textContent = 'No bars detected – pick again';
         el.style.color = '#f88';
       } else {
-        el.style.color = r.hp < 50 ? '#f88' : '#88ff88';
-        el.textContent = `HP ≈ ${r.hp}%  (${r.width}×${r.height}px)`;
+        el.textContent = parts.join('  ');
+        el.style.color = '#88ff88';
       }
-      setTimeout(() => { el.textContent = ''; }, 15000);
+      setTimeout(() => { el.textContent = ''; }, 10000);
     }
 
-    // Rect-Update aus dem Picker empfangen
-    window.flyff.on('autoheal-rect-picked', ({ account, rect }) => {
+    // Picker-Ergebnis empfangen: rect + detected barBounds
+    window.flyff.on('autoheal-rect-picked', ({ account, rect, barBounds }) => {
       if (!loadedAhConfig) loadedAhConfig = {};
       if (!loadedAhConfig[account]) loadedAhConfig[account] = {};
-      loadedAhConfig[account].hpBarRect = rect;
-      const num = account === 'account1' ? '1' : '2';
-      document.getElementById(`ah${num}-rect`).textContent = formatRect(rect);
+      loadedAhConfig[account].statusRect = rect;
+      loadedAhConfig[account].barBounds  = barBounds || {};
+      const n   = account === 'account1' ? '1' : '2';
+      const el  = document.getElementById(`ah${n}-test`);
+      document.getElementById(`ah${n}-rect`).textContent = formatRect(rect);
+      const detected = Object.keys(barBounds || {}).join(', ');
+      el.style.color = detected ? '#88ff88' : '#f88';
+      el.textContent = detected ? `Detected: ${detected.toUpperCase()}` : 'No bars detected – try again';
+      setTimeout(() => { el.textContent = ''; }, 10000);
     });
 
     async function clearSession(account) {
