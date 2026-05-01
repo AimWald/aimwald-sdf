@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.50.0] – 2026-05-01
+### Fixed
+- **App not starting**: OCR initialization (`initOcr`) is now fire-and-forget and no longer blocks `app.whenReady()`. A 15 s timeout prevents a hanging Tesseract worker from delaying startup indefinitely.
+- **Launch script**: Gamescope environment is now parsed line-by-line (safe for values containing `=`). Added `DISPLAY=:0` fallback in case the environment file is absent or missing the variable.
+
 ## [1.49.0] – 2026-05-01
 ### Fixed
 - **Auto-Heal color accuracy**: bar left/right edges are now calibrated from the picker screenshot at pick time. The rightmost colored pixel is used as `barRight`, giving exact 100% readings instead of the previous 3–5% under-report caused by a fixed 3px margin that didn't account for the bar's dark border.

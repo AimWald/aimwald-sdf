@@ -408,15 +408,19 @@ function detectAllBars(bitmap, imgWidth, imgHeight, statusRect) {
 async function initOcr() {
   try {
     const { createWorker } = require('tesseract.js');
-    ocrWorker = await createWorker('eng', 1, { logger: () => {} });
+    const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 15000));
+    ocrWorker = await Promise.race([
+      createWorker('eng', 1, { logger: () => {} }),
+      timeout
+    ]);
     await ocrWorker.setParameters({
-      // Allow more characters that look like slashes or numbers
       tessedit_char_whitelist: '0123456789./%|\\Ili ',
-      tessedit_pageseg_mode:   '7',  // single text line
+      tessedit_pageseg_mode:   '7',
     });
-    console.log('OCR worker ready');
+    console.log('[OCR] worker ready');
   } catch (e) {
-    console.error('OCR init failed:', e.message);
+    ocrWorker = null;
+    console.error('[OCR] init failed:', e.message);
   }
 }
 
@@ -1036,8 +1040,9 @@ app.whenReady().then(async () => {
   createGameViews();
   setupIPC();
   registerShortcuts();
-  await initOcr();
   ['account1', 'account2'].forEach(acc => startAutoHeal(acc));
+  // OCR init is fire-and-forget – a hanging tesseract download must not block startup
+  initOcr().catch(e => console.error('[OCR] init error:', e.message));
 
 });
 
