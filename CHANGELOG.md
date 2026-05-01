@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.52.0] – 2026-05-01
+### Fixed
+- **Performance drops / thermal throttling**: Re-enabled `backgroundThrottling` (was incorrectly set to `false` for both game views). With throttling disabled, the background Flyff Universe WebGL instance rendered at full 60 fps even while invisible, causing the Steam Deck APU to overheat and thermal-throttle for 30–60 s. Background view now renders at ~1 fps when hidden, which is sufficient for `capturePage` to read current HP/MP/FP values.
+
 ## [1.51.0] – 2026-05-01
 ### Fixed
 - **Performance drops / ghost camera movements**: Removed Tesseract OCR from the Auto-Heal loop. OCR was running up to 9 recognition calls per 500 ms on the main Node.js thread, blocking the event loop for multiple seconds and causing queued gamepad mouse events to fire all at once (ghost movements). Color bar-fill scan is now the sole detection method — it takes microseconds and does not block the event loop.

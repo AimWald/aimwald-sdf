@@ -112,7 +112,7 @@ function createGameViews() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
-      backgroundThrottling: false
+      backgroundThrottling: true
     }
   });
 
@@ -122,7 +122,7 @@ function createGameViews() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
-      backgroundThrottling: false
+      backgroundThrottling: true
     }
   });
 
