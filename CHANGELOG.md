@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.48.0] – 2026-05-01
+### Changed
+- **Auto-Heal: OCR-primary, color-fallback** — each bar loop now reads numerical values (e.g. "386/386") via Tesseract.js first; color bar-fill scan is used only when OCR returns no result. OCR bounds are clamped to ≤ 100% to prevent garbage reads (e.g. misread "11339%") from triggering false heals.
+
 ## [1.47.2] – 2026-05-01
 ### Fixed
 - **DPI Scaling (Scale Factor)**: Implemented automatic coordinate translation between logical and physical pixels. Selection boxes are now correctly mapped on high-DPI displays (like Steam Deck).

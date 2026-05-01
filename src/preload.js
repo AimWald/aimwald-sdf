@@ -35,7 +35,7 @@ contextBridge.exposeInMainWorld('flyff', {
   // --- Auto-Heal ---
   getAutoHealConfig:  ()        => ipcRenderer.invoke('get-autoheal-config'),
   saveAutoHealConfig: (cfg)     => ipcRenderer.send('save-autoheal-config', cfg),
-  openHpPicker:       (account) => ipcRenderer.send('open-hp-picker', account),
+  openHpPicker:       (account, barType) => ipcRenderer.send('open-hp-picker', { account, barType }),
   testHpCapture:      (account) => ipcRenderer.invoke('test-hp-capture', account),
 
   // --- HP-Picker (wird im Picker-Fenster aufgerufen) ---

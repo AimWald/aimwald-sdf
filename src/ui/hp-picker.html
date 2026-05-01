@@ -79,10 +79,15 @@
     const coordsEl = document.getElementById('coords');
     let startX = 0, startY = 0, dragging = false;
 
-    // Hintergrundbild vom Main-Prozess empfangen
-    window.flyff.on('hp-picker-bg', dataUrl => {
-      document.body.style.backgroundImage = `url(${dataUrl})`;
+    const BAR_LABELS = { hp: '❤ HP', mp: '💧 MP', fp: '⚡ FP' };
+
+    // Hintergrundbild + barType vom Main-Prozess empfangen
+    window.flyff.on('hp-picker-bg', ({ bg, barType }) => {
+      document.body.style.backgroundImage = `url(${bg})`;
       document.body.style.backgroundSize  = '100% 100%';
+      const label = BAR_LABELS[barType] || barType?.toUpperCase() || 'bar';
+      document.getElementById('hint').innerHTML =
+        `Click and drag to select the <b style="color:#4af">${label}</b> bar &nbsp;|&nbsp; <span style="color:#f88">Escape</span> = cancel`;
     });
 
     function updateSel(ex, ey) {

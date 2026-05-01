@@ -263,15 +263,10 @@
     </p>
 
     <h3>Account 1</h3>
-    <div style="margin-bottom:6px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-      <span style="color:#666; font-size:11px; font-family:monospace;" id="ah1-rect">not set</span>
-      <button class="btn-add" style="margin:0;" onclick="pickStatusWindow('account1')">📐 Pick</button>
-      <button class="btn-add" style="margin:0;" onclick="testStatusCapture('account1')">🔍 Test</button>
-      <span id="ah1-test" style="color:#88ff88; font-size:11px;"></span>
-    </div>
+    <span id="ah1-test" style="color:#88ff88; font-size:11px; display:block; margin-bottom:4px;"></span>
     <table>
       <thead>
-        <tr><th>Bar</th><th>Enable</th><th>Key</th><th>Threshold</th><th>Interval (ms)</th></tr>
+        <tr><th>Bar</th><th>Enable</th><th>Key</th><th>Threshold</th><th>Interval (ms)</th><th>Area</th></tr>
       </thead>
       <tbody>
         <tr>
@@ -280,6 +275,9 @@
           <td><select id="ah1-hp-key"></select></td>
           <td><input type="number" id="ah1-hp-threshold" min="1" max="99" style="width:50px" value="50"> %</td>
           <td><input type="number" id="ah1-hp-interval" min="200" max="5000" style="width:65px" value="500"></td>
+          <td><button class="btn-add" style="margin:0 2px;" onclick="pickBar('account1','hp')">📐</button>
+              <button class="btn-add" style="margin:0;" onclick="testBar('account1','hp')">🔍</button>
+              <span id="ah1-hp-rect" style="color:#555; font-size:10px; font-family:monospace; margin-left:4px;">not set</span></td>
         </tr>
         <tr>
           <td style="color:#7799ff; font-weight:600;">💧 MP</td>
@@ -287,6 +285,9 @@
           <td><select id="ah1-mp-key"></select></td>
           <td><input type="number" id="ah1-mp-threshold" min="1" max="99" style="width:50px" value="30"> %</td>
           <td><input type="number" id="ah1-mp-interval" min="200" max="5000" style="width:65px" value="1000"></td>
+          <td><button class="btn-add" style="margin:0 2px;" onclick="pickBar('account1','mp')">📐</button>
+              <button class="btn-add" style="margin:0;" onclick="testBar('account1','mp')">🔍</button>
+              <span id="ah1-mp-rect" style="color:#555; font-size:10px; font-family:monospace; margin-left:4px;">not set</span></td>
         </tr>
         <tr>
           <td style="color:#77ff99; font-weight:600;">⚡ FP</td>
@@ -294,20 +295,18 @@
           <td><select id="ah1-fp-key"></select></td>
           <td><input type="number" id="ah1-fp-threshold" min="1" max="99" style="width:50px" value="30"> %</td>
           <td><input type="number" id="ah1-fp-interval" min="200" max="5000" style="width:65px" value="1000"></td>
+          <td><button class="btn-add" style="margin:0 2px;" onclick="pickBar('account1','fp')">📐</button>
+              <button class="btn-add" style="margin:0;" onclick="testBar('account1','fp')">🔍</button>
+              <span id="ah1-fp-rect" style="color:#555; font-size:10px; font-family:monospace; margin-left:4px;">not set</span></td>
         </tr>
       </tbody>
     </table>
 
     <h3>Account 2</h3>
-    <div style="margin-bottom:6px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-      <span style="color:#666; font-size:11px; font-family:monospace;" id="ah2-rect">not set</span>
-      <button class="btn-add" style="margin:0;" onclick="pickStatusWindow('account2')">📐 Pick</button>
-      <button class="btn-add" style="margin:0;" onclick="testStatusCapture('account2')">🔍 Test</button>
-      <span id="ah2-test" style="color:#88ff88; font-size:11px;"></span>
-    </div>
+    <span id="ah2-test" style="color:#88ff88; font-size:11px; display:block; margin-bottom:4px;"></span>
     <table>
       <thead>
-        <tr><th>Bar</th><th>Enable</th><th>Key</th><th>Threshold</th><th>Interval (ms)</th></tr>
+        <tr><th>Bar</th><th>Enable</th><th>Key</th><th>Threshold</th><th>Interval (ms)</th><th>Area</th></tr>
       </thead>
       <tbody>
         <tr>
@@ -316,6 +315,9 @@
           <td><select id="ah2-hp-key"></select></td>
           <td><input type="number" id="ah2-hp-threshold" min="1" max="99" style="width:50px" value="50"> %</td>
           <td><input type="number" id="ah2-hp-interval" min="200" max="5000" style="width:65px" value="500"></td>
+          <td><button class="btn-add" style="margin:0 2px;" onclick="pickBar('account2','hp')">📐</button>
+              <button class="btn-add" style="margin:0;" onclick="testBar('account2','hp')">🔍</button>
+              <span id="ah2-hp-rect" style="color:#555; font-size:10px; font-family:monospace; margin-left:4px;">not set</span></td>
         </tr>
         <tr>
           <td style="color:#7799ff; font-weight:600;">💧 MP</td>
@@ -323,6 +325,9 @@
           <td><select id="ah2-mp-key"></select></td>
           <td><input type="number" id="ah2-mp-threshold" min="1" max="99" style="width:50px" value="30"> %</td>
           <td><input type="number" id="ah2-mp-interval" min="200" max="5000" style="width:65px" value="1000"></td>
+          <td><button class="btn-add" style="margin:0 2px;" onclick="pickBar('account2','mp')">📐</button>
+              <button class="btn-add" style="margin:0;" onclick="testBar('account2','mp')">🔍</button>
+              <span id="ah2-mp-rect" style="color:#555; font-size:10px; font-family:monospace; margin-left:4px;">not set</span></td>
         </tr>
         <tr>
           <td style="color:#77ff99; font-weight:600;">⚡ FP</td>
@@ -330,6 +335,9 @@
           <td><select id="ah2-fp-key"></select></td>
           <td><input type="number" id="ah2-fp-threshold" min="1" max="99" style="width:50px" value="30"> %</td>
           <td><input type="number" id="ah2-fp-interval" min="200" max="5000" style="width:65px" value="1000"></td>
+          <td><button class="btn-add" style="margin:0 2px;" onclick="pickBar('account2','fp')">📐</button>
+              <button class="btn-add" style="margin:0;" onclick="testBar('account2','fp')">🔍</button>
+              <span id="ah2-fp-rect" style="color:#555; font-size:10px; font-family:monospace; margin-left:4px;">not set</span></td>
         </tr>
       </tbody>
     </table>
@@ -701,7 +709,6 @@
       for (const n of ['1', '2']) {
         const acc  = `account${n}`;
         const acfg = cfg?.[acc] || {};
-        document.getElementById(`ah${n}-rect`).textContent = formatRect(acfg.statusRect);
         for (const bar of ['hp', 'mp', 'fp']) {
           const bcfg = acfg[bar] || {};
           const def  = AH_DEFAULTS[bar];
@@ -709,6 +716,7 @@
           buildAhKeySelect(`ah${n}-${bar}-key`, bcfg.key ?? def.key);
           document.getElementById(`ah${n}-${bar}-threshold`).value  = bcfg.threshold  ?? def.threshold;
           document.getElementById(`ah${n}-${bar}-interval`).value   = bcfg.intervalMs ?? def.intervalMs;
+          document.getElementById(`ah${n}-${bar}-rect`).textContent = formatRect(acfg.barBounds?.[bar]);
         }
       }
     }
@@ -718,7 +726,7 @@
       for (const n of ['1', '2']) {
         const acc  = `account${n}`;
         const acfg = loadedAhConfig?.[acc] || {};
-        cfg[acc] = { statusRect: acfg.statusRect ?? null, barBounds: acfg.barBounds ?? {} };
+        cfg[acc] = { barBounds: acfg.barBounds ?? {} };
         for (const bar of ['hp', 'mp', 'fp']) {
           const def = AH_DEFAULTS[bar];
           cfg[acc][bar] = {
@@ -732,48 +740,44 @@
       return cfg;
     }
 
-    function pickStatusWindow(account) {
-      window.flyff.openHpPicker(account);
+    function pickBar(account, barType) {
+      window.flyff.openHpPicker(account, barType);
     }
 
-    async function testStatusCapture(account) {
-      const n  = account === 'account1' ? '1' : '2';
-      const el = document.getElementById(`ah${n}-test`);
+    async function testBar(account, barType) {
+      const n   = account === 'account1' ? '1' : '2';
+      const el  = document.getElementById(`ah${n}-test`);
       el.style.color = '#aaa';
-      el.textContent = 'measuring…';
+      el.textContent = `measuring ${barType.toUpperCase()}…`;
       const r = await window.flyff.testHpCapture(account);
       if (!r || r.error) {
         el.textContent = r?.error || 'failed';
         el.style.color = '#f88';
         return;
       }
-      const parts = [];
-      if (r.hp != null) parts.push(`HP=${r.hp}%`);
-      if (r.mp != null) parts.push(`MP=${r.mp}%`);
-      if (r.fp != null) parts.push(`FP=${r.fp}%`);
-      if (parts.length === 0) {
-        el.textContent = 'No bars detected – pick again';
+      const pct = r[barType];
+      if (pct == null) {
+        el.textContent = `${barType.toUpperCase()} – not picked yet`;
         el.style.color = '#f88';
       } else {
-        el.textContent = parts.join('  ');
         el.style.color = '#88ff88';
+        el.textContent = `${barType.toUpperCase()} = ${pct}%`;
       }
-      setTimeout(() => { el.textContent = ''; }, 10000);
+      setTimeout(() => { el.textContent = ''; }, 8000);
     }
 
-    // Picker-Ergebnis empfangen: rect + detected barBounds
-    window.flyff.on('autoheal-rect-picked', ({ account, rect, barBounds }) => {
+    // Picker-Ergebnis empfangen: einzelner barType
+    window.flyff.on('autoheal-rect-picked', ({ account, barType, rect }) => {
       if (!loadedAhConfig) loadedAhConfig = {};
       if (!loadedAhConfig[account]) loadedAhConfig[account] = {};
-      loadedAhConfig[account].statusRect = rect;
-      loadedAhConfig[account].barBounds  = barBounds || {};
-      const n   = account === 'account1' ? '1' : '2';
-      const el  = document.getElementById(`ah${n}-test`);
-      document.getElementById(`ah${n}-rect`).textContent = formatRect(rect);
-      const detected = Object.keys(barBounds || {}).join(', ');
-      el.style.color = detected ? '#88ff88' : '#f88';
-      el.textContent = detected ? `Detected: ${detected.toUpperCase()}` : 'No bars detected – try again';
-      setTimeout(() => { el.textContent = ''; }, 10000);
+      if (!loadedAhConfig[account].barBounds) loadedAhConfig[account].barBounds = {};
+      loadedAhConfig[account].barBounds[barType] = rect;
+      const n = account === 'account1' ? '1' : '2';
+      document.getElementById(`ah${n}-${barType}-rect`).textContent = formatRect(rect);
+      const el = document.getElementById(`ah${n}-test`);
+      el.style.color = '#88ff88';
+      el.textContent = `${barType.toUpperCase()} area saved`;
+      setTimeout(() => { el.textContent = ''; }, 4000);
     });
 
     async function clearSession(account) {

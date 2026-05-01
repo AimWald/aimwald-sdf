@@ -59,7 +59,7 @@ let mainWindow    = null;
 let settingsWindow = null;
 let questWindow    = null;
 let pickerWindow   = null;
-let currentPickerAccount = null;
+let currentPickerTarget = null; // { account, barType }
 const hpHealActive = {};  // account → boolean: steuert den async Heal-Loop
 let ocrWorker = null;
 let lastPickerScreenshot = null;
@@ -362,60 +362,49 @@ function estimateHpFromBarFill(bitmap, width, height, barType) {
   return Math.round(Math.min(100, pct));
 }
 
-// Scans each row for dominant color channel; groups consecutive same-color rows
-// into bands. Returns { hp, mp, fp } as absolute screen coordinate rects.
+// Scans each row for dominant color channel; groups CONSECUTIVE same-color rows
+// into bands. Uses full selection width so fill % is always relative to total bar width.
 function detectAllBars(bitmap, imgWidth, imgHeight, statusRect) {
   const rowTypes = [];
   for (let y = 0; y < imgHeight; y++) {
     let rSum = 0, gSum = 0, bSum = 0, count = 0;
-    let minX = imgWidth, maxX = 0;
-
     for (let x = 0; x < imgWidth; x++) {
       const i = (y * imgWidth + x) * 4;
       const B = bitmap[i], G = bitmap[i + 1], R = bitmap[i + 2]; // BGRA
-      
-      let match = false;
-      if (R > 70 && R > G + 20 && R > B + 20) match = 'hp';
-      else if (B > 70 && B > R + 20 && B > G + 20) match = 'mp';
-      else if (G > 70 && G > R + 20 && G > B + 15) match = 'fp';
-
-      if (match) {
-        if (x < minX) minX = x;
-        if (x > maxX) maxX = x;
-        if (match === 'hp') rSum++;
-        else if (match === 'mp') bSum++;
-        else gSum++;
-        count++;
-      }
+      if      (R > 80 && R > G + 25 && R > B + 25) { rSum++; count++; }
+      else if (B > 80 && B > R + 25 && B > G + 25) { bSum++; count++; }
+      else if (G > 80 && G > R + 25 && G > B + 15) { gSum++; count++; }
     }
-
-    if (count >= 10) {
+    if (count >= 8) {
       let type;
       if (rSum >= bSum && rSum >= gSum) type = 'hp';
       else if (gSum >= rSum && gSum >= bSum) type = 'fp';
       else type = 'mp';
-      rowTypes.push({ y, type, minX, maxX });
+      rowTypes.push({ y, type });
     }
   }
 
-  const result = {};
-  for (const type of ['hp', 'mp', 'fp']) {
-    const rows = rowTypes.filter(r => r.type === type);
-    if (rows.length > 5) {
-      const startY = Math.min(...rows.map(r => r.y));
-      const endY   = Math.max(...rows.map(r => r.y));
-      const minX   = Math.min(...rows.map(r => r.minX));
-      const maxX   = Math.max(...rows.map(r => r.maxX));
-      
-      const h = endY - startY + 1;
-      const w = maxX - minX + 1;
-      const targetH = Math.max(h, 14); // Minimum for OCR
+  // Merge only consecutive rows of the same type (gap tolerance 2px)
+  const bands = [];
+  for (const { y, type } of rowTypes) {
+    const last = bands[bands.length - 1];
+    if (last && last.type === type && y <= last.endY + 2) {
+      last.endY = y;
+    } else {
+      bands.push({ type, startY: y, endY: y });
+    }
+  }
 
+  // Pick tallest band per type; use FULL selection width for correct fill detection
+  const result = {};
+  for (const { type, startY, endY } of bands) {
+    const h = endY - startY + 1;
+    if (!result[type] || h > result[type].height) {
       result[type] = {
-        x: statusRect.x + minX,
-        y: statusRect.y + startY - Math.floor((targetH - h) / 2),
-        width: w,
-        height: targetH
+        x: statusRect.x,
+        y: statusRect.y + startY,
+        width: statusRect.width,
+        height: Math.max(h, 4)
       };
     }
   }
@@ -471,18 +460,22 @@ async function ocrPercent(img) {
       if (m) {
         const cur = parseInt(m[1]), max = parseInt(m[2]);
         if (max > 0 && cur <= max * 1.1) {
-          bestResult = Math.round((cur / max) * 100);
+          const candidate = Math.round((cur / max) * 100);
+          if (candidate > 100) continue;
+          bestResult = candidate;
           console.log(`[OCR Raw] "${clean}" -> ${bestResult}% (thresh ${thresh})`);
-          break; 
+          break;
         }
       }
-      
+
       // Percent fallback
       m = clean.match(/(\d+(?:\.\d+)?)\s*%/);
-      if (m) { 
-        bestResult = parseFloat(m[1]); 
+      if (m) {
+        const candidate = parseFloat(m[1]);
+        if (candidate > 100) continue;
+        bestResult = candidate;
         console.log(`[OCR Raw] "${clean}" -> ${bestResult}% (thresh ${thresh})`);
-        break; 
+        break;
       }
     }
     return bestResult;
@@ -512,44 +505,22 @@ async function runBarLoop(account, barType, barCfg, barRect, view) {
     const t0 = Date.now();
     try {
       if (view && mainWindow) {
-        // Expand rect vertically by 2px on each side for better OCR coverage
-        const ocrRect = {
-          x: barRect.x,
-          y: Math.max(0, barRect.y - 2),
-          width: barRect.width,
-          height: barRect.height + 4
-        };
-        
-        let img = await view.webContents.capturePage(ocrRect);
-        
-        // Primary: OCR
-        let pct = await ocrPercent(img);
-        let method = 'OCR';
-
-        // Fallback: Color Scan
-        if (pct === null) {
-          pct = estimateHpFromBarFill(img.toBitmap(), img.getSize().width, img.getSize().height, barType);
-          method = 'Color';
-          
-          if (pct === 0) {
-            // Fuzzy retry for color scan
-            const fuzzyRect = { 
-              x: Math.max(0, barRect.x - 2), 
-              y: Math.max(0, barRect.y - 2), 
-              width: barRect.width + 4, 
-              height: barRect.height + 4 
-            };
-            img = await view.webContents.capturePage(fuzzyRect);
-            pct = estimateHpFromBarFill(img.toBitmap(), img.getSize().width, img.getSize().height, barType);
+        const img = await view.webContents.capturePage(barRect);
+        const { width, height } = img.getSize();
+        if (width && height) {
+          let pct = await ocrPercent(img);
+          let src = 'OCR';
+          if (pct == null || pct > 100) {
+            pct = estimateHpFromBarFill(img.toBitmap(), width, height, barType);
+            src = 'color';
           }
-        }
-
-        if (pct !== null) {
-          console.log(`[AutoHeal] ${account} ${barType.toUpperCase()}=${pct}% (${method}) threshold=${barCfg.threshold}%`);
-          if (pct < barCfg.threshold && Date.now() - lastPressed > cooldown) {
-            console.log(`[AutoHeal] ${account} ${barType}: pressing ${barCfg.key}`);
-            sendHealKey(view, barCfg.key);
-            lastPressed = Date.now();
+          if (pct !== null) {
+            console.log(`[AutoHeal] ${account} ${barType.toUpperCase()}=${pct}% (${src}) threshold=${barCfg.threshold}%`);
+            if (pct < barCfg.threshold && Date.now() - lastPressed > cooldown) {
+              console.log(`[AutoHeal] ${account} ${barType}: pressing ${barCfg.key}`);
+              sendHealKey(view, barCfg.key);
+              lastPressed = Date.now();
+            }
           }
         }
       }
@@ -581,10 +552,10 @@ function startAutoHeal(account) {
   }
 }
 
-async function openHpPicker(account) {
+async function openHpPicker(account, barType) {
   if (pickerWindow) pickerWindow.close();
   if (!mainWindow) return;
-  currentPickerAccount = account;
+  currentPickerTarget = { account, barType };
   const bounds = mainWindow.getBounds();
 
   // Game-View-Screenshot als Hintergrund – funktioniert auch in Gamescope (kein Compositor nötig)
@@ -615,7 +586,7 @@ async function openHpPicker(account) {
   pickerWindow.loadFile(path.join(__dirname, 'ui', 'hp-picker.html'));
   pickerWindow.setSkipTaskbar(true);
   pickerWindow.webContents.on('did-finish-load', () => {
-    if (bgDataUrl) pickerWindow?.webContents.send('hp-picker-bg', bgDataUrl);
+    if (bgDataUrl) pickerWindow?.webContents.send('hp-picker-bg', { bg: bgDataUrl, barType: currentPickerTarget?.barType });
   });
   pickerWindow.on('closed', () => { pickerWindow = null; });
 }
@@ -922,40 +893,27 @@ function setupIPC() {
   });
 
   // HP-Bar-Picker öffnen
-  ipcMain.on('open-hp-picker', (_, account) => openHpPicker(account).catch(e => console.error('HP picker:', e)));
+  ipcMain.on('open-hp-picker', (_, { account, barType }) => openHpPicker(account, barType).catch(e => console.error('HP picker:', e)));
 
-  // Picker: Rechteck wurde ausgewählt → Bars detektieren, Config speichern, Settings benachrichtigen
-  ipcMain.on('hp-picker-done', async (_, rect) => {
-    const account = currentPickerAccount;
-    if (!account) { pickerWindow?.close(); return; }
+  // Picker: Rechteck wurde ausgewählt → direkt als barBounds[barType] speichern
+  ipcMain.on('hp-picker-done', (_, rect) => {
+    const target = currentPickerTarget;
+    if (!target) { pickerWindow?.close(); return; }
+    const { account, barType } = target;
     const cfg = loadConfig('autoheal.json') || {};
-    if (!cfg[account]) cfg[account] = { hp: {}, mp: {}, fp: {} };
-    cfg[account].statusRect = rect;
-    cfg[account].barBounds  = {};
-
-    if (lastPickerScreenshot) {
-      try {
-        const cropped = lastPickerScreenshot.crop({ x: rect.x, y: rect.y, width: rect.width, height: rect.height });
-        const { width, height } = cropped.getSize();
-        if (width && height) {
-          const bitmap = cropped.toBitmap();
-          cfg[account].barBounds = detectAllBars(bitmap, width, height, rect);
-          console.log(`[AutoHeal] ${account} detected bars:`, JSON.stringify(cfg[account].barBounds));
-        }
-      } catch (e) { console.error('[AutoHeal] bar detection failed:', e.message); }
-    }
-
+    if (!cfg[account]) cfg[account] = { barBounds: {}, hp: {}, mp: {}, fp: {} };
+    if (!cfg[account].barBounds) cfg[account].barBounds = {};
+    cfg[account].barBounds[barType] = rect;
+    console.log(`[AutoHeal] ${account} ${barType} rect saved:`, JSON.stringify(rect));
     try { saveConfig('autoheal.json', cfg); } catch {}
     pickerWindow?.close();
-    settingsWindow?.webContents.send('autoheal-rect-picked', {
-      account, rect, barBounds: cfg[account].barBounds
-    });
+    settingsWindow?.webContents.send('autoheal-rect-picked', { account, barType, rect });
   });
 
   // Picker: abgebrochen
   ipcMain.on('hp-picker-cancel', () => { pickerWindow?.close(); });
 
-  // Alle Bars einmalig messen (Test-Button)
+  // Alle Bars einmalig messen (Test-Button) – speichert Debug-PNGs in userData
   ipcMain.handle('test-hp-capture', async (_, account) => {
     const cfg  = loadConfig('autoheal.json');
     const acfg = cfg?.[account];
@@ -970,15 +928,11 @@ function setupIPC() {
         const img = await view.webContents.capturePage(barRect);
         const { width, height } = img.getSize();
         if (!width || !height) { result[barType] = null; continue; }
-        
-        // Try OCR first
-        let pct = await ocrPercent(img);
-        if (pct === null) {
-          // Fallback to color
-          pct = estimateHpFromBarFill(img.toBitmap(), width, height, barType);
-        }
-        result[barType] = pct;
-      } catch { result[barType] = null; }
+        // Save debug PNG so we can inspect what the capture looks like
+        fs.writeFileSync(path.join(app.getPath('userData'), `debug-${barType}.png`), img.toPNG());
+        console.log(`[AutoHeal] debug-${barType}.png saved (${width}×${height}px) rect=${JSON.stringify(barRect)}`);
+        result[barType] = estimateHpFromBarFill(img.toBitmap(), width, height, barType);
+      } catch (e) { result[barType] = null; console.error(`[AutoHeal] test ${barType}:`, e.message); }
     }
     return result;
   });
