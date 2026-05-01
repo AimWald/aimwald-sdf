@@ -324,20 +324,30 @@ const CDP_KEYS = {
 // HP% = Füllkante / Balkenbreite × 100
 // Funktioniert für beliebige Balkenfarben (rot, blau, grün).
 
-function estimateHpFromBarFill(bitmap, width, height) {
+function estimateHpFromBarFill(bitmap, width, height, barType) {
   if (!bitmap || bitmap.length < width * height * 4) return null;
-  const margin = 1; 
+  const margin = 3; 
   let rightmost = -1;
 
+  // Scan all rows to find the most representative one
   for (let y = 1; y < height - 1; y++) {
     for (let x = width - 1 - margin; x >= margin; x--) {
       const i = (y * width + x) * 4;
-      const r = bitmap[i + 2], g = bitmap[i + 1], b = bitmap[i];
-      const maxC = Math.max(r, g, b), minC = Math.min(r, g, b);
+      const b = bitmap[i], g = bitmap[i + 1], r = bitmap[i + 2]; // BGRA
       
-      // Increased thresholds to better distinguish from dark backgrounds.
-      // Brightness > 50 and Saturation > 35.
-      if (maxC > 50 && (maxC - minC) > 35) {
+      let isHit = false;
+      if (barType === 'hp') {
+        isHit = (r > 60 && r > g + 15 && r > b + 15);
+      } else if (barType === 'mp') {
+        isHit = (b > 60 && b > r + 15 && b > g + 15);
+      } else if (barType === 'fp') {
+        isHit = (g > 60 && g > r + 15 && g > b + 10);
+      } else {
+        const maxC = Math.max(r, g, b), minC = Math.min(r, g, b);
+        isHit = (maxC > 50 && (maxC - minC) > 30);
+      }
+
+      if (isHit) {
         if (x > rightmost) rightmost = x;
         break;
       }
@@ -348,37 +358,27 @@ function estimateHpFromBarFill(bitmap, width, height) {
   
   const innerWidth = width - 2 * margin;
   if (innerWidth <= 0) return 0;
-  
   let pct = ((rightmost - margin + 1) / innerWidth) * 100;
-  if (pct > 100) pct = 100;
-
-  // Debug: log a sample when stuck at 100%
-  if (pct === 100 && Math.random() < 0.05) {
-     const i = (Math.floor(height/2) * width + (width - 2)) * 4;
-     console.log(`[Debug] 100% Sample at x=${width-2}: R=${bitmap[i+2]} G=${bitmap[i+1]} B=${bitmap[i]}`);
-  }
-
-  return Math.round(pct);
+  return Math.round(Math.min(100, pct));
 }
 
 // Scans each row for dominant color channel; groups consecutive same-color rows
 // into bands. Returns { hp, mp, fp } as absolute screen coordinate rects.
 function detectAllBars(bitmap, imgWidth, imgHeight, statusRect) {
-  const MIN_SAT = 25, MIN_BRIGHT = 30;
-  const MIN_PX = Math.max(3, Math.floor(imgWidth * 0.08));
-
   const rowTypes = [];
   for (let y = 0; y < imgHeight; y++) {
     let rSum = 0, gSum = 0, bSum = 0, count = 0;
     for (let x = 0; x < imgWidth; x++) {
       const i = (y * imgWidth + x) * 4;
       const B = bitmap[i], G = bitmap[i + 1], R = bitmap[i + 2]; // BGRA
-      const maxC = Math.max(R, G, B), minC = Math.min(R, G, B);
-      if (maxC > MIN_BRIGHT && (maxC - minC) > MIN_SAT) {
-        rSum += R; gSum += G; bSum += B; count++;
-      }
+      
+      // Use the same dominance logic for detection
+      if (R > 80 && R > G + 30 && R > B + 30) { rSum += R; count++; }
+      else if (B > 80 && B > R + 30 && B > G + 30) { bSum += B; count++; }
+      else if (G > 80 && G > R + 30 && G > B + 20) { gSum += G; count++; }
     }
-    if (count >= MIN_PX) {
+    
+    if (count >= Math.max(3, Math.floor(imgWidth * 0.08))) {
       let type;
       if (rSum >= gSum && rSum >= bSum) type = 'hp';
       else if (gSum >= rSum && gSum >= bSum) type = 'fp';
@@ -480,18 +480,31 @@ async function runBarLoop(account, barType, barCfg, barRect, view) {
     try {
       if (view && mainWindow) {
         let img = await view.webContents.capturePage(barRect);
-        let pct = estimateHpFromBarFill(img.toBitmap(), img.getSize().width, img.getSize().height);
+        
+        // Primary: OCR
+        let pct = await ocrPercent(img);
+        let method = 'OCR';
 
-        // Safety check: 0% is often a capture glitch (UI flicker).
-        // If we get 0%, wait 100ms and re-capture once to confirm.
-        if (pct === 0) {
-          await new Promise(r => setTimeout(r, 100));
-          img = await view.webContents.capturePage(barRect);
-          pct = estimateHpFromBarFill(img.toBitmap(), img.getSize().width, img.getSize().height);
+        // Fallback: Color Scan
+        if (pct === null) {
+          pct = estimateHpFromBarFill(img.toBitmap(), img.getSize().width, img.getSize().height, barType);
+          method = 'Color';
+          
+          if (pct === 0) {
+            // Fuzzy retry for color scan
+            const fuzzyRect = { 
+              x: Math.max(0, barRect.x - 2), 
+              y: Math.max(0, barRect.y - 2), 
+              width: barRect.width + 4, 
+              height: barRect.height + 4 
+            };
+            img = await view.webContents.capturePage(fuzzyRect);
+            pct = estimateHpFromBarFill(img.toBitmap(), img.getSize().width, img.getSize().height, barType);
+          }
         }
 
         if (pct !== null) {
-          console.log(`[AutoHeal] ${account} ${barType.toUpperCase()}=${pct}% threshold=${barCfg.threshold}%`);
+          console.log(`[AutoHeal] ${account} ${barType.toUpperCase()}=${pct}% (${method}) threshold=${barCfg.threshold}%`);
           if (pct < barCfg.threshold && Date.now() - lastPressed > cooldown) {
             console.log(`[AutoHeal] ${account} ${barType}: pressing ${barCfg.key}`);
             sendHealKey(view, barCfg.key);
@@ -916,7 +929,14 @@ function setupIPC() {
         const img = await view.webContents.capturePage(barRect);
         const { width, height } = img.getSize();
         if (!width || !height) { result[barType] = null; continue; }
-        result[barType] = estimateHpFromBarFill(img.toBitmap(), width, height);
+        
+        // Try OCR first
+        let pct = await ocrPercent(img);
+        if (pct === null) {
+          // Fallback to color
+          pct = estimateHpFromBarFill(img.toBitmap(), width, height, barType);
+        }
+        result[barType] = pct;
       } catch { result[barType] = null; }
     }
     return result;

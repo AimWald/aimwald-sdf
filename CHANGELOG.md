@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.47.0] – 2026-05-01
+### Added
+- **OCR-First Auto-Heal**: The system now prioritizes reading numerical values (e.g., "386 / 386") and percentages directly from the bars using Tesseract.js. This provides much higher precision for bars with text overlays.
+- **Improved Fallback**: Color-based scanning remains as a robust fallback if OCR fails to read a value.
+- **Dynamic OCR Processing**: Real-time image pre-processing to isolate white text from colored backgrounds for optimal Tesseract recognition.
+
 ## [1.46.2] – 2026-05-01
 ### Fixed
 - **Background Auto-Heal**: Hidden accounts now keep rendering off-screen, ensuring `capturePage` receives fresh frames even when an account is in the background.
