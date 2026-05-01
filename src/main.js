@@ -406,22 +406,8 @@ function detectAllBars(bitmap, imgWidth, imgHeight, statusRect) {
 }
 
 async function initOcr() {
-  try {
-    const { createWorker } = require('tesseract.js');
-    const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 15000));
-    ocrWorker = await Promise.race([
-      createWorker('eng', 1, { logger: () => {} }),
-      timeout
-    ]);
-    await ocrWorker.setParameters({
-      tessedit_char_whitelist: '0123456789./%|\\Ili ',
-      tessedit_pageseg_mode:   '7',
-    });
-    console.log('[OCR] worker ready');
-  } catch (e) {
-    ocrWorker = null;
-    console.error('[OCR] init failed:', e.message);
-  }
+  // OCR disabled – tesseract blocks the main thread and produces no useful output
+  // on 17px-tall bar images. Color bar-fill scan is used exclusively.
 }
 
 async function ocrPercent(img) {
@@ -448,7 +434,6 @@ async function ocrPercent(img) {
       const { data: { text } } = await ocrWorker.recognize(scaled.toPNG());
       const clean = text.trim().replace(/\n/g, ' ');
       if (!clean) continue;
-      console.log(`[OCR] thresh=${thresh} text="${clean}"`);
 
       // Pattern: digits - separator - digits (e.g. "386 / 386")
       // Handles misread slashes like 7, |, I, l
@@ -507,17 +492,12 @@ async function runBarLoop(account, barType, barCfg, barEntry, view) {
         const img = await view.webContents.capturePage(barRect);
         const { width, height } = img.getSize();
         if (width && height) {
-          let pct = await ocrPercent(img);
-          let src = 'OCR';
-          if (pct == null || pct > 100) {
-            const dpr = width / barRect.width;
-            const physLeft  = barEntry.barLeft  != null ? barEntry.barLeft  * dpr : null;
-            const physRight = barEntry.barRight != null ? barEntry.barRight * dpr : null;
-            pct = estimateHpFromBarFill(img.toBitmap(), width, height, barType, physLeft, physRight);
-            src = 'color';
-          }
+          const dpr = width / barRect.width;
+          const physLeft  = barEntry.barLeft  != null ? barEntry.barLeft  * dpr : null;
+          const physRight = barEntry.barRight != null ? barEntry.barRight * dpr : null;
+          const pct = estimateHpFromBarFill(img.toBitmap(), width, height, barType, physLeft, physRight);
           if (pct !== null) {
-            console.log(`[AutoHeal] ${account} ${barType.toUpperCase()}=${pct}% (${src}) threshold=${barCfg.threshold}%`);
+            console.log(`[AutoHeal] ${account} ${barType.toUpperCase()}=${pct}% threshold=${barCfg.threshold}%`);
             if (pct < barCfg.threshold && Date.now() - lastPressed > cooldown) {
               console.log(`[AutoHeal] ${account} ${barType}: pressing ${barCfg.key}`);
               sendHealKey(view, barCfg.key);

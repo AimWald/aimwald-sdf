@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.51.0] – 2026-05-01
+### Fixed
+- **Performance drops / ghost camera movements**: Removed Tesseract OCR from the Auto-Heal loop. OCR was running up to 9 recognition calls per 500 ms on the main Node.js thread, blocking the event loop for multiple seconds and causing queued gamepad mouse events to fire all at once (ghost movements). Color bar-fill scan is now the sole detection method — it takes microseconds and does not block the event loop.
+
 ## [1.50.0] – 2026-05-01
 ### Fixed
 - **App not starting**: OCR initialization (`initOcr`) is now fire-and-forget and no longer blocks `app.whenReady()`. A 15 s timeout prevents a hanging Tesseract worker from delaying startup indefinitely.
