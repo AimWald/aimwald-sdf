@@ -973,28 +973,39 @@ function setupIPC() {
     const script = `(()=>{
       const found=[];
       const seen=new Set();
-      function add(expr,len,type){
+      function add(expr,len,bytesPerEl,type){
         if(seen.has(expr))return;seen.add(expr);
-        found.push({expr,sizeMB:Math.round(len*4/1024/1024),type});
+        found.push({expr,sizeMB:Math.round(len*bytesPerEl/1024/1024),type});
       }
-      const TYPES=[
-        ['HEAPF32',Float32Array,'f32'],['HEAP32',Int32Array,'i32'],['HEAPU32',Uint32Array,'u32'],
-        ['HEAPF64',Float64Array,'f64'],['HEAP16',Int16Array,'i16'],['HEAPU8',Uint8Array,'u8'],
+      const CTORS=[
+        [Int16Array,'i16',2],[Uint16Array,'u16',2],
+        [Int32Array,'i32',4],[Uint32Array,'u32',4],
+        [Float32Array,'f32',4],[Float64Array,'f64',8],[Uint8Array,'u8',1],
+      ];
+      const NAMED=[
+        ['HEAP16',Int16Array,'i16',2],['HEAPU16',Uint16Array,'u16',2],
+        ['HEAP32',Int32Array,'i32',4],['HEAPU32',Uint32Array,'u32',4],
+        ['HEAPF32',Float32Array,'f32',4],['HEAPF64',Float64Array,'f64',8],['HEAPU8',Uint8Array,'u8',1],
       ];
       for(const k of Object.keys(window)){
         try{
           const v=window[k];
           if(!v||typeof v!=='object')continue;
-          for(const [prop,Ctor,type] of TYPES){
-            if(v[prop] instanceof Ctor&&v[prop].length>500000)add(k+'.'+prop,v[prop].length,type);
+          // direct typed array on window (e.g. window.HEAP16)
+          for(const [Ctor,type,bpe] of CTORS){
+            if(v instanceof Ctor&&v.length>100000){add(k,v.length,bpe,type);break;}
           }
-          if(v instanceof WebAssembly.Memory&&v.buffer.byteLength>2000000){
-            add('new Int32Array('+k+'.buffer)',v.buffer.byteLength/4,'i32');
-            add('new Float32Array('+k+'.buffer)',v.buffer.byteLength/4,'f32');
+          // nested property (e.g. emGlobalThis.HEAP32)
+          for(const [prop,Ctor,type,bpe] of NAMED){
+            if(v[prop] instanceof Ctor&&v[prop].length>100000)add(k+'.'+prop,v[prop].length,bpe,type);
+          }
+          if(v instanceof WebAssembly.Memory&&v.buffer.byteLength>500000){
+            add('new Int32Array('+k+'.buffer)',v.buffer.byteLength/4,4,'i32');
+            add('new Float32Array('+k+'.buffer)',v.buffer.byteLength/4,4,'f32');
           }
         }catch{}
       }
-      return found.length?found:{error:'No large typed array found in window scope'};
+      return found.length?found:{error:'No typed array found in window scope'};
     })()`;
     try { return await view.webContents.executeJavaScript(script, true); }
     catch (e) { return { error: e.message }; }

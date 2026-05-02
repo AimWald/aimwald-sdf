@@ -376,10 +376,14 @@
           <td style="color:#aaa; vertical-align:top; padding-top:5px;">Heap</td>
           <td>
             <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-              <select id="wasm-heap-expr" style="min-width:200px; font-family:monospace; font-size:11px;">
+              <select id="wasm-heap-expr" style="min-width:180px; font-family:monospace; font-size:11px;" onchange="wasmHeapSelChanged()">
                 <option value="">– run Diagnose first –</option>
               </select>
               <button class="btn-add" style="margin:0;" onclick="wasmDiagnose()">Diagnose</button>
+            </div>
+            <div style="display:flex; gap:6px; align-items:center; margin-top:4px;">
+              <span style="color:#555; font-size:10px;">or custom:</span>
+              <input type="text" id="wasm-heap-custom" style="width:200px; font-family:monospace; font-size:11px;" placeholder="e.g. window.HEAP16">
             </div>
             <div id="wasm-diag-status" style="color:#555; font-size:10px; margin-top:2px;"></div>
           </td>
@@ -979,7 +983,14 @@
 
     function wasmGetAccount()  { return document.getElementById('wasm-account').value; }
     function wasmGetBar()      { return document.getElementById('wasm-bar').value; }
-    function wasmGetHeapExpr() { return document.getElementById('wasm-heap-expr').value; }
+    function wasmGetHeapExpr() {
+      const custom = document.getElementById('wasm-heap-custom').value.trim();
+      return custom || document.getElementById('wasm-heap-expr').value;
+    }
+    function wasmHeapSelChanged() {
+      // clear custom field when dropdown is used
+      document.getElementById('wasm-heap-custom').value = '';
+    }
 
     function wasmStatus(msg, color) {
       const el = document.getElementById('wasm-status');

@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.55.5] – 2026-05-02
+### Fixed
+- **WASM Scanner: direct typed arrays on window** — Diagnose now finds typed arrays that are direct window globals (e.g. `window.HEAP16`) in addition to nested properties like `emGlobalThis.HEAP32`. Also lowered minimum size to 100k entries. Added custom heap expression text input as fallback.
+
 ## [1.55.4] – 2026-05-02
 ### Added
 - **JS Object Scan** — alternative to WASM heap scanning. Recursively searches all `window.*` properties (depth 6) for numeric values matching the entered HP. Returns property paths like `window.Game.player.currentHp`. Path can be saved as the autoheal source instead of a WASM offset — autoheal reads it via `executeJavaScript` each tick. Useful when HP is stored in JS objects rather than WASM linear memory.
