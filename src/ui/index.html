@@ -315,6 +315,10 @@
     // ── Events vom Main-Prozess (z.B. via F9 / F10) ───────────────────────────
 
     window.flyff.on('account-switched', (account) => {
+      pendingDx = 0;
+      pendingDy = 0;
+      window.flyff.sendMouseUp('right');
+      window.flyff.resetCursor();
       applyAccountState(account);
     });
 
@@ -325,6 +329,8 @@
     // ── Gamepad-Polling (läuft im Renderer-Hauptkontext) ─────────────────────
 
     let currentButtonMap = null;
+    let pendingDx = 0;
+    let pendingDy = 0;
 
     function startGamepadPolling() {
       const WASD_PRESS     = 0.40;
@@ -337,9 +343,6 @@
       const gpLabel  = document.getElementById('gp-label');
       const heldKeys = { W: false, A: false, S: false, D: false };
 
-      // Deltas akkumulieren, gebündelt senden statt 60×/s einzeln
-      let pendingDx   = 0;
-      let pendingDy   = 0;
       let lastMouseMs = 0;
 
       function updateAxis(key, val) {

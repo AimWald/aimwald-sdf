@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.55.7] – 2026-05-02
+### Fixed
+- **Ghost camera movement on account switch** — `pendingDx`/`pendingDy` accumulated while holding L2 are now cleared when switching accounts (F9), preventing phantom camera movement on the newly active account. Right mouse button is also released on switch.
+### Added
+- **Steam virtual keyboard support** — keyboard events from the Steam Deck on-screen keyboard (which routes to the OS window rather than the focused game view) are now forwarded to the active game view. Previously all virtual keyboard input was silently dropped.
+
 ## [1.55.6] – 2026-05-01
 ### Added
 - **JS Object Scan: Refine + Reset buttons** — after an initial JS Scan, take damage, enter the new HP value and click Refine to narrow the candidates to only paths whose value still matches. Reset clears the stored path list to start fresh.

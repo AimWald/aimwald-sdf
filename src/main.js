@@ -102,6 +102,32 @@ function createMainWindow() {
   });
 
   mainWindow.on('closed', () => { mainWindow = null; });
+
+  // Forward keyboard events from the toolbar renderer to the active game view.
+  // Steam Deck's virtual keyboard sends events to the OS window (BrowserWindow)
+  // rather than the focused WebContentsView, so they would otherwise be lost.
+  // event.preventDefault() stops the toolbar page from also handling it.
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (overlayOpen) return;
+    const view = activeAccount === 'account1' ? view1 : view2;
+    if (!view?.webContents) return;
+    event.preventDefault();
+    const mods = [];
+    if (input.shift)   mods.push('shift');
+    if (input.control) mods.push('control');
+    if (input.alt)     mods.push('alt');
+    if (input.meta)    mods.push('meta');
+    try {
+      if (input.type === 'keyDown') {
+        view.webContents.sendInputEvent({ type: 'keyDown', keyCode: input.key, modifiers: mods });
+        if (input.key.length === 1) {
+          view.webContents.sendInputEvent({ type: 'char', keyCode: input.key, modifiers: mods });
+        }
+      } else if (input.type === 'keyUp') {
+        view.webContents.sendInputEvent({ type: 'keyUp', keyCode: input.key, modifiers: mods });
+      }
+    } catch {}
+  });
 }
 
 // ── Game-Views (WebContentsView) ──────────────────────────────────────────────
