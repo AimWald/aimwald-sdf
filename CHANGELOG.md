@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.55.1] – 2026-05-02
+### Fixed
+- **WASM Scanner: heap discovery** — added Diagnose button that scans all window-level globals for large Float32Arrays (>500 KB), WebAssembly.Memory instances, and objects with HEAPF32. The found expression (e.g. `unityInstance.Module.HEAPF32`) is selected before scanning and saved alongside the offset so the autoheal loop uses the correct path. Previously hardcoded to `Module.HEAPF32` which is not always the global name.
+
 ## [1.55.0] – 2026-05-02
 ### Added
 - **WASM Memory Scanner** — reads HP/MP/FP directly from Unity's WebAssembly heap (`Module.HEAPF32`) via `executeJavaScript`. Exact integer values, no pixel scanning, immune to bar overlays and number text. Settings → Auto-Heal → WASM Memory Scanner: enter current value → Scan, take damage → Refine until 1–5 candidates remain, pick the correct offset. MaxHP can be a second offset or a fixed value. Saved per account/bar in `autoheal.json` under `wasm.{hp|mp|fp}`. When a WASM offset is configured, it takes priority over pixel scan. Pixel scan stays as fallback if no offset is saved. Offsets need to be re-scanned after game patches.

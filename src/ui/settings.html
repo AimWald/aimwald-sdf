@@ -373,6 +373,18 @@
           </td>
         </tr>
         <tr>
+          <td style="color:#aaa; vertical-align:top; padding-top:5px;">Heap</td>
+          <td>
+            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+              <select id="wasm-heap-expr" style="min-width:200px; font-family:monospace; font-size:11px;">
+                <option value="">– run Diagnose first –</option>
+              </select>
+              <button class="btn-add" style="margin:0;" onclick="wasmDiagnose()">Diagnose</button>
+            </div>
+            <div id="wasm-diag-status" style="color:#555; font-size:10px; margin-top:2px;"></div>
+          </td>
+        </tr>
+        <tr>
           <td style="color:#aaa;">Bar</td>
           <td>
             <select id="wasm-bar" onchange="wasmBarChanged()">
@@ -928,13 +940,30 @@
 
     let wasmCandidates = [];  // shown in table when ≤ 30
 
-    function wasmGetAccount() { return document.getElementById('wasm-account').value; }
-    function wasmGetBar()     { return document.getElementById('wasm-bar').value; }
+    function wasmGetAccount()  { return document.getElementById('wasm-account').value; }
+    function wasmGetBar()      { return document.getElementById('wasm-bar').value; }
+    function wasmGetHeapExpr() { return document.getElementById('wasm-heap-expr').value; }
 
     function wasmStatus(msg, color) {
       const el = document.getElementById('wasm-status');
       el.textContent = msg;
       el.style.color = color || '#888';
+    }
+
+    async function wasmDiagnose() {
+      const account = wasmGetAccount();
+      const diagEl  = document.getElementById('wasm-diag-status');
+      diagEl.textContent = 'Scanning…';
+      const res = await window.flyff.wasmDiagnose({ account });
+      if (res?.error) { diagEl.textContent = '✗ ' + res.error; return; }
+      const sel = document.getElementById('wasm-heap-expr');
+      sel.innerHTML = '';
+      res.forEach(({ expr, sizeMB }) => {
+        const o = document.createElement('option');
+        o.value = expr; o.textContent = `${expr}  (${sizeMB} MB)`;
+        sel.appendChild(o);
+      });
+      diagEl.textContent = `Found ${res.length} candidate${res.length !== 1 ? 's' : ''}`;
     }
 
     function wasmAccountChanged() { wasmRefreshSavedInfo(); }
@@ -946,8 +975,9 @@
       const wasm    = loadedAhConfig?.[account]?.wasm?.[bar];
       const el      = document.getElementById('wasm-saved-info');
       if (wasm?.offset != null) {
-        const maxStr = wasm.maxOffset != null ? `maxOffset:${wasm.maxOffset}` : wasm.maxHp != null ? `maxHp:${wasm.maxHp}` : 'no max';
-        el.textContent = `✓ Saved: offset ${wasm.offset}, ${maxStr}`;
+        const maxStr  = wasm.maxOffset != null ? `maxOffset:${wasm.maxOffset}` : wasm.maxHp != null ? `maxHp:${wasm.maxHp}` : 'no max';
+        const heapStr = wasm.heapExpr ? `  heap:${wasm.heapExpr}` : '';
+        el.textContent = `✓ Saved: offset ${wasm.offset}, ${maxStr}${heapStr}`;
         el.style.color = '#88ff88';
         document.getElementById('wasm-offset').value    = wasm.offset;
         document.getElementById('wasm-maxoffset').value = wasm.maxOffset ?? '';
@@ -961,15 +991,17 @@
     }
 
     async function wasmDoScan(refine) {
-      const account = wasmGetAccount();
-      const bar     = wasmGetBar();
-      const value   = parseFloat(document.getElementById('wasm-val').value);
+      const account  = wasmGetAccount();
+      const bar      = wasmGetBar();
+      const heapExpr = wasmGetHeapExpr();
+      const value    = parseFloat(document.getElementById('wasm-val').value);
+      if (!heapExpr) { wasmStatus('Run Diagnose first to find the heap', '#f88'); return; }
       if (isNaN(value) || value <= 0) { wasmStatus('Enter a valid value first', '#f88'); return; }
 
       wasmStatus(refine ? 'Refining…' : 'Scanning (may take a few seconds)…', '#aaa');
       document.getElementById('wasm-cands').style.display = 'none';
 
-      const res = await window.flyff.wasmScan({ account, bar, value, refine });
+      const res = await window.flyff.wasmScan({ account, bar, value, heapExpr, refine });
 
       if (res?.error) { wasmStatus('✗ ' + res.error, '#f88'); return; }
 
@@ -983,15 +1015,15 @@
         document.getElementById('wasm-cands').style.display = 'none';
       } else {
         wasmStatus(`${count} candidate${count > 1 ? 's' : ''} – pick the right offset below`, '#88ff88');
-        await wasmRenderCandidates(account, value);
+        await wasmRenderCandidates(account, heapExpr);
       }
     }
 
-    async function wasmRenderCandidates(account, currentValue) {
+    async function wasmRenderCandidates(account, heapExpr) {
       const tbody = document.getElementById('wasm-cands-body');
       tbody.innerHTML = '';
       for (const offset of wasmCandidates) {
-        const nb = await window.flyff.wasmNeighbors({ account, offset }) || [];
+        const nb = await window.flyff.wasmNeighbors({ account, offset, heapExpr }) || [];
         const nbStr = nb.map(({i, v}) =>
           `<span style="${i === offset ? 'color:#88ff88;font-weight:600' : 'color:#555'}">${i}:${v}</span>`
         ).join(' ');
@@ -1023,11 +1055,13 @@
     function wasmSaveOffset() {
       const account   = wasmGetAccount();
       const bar       = wasmGetBar();
+      const heapExpr  = wasmGetHeapExpr();
       const offset    = parseInt(document.getElementById('wasm-offset').value);
       const maxOffset = document.getElementById('wasm-maxoffset').value.trim();
       const maxHp     = document.getElementById('wasm-maxhp').value.trim();
       if (isNaN(offset)) { wasmStatus('Enter a valid offset', '#f88'); return; }
       const params = { account, bar, offset };
+      if (heapExpr)  params.heapExpr  = heapExpr;
       if (maxOffset) params.maxOffset = parseInt(maxOffset);
       else if (maxHp) params.maxHp = parseFloat(maxHp);
       window.flyff.wasmSave(params);

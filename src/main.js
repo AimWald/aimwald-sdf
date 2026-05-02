@@ -538,7 +538,7 @@ async function runBarLoop(account, barType, barCfg, barEntry, view, wasmCfg = nu
 
   // Pre-build WASM read expression (avoids template work in hot loop)
   const wasmExpr = wasmCfg?.offset != null
-    ? `(()=>{try{const h=Module?.HEAPF32;if(!h)return null;const c=h[${wasmCfg.offset}];const m=${
+    ? `(()=>{try{const h=${wasmCfg.heapExpr||'Module.HEAPF32'};if(!h)return null;const c=h[${wasmCfg.offset}];const m=${
         wasmCfg.maxOffset != null ? `h[${wasmCfg.maxOffset}]` : String(Number(wasmCfg.maxHp) || 0)
       };return(m>0&&c>=0&&c<=m*1.05)?Math.round(c/m*100):null;}catch(e){return null;}})()`
     : null;
@@ -954,16 +954,45 @@ function setupIPC() {
 
   // ── WASM Memory Scanner ───────────────────────────────────────────────────
 
-  ipcMain.handle('wasm-scan', async (_, { account, bar, value, refine = false }) => {
+  // Discover candidate Float32Array heap expressions in the page's global scope
+  ipcMain.handle('wasm-diagnose', async (_, { account }) => {
+    const view = account === 'account1' ? view1 : view2;
+    if (!view) return { error: 'View not available' };
+    const script = `(()=>{
+      const found=[];
+      const seen=new Set();
+      function add(expr,heap){
+        if(seen.has(expr))return;seen.add(expr);
+        found.push({expr,sizeMB:Math.round(heap.length*4/1024/1024)});
+      }
+      // walk top-level window keys
+      for(const k of Object.keys(window)){
+        try{
+          const v=window[k];
+          if(!v||typeof v!=='object')continue;
+          if(v instanceof Float32Array&&v.length>500000)add(k,v);
+          if(v.HEAPF32 instanceof Float32Array&&v.HEAPF32.length>500000)add(k+'.HEAPF32',v.HEAPF32);
+          if(v.buffer instanceof ArrayBuffer&&v.buffer.byteLength>2000000)add(k+'(as F32)',new Float32Array(v.buffer));
+          if(v instanceof WebAssembly.Memory&&v.buffer.byteLength>2000000)add('new Float32Array('+k+'.buffer)',new Float32Array(v.buffer));
+        }catch{}
+      }
+      return found.length?found:{error:'No large Float32Array found in window scope – game may store heap in a closure'};
+    })()`;
+    try { return await view.webContents.executeJavaScript(script, true); }
+    catch (e) { return { error: e.message }; }
+  });
+
+  ipcMain.handle('wasm-scan', async (_, { account, bar, value, heapExpr, refine = false }) => {
     const view = account === 'account1' ? view1 : view2;
     if (!view) return { error: 'View not available' };
     const key = `${account}_${bar}`;
     const tol = 1;
+    const hExpr = heapExpr || 'Module.HEAPF32';
 
     let script;
     if (refine && wasmScanState[key]?.length) {
       script = `(()=>{try{
-        const h=Module?.HEAPF32;if(!h)return{error:'no heap'};
+        const h=${hExpr};if(!h)return{error:'heap not found'};
         const c=${JSON.stringify(wasmScanState[key])};
         const t=${value},tol=${tol};
         const r=c.filter(i=>{const v=h[i];return v>=t-tol&&v<=t+tol;});
@@ -971,8 +1000,8 @@ function setupIPC() {
       }catch(e){return{error:e.message};}})()`;
     } else {
       script = `(()=>{try{
-        const h=Module?.HEAPF32;
-        if(!h)return{error:'Module.HEAPF32 not available – is the game loaded?'};
+        const h=${hExpr};
+        if(!h)return{error:'${hExpr} not available – run Diagnose first'};
         const t=${value},tol=${tol},r=[];
         for(let i=0;i<h.length;i++){const v=h[i];if(v>=t-tol&&v<=t+tol){r.push(i);if(r.length>=5000)break;}}
         return{candidates:r};
@@ -989,28 +1018,30 @@ function setupIPC() {
     } catch (e) { return { error: e.message }; }
   });
 
-  ipcMain.handle('wasm-neighbors', async (_, { account, offset, range = 10 }) => {
+  ipcMain.handle('wasm-neighbors', async (_, { account, offset, heapExpr, range = 10 }) => {
     const view = account === 'account1' ? view1 : view2;
     if (!view) return null;
+    const hExpr = heapExpr || 'Module.HEAPF32';
     try {
       return await view.webContents.executeJavaScript(
-        `(()=>{try{const h=Module?.HEAPF32;if(!h)return null;
+        `(()=>{try{const h=${hExpr};if(!h)return null;
           const r=[];for(let i=${offset}-${range};i<=${offset}+${range};i++){if(i>=0&&i<h.length)r.push({i,v:Math.round(h[i]*10)/10});}
           return r;}catch(e){return null;}})()`, true
       );
     } catch { return null; }
   });
 
-  ipcMain.on('wasm-save', (_, { account, bar, offset, maxOffset, maxHp }) => {
+  ipcMain.on('wasm-save', (_, { account, bar, offset, maxOffset, maxHp, heapExpr }) => {
     const cfg = loadConfig('autoheal.json') || {};
     if (!cfg[account]) cfg[account] = {};
     if (!cfg[account].wasm) cfg[account].wasm = {};
     const entry = { offset };
+    if (heapExpr)          entry.heapExpr  = heapExpr;
     if (maxOffset != null) entry.maxOffset = maxOffset;
-    else if (maxHp   != null) entry.maxHp   = maxHp;
+    else if (maxHp != null) entry.maxHp   = maxHp;
     cfg[account].wasm[bar] = entry;
     saveConfig('autoheal.json', cfg);
-    if (['account1', 'account2'].some(a => a === account)) startAutoHeal(account);
+    startAutoHeal(account);
   });
 
   ipcMain.on('wasm-clear', (_, { account, bar }) => {
