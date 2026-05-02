@@ -404,6 +404,8 @@
             } else if (!pressed && wasPressed && action === '__RHOLD') {
               window.flyff.sendMouseUp('right');
               window.flyff.resetCursor();
+              pendingDx = 0;
+              pendingDy = 0;
             }
             prevBtns[key] = pressed;
           });
