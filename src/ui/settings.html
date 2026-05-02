@@ -958,9 +958,9 @@
       if (res?.error) { diagEl.textContent = '✗ ' + res.error; return; }
       const sel = document.getElementById('wasm-heap-expr');
       sel.innerHTML = '';
-      res.forEach(({ expr, sizeMB }) => {
+      res.forEach(({ expr, sizeMB, type }) => {
         const o = document.createElement('option');
-        o.value = expr; o.textContent = `${expr}  (${sizeMB} MB)`;
+        o.value = expr; o.textContent = `${expr}  (${sizeMB} MB, ${type||'?'})`;
         sel.appendChild(o);
       });
       diagEl.textContent = `Found ${res.length} candidate${res.length !== 1 ? 's' : ''}`;

@@ -538,9 +538,10 @@ async function runBarLoop(account, barType, barCfg, barEntry, view, wasmCfg = nu
 
   // Pre-build WASM read expression (avoids template work in hot loop)
   const wasmExpr = wasmCfg?.offset != null
-    ? `(()=>{try{const h=${wasmCfg.heapExpr||'Module.HEAPF32'};if(!h)return null;const c=h[${wasmCfg.offset}];const m=${
-        wasmCfg.maxOffset != null ? `h[${wasmCfg.maxOffset}]` : String(Number(wasmCfg.maxHp) || 0)
-      };return(m>0&&c>=0&&c<=m*1.05)?Math.round(c/m*100):null;}catch(e){return null;}})()`
+    ? `(()=>{try{const h=${wasmCfg.heapExpr||'Module.HEAPF32'};if(!h)return null;` +
+      `const c=h[${wasmCfg.offset}];` +
+      `const m=${wasmCfg.maxOffset != null ? `h[${wasmCfg.maxOffset}]` : String(Number(wasmCfg.maxHp) || 0)};` +
+      `return(m>0&&c>=0&&c<=m*1.1)?Math.round(c/m*100):null;}catch(e){return null;}})()`
     : null;
 
   while (hpHealActive[account]) {
@@ -954,29 +955,35 @@ function setupIPC() {
 
   // ── WASM Memory Scanner ───────────────────────────────────────────────────
 
-  // Discover candidate Float32Array heap expressions in the page's global scope
+  // Discover candidate typed array heap expressions in the page's global scope
   ipcMain.handle('wasm-diagnose', async (_, { account }) => {
     const view = account === 'account1' ? view1 : view2;
     if (!view) return { error: 'View not available' };
     const script = `(()=>{
       const found=[];
       const seen=new Set();
-      function add(expr,heap){
+      function add(expr,len,type){
         if(seen.has(expr))return;seen.add(expr);
-        found.push({expr,sizeMB:Math.round(heap.length*4/1024/1024)});
+        found.push({expr,sizeMB:Math.round(len*4/1024/1024),type});
       }
-      // walk top-level window keys
+      const TYPES=[
+        ['HEAPF32',Float32Array,'f32'],['HEAP32',Int32Array,'i32'],['HEAPU32',Uint32Array,'u32'],
+        ['HEAPF64',Float64Array,'f64'],['HEAP16',Int16Array,'i16'],['HEAPU8',Uint8Array,'u8'],
+      ];
       for(const k of Object.keys(window)){
         try{
           const v=window[k];
           if(!v||typeof v!=='object')continue;
-          if(v instanceof Float32Array&&v.length>500000)add(k,v);
-          if(v.HEAPF32 instanceof Float32Array&&v.HEAPF32.length>500000)add(k+'.HEAPF32',v.HEAPF32);
-          if(v.buffer instanceof ArrayBuffer&&v.buffer.byteLength>2000000)add(k+'(as F32)',new Float32Array(v.buffer));
-          if(v instanceof WebAssembly.Memory&&v.buffer.byteLength>2000000)add('new Float32Array('+k+'.buffer)',new Float32Array(v.buffer));
+          for(const [prop,Ctor,type] of TYPES){
+            if(v[prop] instanceof Ctor&&v[prop].length>500000)add(k+'.'+prop,v[prop].length,type);
+          }
+          if(v instanceof WebAssembly.Memory&&v.buffer.byteLength>2000000){
+            add('new Int32Array('+k+'.buffer)',v.buffer.byteLength/4,'i32');
+            add('new Float32Array('+k+'.buffer)',v.buffer.byteLength/4,'f32');
+          }
         }catch{}
       }
-      return found.length?found:{error:'No large Float32Array found in window scope – game may store heap in a closure'};
+      return found.length?found:{error:'No large typed array found in window scope'};
     })()`;
     try { return await view.webContents.executeJavaScript(script, true); }
     catch (e) { return { error: e.message }; }
@@ -986,15 +993,17 @@ function setupIPC() {
     const view = account === 'account1' ? view1 : view2;
     if (!view) return { error: 'View not available' };
     const key = `${account}_${bar}`;
-    const tol = 1;
     const hExpr = heapExpr || 'Module.HEAPF32';
+    // integers need exact match (±1 for rounding); floats need small tolerance
+    const isInt = /HEAP32|HEAPU32|HEAP16|HEAPU8|Int32|Uint32/.test(hExpr);
+    const tol = isInt ? 1 : 1;  // same value, but logic differs: ints match exact or ±1, floats match within ±1
 
     let script;
     if (refine && wasmScanState[key]?.length) {
       script = `(()=>{try{
         const h=${hExpr};if(!h)return{error:'heap not found'};
         const c=${JSON.stringify(wasmScanState[key])};
-        const t=${value},tol=${tol};
+        const t=${Math.round(value)},tol=${tol};
         const r=c.filter(i=>{const v=h[i];return v>=t-tol&&v<=t+tol;});
         return{candidates:r};
       }catch(e){return{error:e.message};}})()`;
@@ -1002,7 +1011,7 @@ function setupIPC() {
       script = `(()=>{try{
         const h=${hExpr};
         if(!h)return{error:'${hExpr} not available – run Diagnose first'};
-        const t=${value},tol=${tol},r=[];
+        const t=${Math.round(value)},tol=${tol},r=[];
         for(let i=0;i<h.length;i++){const v=h[i];if(v>=t-tol&&v<=t+tol){r.push(i);if(r.length>=5000)break;}}
         return{candidates:r};
       }catch(e){return{error:e.message};}})()`;

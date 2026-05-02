@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.55.2] – 2026-05-02
+### Fixed
+- **WASM Scanner: integer heap support** — Diagnose now also finds `HEAP32`, `HEAPU32`, `HEAP16`, `HEAPU8` typed arrays (not just Float32). HP is often stored as an integer in Unity games. Scan uses `Math.round(value)` for integer arrays. Type label (i32/f32/u32 etc.) shown in the heap dropdown.
+
 ## [1.55.1] – 2026-05-02
 ### Fixed
 - **WASM Scanner: heap discovery** — added Diagnose button that scans all window-level globals for large Float32Arrays (>500 KB), WebAssembly.Memory instances, and objects with HEAPF32. The found expression (e.g. `unityInstance.Module.HEAPF32`) is selected before scanning and saved alongside the offset so the autoheal loop uses the correct path. Previously hardcoded to `Module.HEAPF32` which is not always the global name.
