@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.55.0] – 2026-05-02
+### Added
+- **WASM Memory Scanner** — reads HP/MP/FP directly from Unity's WebAssembly heap (`Module.HEAPF32`) via `executeJavaScript`. Exact integer values, no pixel scanning, immune to bar overlays and number text. Settings → Auto-Heal → WASM Memory Scanner: enter current value → Scan, take damage → Refine until 1–5 candidates remain, pick the correct offset. MaxHP can be a second offset or a fixed value. Saved per account/bar in `autoheal.json` under `wasm.{hp|mp|fp}`. When a WASM offset is configured, it takes priority over pixel scan. Pixel scan stays as fallback if no offset is saved. Offsets need to be re-scanned after game patches.
+
 ## [1.54.5] – 2026-05-02
 ### Changed
 - **Auto-Heal: median-based bar scan** — instead of taking the rightmost colored pixel across all rows (easily thrown off by text anti-aliasing / number overlays), each row's rightmost hit is collected and the median is used. Stray pixels from overlaid numbers no longer skew the reading. Top and bottom 20% of the bar height are skipped to avoid border/shadow rows. Old max-based scan preserved as `estimateHpFromBarFill_v1` for rollback.

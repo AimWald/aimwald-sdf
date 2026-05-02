@@ -353,6 +353,82 @@
         </tr>
       </tbody>
     </table>
+
+    <!-- ── WASM Memory Scanner ───────────────────────────────────────── -->
+    <h3 style="margin-top:16px;">🔬 WASM Memory Scanner</h3>
+    <p style="color:#555; font-size:11px; margin-bottom:8px;">
+      Reads HP/MP/FP directly from Unity's WebAssembly heap — exact values, no pixel scanning.<br>
+      Step 1: enter your current value → Scan. Step 2: take damage, enter new value → Refine. Repeat until ~1–5 candidates, then pick the right offset.
+    </p>
+
+    <table style="width:auto; margin-bottom:8px;">
+      <tbody>
+        <tr>
+          <td style="color:#aaa; width:100px;">Account</td>
+          <td>
+            <select id="wasm-account" onchange="wasmAccountChanged()">
+              <option value="account1">Account 1</option>
+              <option value="account2">Account 2</option>
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td style="color:#aaa;">Bar</td>
+          <td>
+            <select id="wasm-bar" onchange="wasmBarChanged()">
+              <option value="hp">❤ HP</option>
+              <option value="mp">💧 MP</option>
+              <option value="fp">⚡ FP</option>
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td style="color:#aaa;">Current value</td>
+          <td style="display:flex; gap:6px; align-items:center;">
+            <input type="number" id="wasm-val" min="0" max="9999999" style="width:90px;" placeholder="e.g. 386">
+            <button class="btn-add" style="margin:0;" onclick="wasmDoScan(false)">Scan</button>
+            <button class="btn-add" style="margin:0;" onclick="wasmDoScan(true)">Refine</button>
+            <button class="btn-del" style="margin:0;" onclick="wasmResetScan()">Reset</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div id="wasm-status" style="color:#888; font-size:11px; margin-bottom:6px;">–</div>
+
+    <div id="wasm-cands" style="display:none; margin-bottom:8px;">
+      <table>
+        <thead><tr><th>Offset</th><th>Neighbors (offset : value)</th><th></th></tr></thead>
+        <tbody id="wasm-cands-body"></tbody>
+      </table>
+    </div>
+
+    <div id="wasm-confirm" style="display:none; border:1px solid #2a2a4a; padding:8px; border-radius:4px; margin-bottom:8px;">
+      <div style="color:#88aaff; font-size:11px; margin-bottom:6px;">Confirm offset</div>
+      <table style="width:auto;">
+        <tbody>
+          <tr>
+            <td style="color:#aaa; width:100px;">HP offset</td>
+            <td><input type="number" id="wasm-offset" style="width:90px;"></td>
+          </tr>
+          <tr>
+            <td style="color:#aaa;">MaxHP: offset</td>
+            <td><input type="number" id="wasm-maxoffset" style="width:90px;" placeholder="leave blank if using fixed"></td>
+          </tr>
+          <tr>
+            <td style="color:#aaa;">MaxHP: fixed</td>
+            <td><input type="number" id="wasm-maxhp" style="width:90px;" placeholder="e.g. 386 (if always same)"></td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="margin-top:6px; display:flex; gap:8px;">
+        <button class="btn-save" style="padding:4px 14px; font-size:12px;" onclick="wasmSaveOffset()">💾 Save &amp; Enable</button>
+        <button class="btn-del" onclick="wasmClearOffset()">✕ Remove saved offset</button>
+      </div>
+    </div>
+
+    <div id="wasm-saved-info" style="font-size:11px; color:#555;"></div>
+
   </div>
 
   <!-- ── Accounts tab ──────────────────────────────────────────────────── -->
@@ -658,6 +734,7 @@
 
       loadedAhConfig = await window.flyff.getAutoHealConfig() || {};
       renderAhConfig(loadedAhConfig);
+      wasmRefreshSavedInfo();
     }
 
     // ── Speichern ─────────────────────────────────────────────────────────────
@@ -845,6 +922,130 @@
       msg.textContent = `✓ ${label} session cleared – page reloading.`;
       msg.style.display = 'block';
       setTimeout(() => { msg.style.display = 'none'; }, 3000);
+    }
+
+    // ── WASM Memory Scanner ────────────────────────────────────────────────────
+
+    let wasmCandidates = [];  // shown in table when ≤ 30
+
+    function wasmGetAccount() { return document.getElementById('wasm-account').value; }
+    function wasmGetBar()     { return document.getElementById('wasm-bar').value; }
+
+    function wasmStatus(msg, color) {
+      const el = document.getElementById('wasm-status');
+      el.textContent = msg;
+      el.style.color = color || '#888';
+    }
+
+    function wasmAccountChanged() { wasmRefreshSavedInfo(); }
+    function wasmBarChanged()     { wasmRefreshSavedInfo(); }
+
+    function wasmRefreshSavedInfo() {
+      const account = wasmGetAccount();
+      const bar     = wasmGetBar();
+      const wasm    = loadedAhConfig?.[account]?.wasm?.[bar];
+      const el      = document.getElementById('wasm-saved-info');
+      if (wasm?.offset != null) {
+        const maxStr = wasm.maxOffset != null ? `maxOffset:${wasm.maxOffset}` : wasm.maxHp != null ? `maxHp:${wasm.maxHp}` : 'no max';
+        el.textContent = `✓ Saved: offset ${wasm.offset}, ${maxStr}`;
+        el.style.color = '#88ff88';
+        document.getElementById('wasm-offset').value    = wasm.offset;
+        document.getElementById('wasm-maxoffset').value = wasm.maxOffset ?? '';
+        document.getElementById('wasm-maxhp').value     = wasm.maxHp ?? '';
+        document.getElementById('wasm-confirm').style.display = '';
+      } else {
+        el.textContent = 'Not configured';
+        el.style.color = '#555';
+        document.getElementById('wasm-confirm').style.display = 'none';
+      }
+    }
+
+    async function wasmDoScan(refine) {
+      const account = wasmGetAccount();
+      const bar     = wasmGetBar();
+      const value   = parseFloat(document.getElementById('wasm-val').value);
+      if (isNaN(value) || value <= 0) { wasmStatus('Enter a valid value first', '#f88'); return; }
+
+      wasmStatus(refine ? 'Refining…' : 'Scanning (may take a few seconds)…', '#aaa');
+      document.getElementById('wasm-cands').style.display = 'none';
+
+      const res = await window.flyff.wasmScan({ account, bar, value, refine });
+
+      if (res?.error) { wasmStatus('✗ ' + res.error, '#f88'); return; }
+
+      const { count, candidates } = res;
+      wasmCandidates = candidates || [];
+
+      if (count === 0) {
+        wasmStatus('0 candidates – try a wider tolerance or check the value', '#f88');
+      } else if (count > 30) {
+        wasmStatus(`${count} candidates – take damage and Refine`, '#aaa');
+        document.getElementById('wasm-cands').style.display = 'none';
+      } else {
+        wasmStatus(`${count} candidate${count > 1 ? 's' : ''} – pick the right offset below`, '#88ff88');
+        await wasmRenderCandidates(account, value);
+      }
+    }
+
+    async function wasmRenderCandidates(account, currentValue) {
+      const tbody = document.getElementById('wasm-cands-body');
+      tbody.innerHTML = '';
+      for (const offset of wasmCandidates) {
+        const nb = await window.flyff.wasmNeighbors({ account, offset }) || [];
+        const nbStr = nb.map(({i, v}) =>
+          `<span style="${i === offset ? 'color:#88ff88;font-weight:600' : 'color:#555'}">${i}:${v}</span>`
+        ).join(' ');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td style="font-family:monospace;">${offset}</td><td style="font-size:10px;">${nbStr}</td>`;
+        const tdBtn = document.createElement('td');
+        const btn = document.createElement('button');
+        btn.className = 'btn-add'; btn.textContent = 'Use'; btn.style.margin = '0';
+        btn.onclick = () => wasmSelectOffset(offset);
+        tdBtn.appendChild(btn);
+        tr.appendChild(tdBtn);
+        tbody.appendChild(tr);
+      }
+      document.getElementById('wasm-cands').style.display = '';
+    }
+
+    function wasmSelectOffset(offset) {
+      document.getElementById('wasm-offset').value = offset;
+      document.getElementById('wasm-confirm').style.display = '';
+      document.getElementById('wasm-confirm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function wasmResetScan() {
+      wasmCandidates = [];
+      document.getElementById('wasm-cands').style.display = 'none';
+      wasmStatus('–', '#888');
+    }
+
+    function wasmSaveOffset() {
+      const account   = wasmGetAccount();
+      const bar       = wasmGetBar();
+      const offset    = parseInt(document.getElementById('wasm-offset').value);
+      const maxOffset = document.getElementById('wasm-maxoffset').value.trim();
+      const maxHp     = document.getElementById('wasm-maxhp').value.trim();
+      if (isNaN(offset)) { wasmStatus('Enter a valid offset', '#f88'); return; }
+      const params = { account, bar, offset };
+      if (maxOffset) params.maxOffset = parseInt(maxOffset);
+      else if (maxHp) params.maxHp = parseFloat(maxHp);
+      window.flyff.wasmSave(params);
+      if (!loadedAhConfig[account]) loadedAhConfig[account] = {};
+      if (!loadedAhConfig[account].wasm) loadedAhConfig[account].wasm = {};
+      loadedAhConfig[account].wasm[bar] = params;
+      wasmRefreshSavedInfo();
+      wasmStatus(`✓ Saved offset ${offset} for ${account} ${bar}`, '#88ff88');
+    }
+
+    function wasmClearOffset() {
+      const account = wasmGetAccount();
+      const bar     = wasmGetBar();
+      window.flyff.wasmClear({ account, bar });
+      if (loadedAhConfig?.[account]?.wasm?.[bar]) delete loadedAhConfig[account].wasm[bar];
+      document.getElementById('wasm-confirm').style.display = 'none';
+      wasmRefreshSavedInfo();
+      wasmStatus('Offset removed', '#888');
     }
 
     init();

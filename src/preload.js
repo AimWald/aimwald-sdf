@@ -38,6 +38,12 @@ contextBridge.exposeInMainWorld('flyff', {
   openHpPicker:       (account, barType) => ipcRenderer.send('open-hp-picker', { account, barType }),
   testHpCapture:      (account) => ipcRenderer.invoke('test-hp-capture', account),
 
+  // --- WASM Memory Scanner ---
+  wasmScan:      (params)  => ipcRenderer.invoke('wasm-scan', params),
+  wasmNeighbors: (params)  => ipcRenderer.invoke('wasm-neighbors', params),
+  wasmSave:      (params)  => ipcRenderer.send('wasm-save', params),
+  wasmClear:     (params)  => ipcRenderer.send('wasm-clear', params),
+
   // --- HP-Picker (wird im Picker-Fenster aufgerufen) ---
   hpPickerDone:   (rect) => ipcRenderer.send('hp-picker-done', rect),
   hpPickerCancel: ()     => ipcRenderer.send('hp-picker-cancel'),
