@@ -443,6 +443,41 @@
 
     <div id="wasm-saved-info" style="font-size:11px; color:#555;"></div>
 
+    <!-- JS Object Scan -->
+    <h3 style="margin-top:14px;">🔍 JS Object Scan (alternative)</h3>
+    <p style="color:#555; font-size:11px; margin-bottom:8px;">If WASM heap scan finds nothing, HP may be in a JavaScript object. Searches window.* recursively for the HP value and returns the property path.</p>
+    <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px;">
+      <input type="number" id="jsscan-val" min="0" max="9999999" style="width:90px;" placeholder="current HP">
+      <span style="color:#555; font-size:11px;">±</span>
+      <input type="number" id="jsscan-tol" style="width:52px;" value="2">
+      <button class="btn-add" style="margin:0;" onclick="jsDoScan()">JS Scan</button>
+    </div>
+    <div id="jsscan-status" style="color:#888; font-size:11px; margin-bottom:4px;"></div>
+    <div id="jsscan-results" style="display:none; max-height:160px; overflow-y:auto;">
+      <table><thead><tr><th>Path</th><th>Value</th><th></th></tr></thead>
+      <tbody id="jsscan-tbody"></tbody></table>
+    </div>
+
+    <!-- JS path confirm -->
+    <div id="jsscan-confirm" style="display:none; border:1px solid #2a2a4a; padding:8px; border-radius:4px; margin-top:6px;">
+      <div style="color:#88aaff; font-size:11px; margin-bottom:6px;">Save JS path for autoheal</div>
+      <table style="width:auto;">
+        <tbody>
+          <tr><td style="color:#aaa; width:100px;">Bar</td>
+              <td><select id="jsscan-bar"><option value="hp">❤ HP</option><option value="mp">💧 MP</option><option value="fp">⚡ FP</option></select></td></tr>
+          <tr><td style="color:#aaa;">Current HP path</td>
+              <td><input type="text" id="jsscan-path" style="width:280px; font-family:monospace; font-size:11px;"></td></tr>
+          <tr><td style="color:#aaa;">MaxHP path</td>
+              <td><input type="text" id="jsscan-maxpath" style="width:280px; font-family:monospace; font-size:11px;" placeholder="e.g. window.X.player.maxHp"></td></tr>
+          <tr><td style="color:#aaa;">MaxHP fixed</td>
+              <td><input type="number" id="jsscan-maxhp" style="width:90px;" placeholder="or enter fixed value"></td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:6px; display:flex; gap:8px;">
+        <button class="btn-save" style="padding:4px 14px; font-size:12px;" onclick="jsSaveOffset()">💾 Save &amp; Enable</button>
+      </div>
+    </div>
+
   </div>
 
   <!-- ── Accounts tab ──────────────────────────────────────────────────── -->
@@ -1083,6 +1118,64 @@
       document.getElementById('wasm-confirm').style.display = 'none';
       wasmRefreshSavedInfo();
       wasmStatus('Offset removed', '#888');
+    }
+
+    // ── JS Object Scan ─────────────────────────────────────────────────────────
+
+    async function jsDoScan() {
+      const account = wasmGetAccount();
+      const value   = parseFloat(document.getElementById('jsscan-val').value);
+      const tol     = parseFloat(document.getElementById('jsscan-tol').value) || 2;
+      if (isNaN(value) || value <= 0) { document.getElementById('jsscan-status').textContent = 'Enter a valid HP value'; return; }
+      document.getElementById('jsscan-status').textContent = 'Scanning JS objects (may take a few seconds)…';
+      document.getElementById('jsscan-status').style.color = '#aaa';
+      document.getElementById('jsscan-results').style.display = 'none';
+
+      const res = await window.flyff.wasmJsScan({ account, value, tol });
+      if (res?.error) {
+        document.getElementById('jsscan-status').textContent = '✗ ' + res.error;
+        document.getElementById('jsscan-status').style.color = '#f88';
+        return;
+      }
+      const results = res.results || [];
+      document.getElementById('jsscan-status').textContent = `${results.length} match${results.length !== 1 ? 'es' : ''} found`;
+      document.getElementById('jsscan-status').style.color = results.length ? '#88ff88' : '#f88';
+
+      const tbody = document.getElementById('jsscan-tbody');
+      tbody.innerHTML = '';
+      results.forEach(({ path, value: v }) => {
+        const tr = document.createElement('tr');
+        const btn = document.createElement('button');
+        btn.className = 'btn-add'; btn.textContent = 'Use'; btn.style.margin = '0';
+        btn.onclick = () => {
+          document.getElementById('jsscan-path').value = path;
+          document.getElementById('jsscan-confirm').style.display = '';
+        };
+        const tdBtn = document.createElement('td'); tdBtn.appendChild(btn);
+        tr.innerHTML = `<td style="font-family:monospace; font-size:10px;">${path}</td><td>${v}</td>`;
+        tr.appendChild(tdBtn);
+        tbody.appendChild(tr);
+      });
+      document.getElementById('jsscan-results').style.display = results.length ? '' : 'none';
+      if (results.length) document.getElementById('jsscan-confirm').style.display = '';
+    }
+
+    function jsSaveOffset() {
+      const account  = wasmGetAccount();
+      const bar      = document.getElementById('jsscan-bar').value;
+      const jsPath   = document.getElementById('jsscan-path').value.trim();
+      const jsMaxPath= document.getElementById('jsscan-maxpath').value.trim();
+      const maxHp    = parseFloat(document.getElementById('jsscan-maxhp').value);
+      if (!jsPath) return;
+      const params = { account, bar, jsPath };
+      if (jsMaxPath) params.jsMaxPath = jsMaxPath;
+      else if (!isNaN(maxHp) && maxHp > 0) params.maxHp = maxHp;
+      window.flyff.wasmSave(params);
+      if (!loadedAhConfig[account]) loadedAhConfig[account] = {};
+      if (!loadedAhConfig[account].wasm) loadedAhConfig[account].wasm = {};
+      loadedAhConfig[account].wasm[bar] = params;
+      wasmRefreshSavedInfo();
+      document.getElementById('jsscan-status').textContent = `✓ Saved ${bar} path for ${account}`;
     }
 
     init();

@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.55.4] – 2026-05-02
+### Added
+- **JS Object Scan** — alternative to WASM heap scanning. Recursively searches all `window.*` properties (depth 6) for numeric values matching the entered HP. Returns property paths like `window.Game.player.currentHp`. Path can be saved as the autoheal source instead of a WASM offset — autoheal reads it via `executeJavaScript` each tick. Useful when HP is stored in JS objects rather than WASM linear memory.
+
 ## [1.55.3] – 2026-05-02
 ### Added
 - **WASM Scanner: tolerance input** — configurable ±tolerance field (default 2) next to the value input. Increase it if Refine returns 0 candidates (e.g. set to 5 or 10 if HP value drifts or is stored with minor rounding).

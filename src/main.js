@@ -536,13 +536,24 @@ async function runBarLoop(account, barType, barCfg, barEntry, view, wasmCfg = nu
     ? { x: barEntry.x, y: barEntry.y, width: barEntry.width, height: barEntry.height }
     : null;
 
-  // Pre-build WASM read expression (avoids template work in hot loop)
-  const wasmExpr = wasmCfg?.offset != null
-    ? `(()=>{try{const h=${wasmCfg.heapExpr||'Module.HEAPF32'};if(!h)return null;` +
-      `const c=h[${wasmCfg.offset}];` +
-      `const m=${wasmCfg.maxOffset != null ? `h[${wasmCfg.maxOffset}]` : String(Number(wasmCfg.maxHp) || 0)};` +
-      `return(m>0&&c>=0&&c<=m*1.1)?Math.round(c/m*100):null;}catch(e){return null;}})()`
-    : null;
+  // Pre-build read expression (avoids template work in hot loop)
+  let wasmExpr = null;
+  if (wasmCfg?.jsPath) {
+    // JS object path mode: e.g. wasmCfg.jsPath="window.Game.player.hp", wasmCfg.jsMaxPath or wasmCfg.maxHp
+    const maxExpr = wasmCfg.jsMaxPath
+      ? wasmCfg.jsMaxPath
+      : String(Number(wasmCfg.maxHp) || 0);
+    wasmExpr = `(()=>{try{const c=${wasmCfg.jsPath};const m=${maxExpr};` +
+      `return(typeof c==='number'&&m>0&&c>=0&&c<=m*1.1)?Math.round(c/m*100):null;}catch(e){return null;}})()`;
+  } else if (wasmCfg?.offset != null) {
+    // Typed array offset mode
+    const maxExpr = wasmCfg.maxOffset != null
+      ? `h[${wasmCfg.maxOffset}]`
+      : String(Number(wasmCfg.maxHp) || 0);
+    wasmExpr = `(()=>{try{const h=${wasmCfg.heapExpr||'Module.HEAPF32'};if(!h)return null;` +
+      `const c=h[${wasmCfg.offset}];const m=${maxExpr};` +
+      `return(m>0&&c>=0&&c<=m*1.1)?Math.round(c/m*100):null;}catch(e){return null;}})()`;
+  }
 
   while (hpHealActive[account]) {
     const t0 = Date.now();
@@ -1039,17 +1050,63 @@ function setupIPC() {
     } catch { return null; }
   });
 
-  ipcMain.on('wasm-save', (_, { account, bar, offset, maxOffset, maxHp, heapExpr }) => {
+  ipcMain.on('wasm-save', (_, { account, bar, offset, maxOffset, maxHp, heapExpr, jsPath, jsMaxPath }) => {
     const cfg = loadConfig('autoheal.json') || {};
     if (!cfg[account]) cfg[account] = {};
     if (!cfg[account].wasm) cfg[account].wasm = {};
-    const entry = { offset };
-    if (heapExpr)          entry.heapExpr  = heapExpr;
-    if (maxOffset != null) entry.maxOffset = maxOffset;
-    else if (maxHp != null) entry.maxHp   = maxHp;
+    const entry = {};
+    if (jsPath) {
+      entry.jsPath = jsPath;
+      if (jsMaxPath)       entry.jsMaxPath = jsMaxPath;
+      else if (maxHp != null) entry.maxHp = maxHp;
+    } else {
+      entry.offset = offset;
+      if (heapExpr)          entry.heapExpr  = heapExpr;
+      if (maxOffset != null) entry.maxOffset = maxOffset;
+      else if (maxHp != null) entry.maxHp   = maxHp;
+    }
     cfg[account].wasm[bar] = entry;
     saveConfig('autoheal.json', cfg);
     startAutoHeal(account);
+  });
+
+  // Scan JS object graph for a numeric value; returns path strings like "window.X.y.hp"
+  ipcMain.handle('wasm-js-scan', async (_, { account, value, tol = 2 }) => {
+    const view = account === 'account1' ? view1 : view2;
+    if (!view) return { error: 'View not available' };
+    const script = `(()=>{
+      const target=${value}, tol=${tol}, results=[], seen=new WeakSet();
+      const SKIP=new Set(['window','self','globalThis','top','parent','frames','document','history','location','navigator','screen','performance','crypto','indexedDB','localStorage','sessionStorage','caches','console','alert']);
+      function walk(obj, path, depth){
+        if(depth>6||!obj||typeof obj!=='object'&&typeof obj!=='function')return;
+        try{if(seen.has(obj))return;seen.add(obj);}catch{return;}
+        let keys;
+        try{keys=Object.keys(obj);}catch{return;}
+        for(const k of keys){
+          if(k.startsWith('__')||SKIP.has(k))continue;
+          try{
+            const v=obj[k];
+            const p=path+'.'+k;
+            if(typeof v==='number'&&isFinite(v)&&Math.abs(v-target)<=tol){
+              results.push({path:p,value:v});
+              if(results.length>=200)return;
+            }
+            if(v&&(typeof v==='object'||typeof v==='function')&&
+               !(v instanceof Float32Array)&&!(v instanceof Int32Array)&&
+               !(v instanceof ArrayBuffer)&&!(v instanceof HTMLElement)){
+              walk(v,p,depth+1);
+            }
+          }catch{}
+          if(results.length>=200)return;
+        }
+      }
+      walk(window,'window',0);
+      return results;
+    })()`;
+    try {
+      const res = await view.webContents.executeJavaScript(script, true);
+      return Array.isArray(res) ? { results: res } : { error: 'unexpected result' };
+    } catch(e) { return { error: e.message }; }
   });
 
   ipcMain.on('wasm-clear', (_, { account, bar }) => {

@@ -40,6 +40,7 @@ contextBridge.exposeInMainWorld('flyff', {
 
   // --- WASM Memory Scanner ---
   wasmDiagnose:  (params)  => ipcRenderer.invoke('wasm-diagnose', params),
+  wasmJsScan:    (params)  => ipcRenderer.invoke('wasm-js-scan', params),
   wasmScan:      (params)  => ipcRenderer.invoke('wasm-scan', params),
   wasmNeighbors: (params)  => ipcRenderer.invoke('wasm-neighbors', params),
   wasmSave:      (params)  => ipcRenderer.send('wasm-save', params),
