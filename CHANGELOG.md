@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.55.3] – 2026-05-02
+### Added
+- **WASM Scanner: tolerance input** — configurable ±tolerance field (default 2) next to the value input. Increase it if Refine returns 0 candidates (e.g. set to 5 or 10 if HP value drifts or is stored with minor rounding).
+
 ## [1.55.2] – 2026-05-02
 ### Fixed
 - **WASM Scanner: integer heap support** — Diagnose now also finds `HEAP32`, `HEAPU32`, `HEAP16`, `HEAPU8` typed arrays (not just Float32). HP is often stored as an integer in Unity games. Scan uses `Math.round(value)` for integer arrays. Type label (i32/f32/u32 etc.) shown in the heap dropdown.

@@ -989,21 +989,20 @@ function setupIPC() {
     catch (e) { return { error: e.message }; }
   });
 
-  ipcMain.handle('wasm-scan', async (_, { account, bar, value, heapExpr, refine = false }) => {
+  ipcMain.handle('wasm-scan', async (_, { account, bar, value, heapExpr, tol: tolIn, refine = false }) => {
     const view = account === 'account1' ? view1 : view2;
     if (!view) return { error: 'View not available' };
-    const key = `${account}_${bar}`;
+    const key   = `${account}_${bar}`;
     const hExpr = heapExpr || 'Module.HEAPF32';
-    // integers need exact match (±1 for rounding); floats need small tolerance
-    const isInt = /HEAP32|HEAPU32|HEAP16|HEAPU8|Int32|Uint32/.test(hExpr);
-    const tol = isInt ? 1 : 1;  // same value, but logic differs: ints match exact or ±1, floats match within ±1
+    const tol   = Number.isFinite(tolIn) ? tolIn : 2;
+    const t     = value; // keep as-is (float or int, both work)
 
     let script;
     if (refine && wasmScanState[key]?.length) {
       script = `(()=>{try{
         const h=${hExpr};if(!h)return{error:'heap not found'};
         const c=${JSON.stringify(wasmScanState[key])};
-        const t=${Math.round(value)},tol=${tol};
+        const t=${t},tol=${tol};
         const r=c.filter(i=>{const v=h[i];return v>=t-tol&&v<=t+tol;});
         return{candidates:r};
       }catch(e){return{error:e.message};}})()`;
@@ -1011,7 +1010,7 @@ function setupIPC() {
       script = `(()=>{try{
         const h=${hExpr};
         if(!h)return{error:'${hExpr} not available – run Diagnose first'};
-        const t=${Math.round(value)},tol=${tol},r=[];
+        const t=${t},tol=${tol},r=[];
         for(let i=0;i<h.length;i++){const v=h[i];if(v>=t-tol&&v<=t+tol){r.push(i);if(r.length>=5000)break;}}
         return{candidates:r};
       }catch(e){return{error:e.message};}})()`;

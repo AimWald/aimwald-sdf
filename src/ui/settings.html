@@ -396,8 +396,10 @@
         </tr>
         <tr>
           <td style="color:#aaa;">Current value</td>
-          <td style="display:flex; gap:6px; align-items:center;">
+          <td style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
             <input type="number" id="wasm-val" min="0" max="9999999" style="width:90px;" placeholder="e.g. 386">
+            <span style="color:#555; font-size:11px;">±</span>
+            <input type="number" id="wasm-tol" min="0" max="1000" style="width:52px;" value="2" title="Tolerance">
             <button class="btn-add" style="margin:0;" onclick="wasmDoScan(false)">Scan</button>
             <button class="btn-add" style="margin:0;" onclick="wasmDoScan(true)">Refine</button>
             <button class="btn-del" style="margin:0;" onclick="wasmResetScan()">Reset</button>
@@ -995,13 +997,14 @@
       const bar      = wasmGetBar();
       const heapExpr = wasmGetHeapExpr();
       const value    = parseFloat(document.getElementById('wasm-val').value);
+      const tol      = parseFloat(document.getElementById('wasm-tol').value) || 2;
       if (!heapExpr) { wasmStatus('Run Diagnose first to find the heap', '#f88'); return; }
       if (isNaN(value) || value <= 0) { wasmStatus('Enter a valid value first', '#f88'); return; }
 
       wasmStatus(refine ? 'Refining…' : 'Scanning (may take a few seconds)…', '#aaa');
       document.getElementById('wasm-cands').style.display = 'none';
 
-      const res = await window.flyff.wasmScan({ account, bar, value, heapExpr, refine });
+      const res = await window.flyff.wasmScan({ account, bar, value, heapExpr, tol, refine });
 
       if (res?.error) { wasmStatus('✗ ' + res.error, '#f88'); return; }
 
