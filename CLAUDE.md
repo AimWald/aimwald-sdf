@@ -155,6 +155,8 @@ eine Automation-Engine (Autoheal/Buff) und Gamepad-Steuerung.
 ## Offene Punkte / mögliche Erweiterungen
 
 ### Funktionalität
+- [ ] **WASM MaxHP-Pair-Scan** – statt nach current HP (ändert sich zu schnell) nach MaxHP scannen (konstant, kein Zeitdruck). MaxHP und current HP liegen oft nebeneinander im Heap. Scan: User gibt MaxHP ein → finde alle Offsets mit diesem Wert → zeige Nachbarn → prüfe welcher Nachbar wie current HP aussieht (0 < v ≤ maxHP). Ergibt stabiles Offset-Paar ohne Refine-Timing-Problem. Implementieren als neuer Scan-Modus im Memory-Tab: "Max HP Pair Scan" mit einem MaxHP-Input-Feld.
+- [ ] **Monster Entity Memory Scan** – WASM-Heap nach 104-Byte-Pattern (aus `vektorprime/flyff_combat_bot`, `DebugFlyffMonsters/main.cpp`) durchsuchen für Monster-IDs, Positionen und Targets. Würde Auto-Targeting ohne Pixel-Suche ermöglichen.
 - [ ] **Automation-Profil-Wahl in der Toolbar** – aktuell fest: account1 ↔ account2-Profil
 - [ ] **Reconnect-Logik** – wenn das Spiel die Session verliert, automatisch neu laden
 - [ ] **Benachrichtigung bei Automation-Fehler** – stille Fehler in `sendInputEvent` werden nur geloggt

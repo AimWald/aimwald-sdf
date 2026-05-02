@@ -78,16 +78,22 @@
     const cutEl    = document.getElementById('cutout');
     const coordsEl = document.getElementById('coords');
     let startX = 0, startY = 0, dragging = false;
+    let pixelMode = false;
 
     const BAR_LABELS = { hp: '❤ HP', mp: '💧 MP', fp: '⚡ FP' };
 
-    // Hintergrundbild + barType vom Main-Prozess empfangen
-    window.flyff.on('hp-picker-bg', ({ bg, barType }) => {
+    window.flyff.on('hp-picker-bg', ({ bg, barType, mode }) => {
+      pixelMode = mode === 'pixel';
       document.body.style.backgroundImage = `url(${bg})`;
       document.body.style.backgroundSize  = '100% 100%';
       const label = BAR_LABELS[barType] || barType?.toUpperCase() || 'bar';
-      document.getElementById('hint').innerHTML =
-        `Click and drag to select the <b style="color:#4af">${label}</b> bar &nbsp;|&nbsp; <span style="color:#f88">Escape</span> = cancel`;
+      if (pixelMode) {
+        document.getElementById('hint').innerHTML =
+          `Click on the <b style="color:#4af">${label}</b> bar at the threshold position (bars must be full) &nbsp;|&nbsp; <span style="color:#f88">Escape</span> = cancel`;
+      } else {
+        document.getElementById('hint').innerHTML =
+          `Click and drag to select the <b style="color:#4af">${label}</b> bar &nbsp;|&nbsp; <span style="color:#f88">Escape</span> = cancel`;
+      }
     });
 
     function updateSel(ex, ey) {
@@ -107,6 +113,15 @@
     }
 
     document.addEventListener('mousedown', e => {
+      if (pixelMode) {
+        // In pixel mode a single click is enough – no drag needed
+        const crossEl = document.getElementById('selection');
+        crossEl.style.cssText = `display:block; left:${e.clientX-6}px; top:${e.clientY-6}px; width:12px; height:12px; border-radius:50%; background:rgba(255,80,80,0.6); border:2px solid #f44;`;
+        coordsEl.textContent = `x:${e.clientX}  y:${e.clientY}`;
+        coordsEl.style.display = 'block';
+        setTimeout(() => window.flyff.hpPickerDone({ mode: 'pixel', x: e.clientX, y: e.clientY }), 120);
+        return;
+      }
       startX = e.clientX;
       startY = e.clientY;
       dragging = true;

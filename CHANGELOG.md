@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.56.0] – 2026-05-02
+### Added
+- **Auto-Heal: Pixel mode** — alternative to the bar-scan rect picker. Click one pixel on the bar at the desired threshold position (bars must be full). The reference color is captured automatically. Runtime computes a pseudo-% from the channel ratio (R for HP, B for MP, G for FP) so the existing threshold-based action system works unchanged. Switch per bar via the new Bar/Pixel dropdown in the Source column.
+- **Settings: Memory tab** — WASM Heap Scanner and JS Object Scan sections moved from Auto-Heal tab to a dedicated Memory tab. Auto-Heal tab is now clean and focused.
+### Fixed
+- **Auto-Heal: wasm config lost on save** — `readAhConfig` now preserves the `wasm` section so saving settings no longer wipes memory scan offsets.
+
 ## [1.55.7] – 2026-05-02
 ### Fixed
 - **Ghost camera movement on account switch** — `pendingDx`/`pendingDy` accumulated while holding L2 are now cleared when switching accounts (F9), preventing phantom camera movement on the newly active account. Right mouse button is also released on switch.

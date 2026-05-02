@@ -589,6 +589,19 @@ async function runBarLoop(account, barType, barCfg, barEntry, view, wasmCfg = nu
 
         if (wasmExpr) {
           pct = await view.webContents.executeJavaScript(wasmExpr);
+        } else if (barEntry?.mode === 'pixel') {
+          const cr  = { x: Math.max(0, barEntry.x - 1), y: Math.max(0, barEntry.y - 1), width: 3, height: 3 };
+          const img = await view.webContents.capturePage(cr);
+          const bmp = img.toBitmap();
+          const { width: pw } = img.getSize();
+          const cx  = Math.floor(pw / 2);
+          const pi  = (cx * pw + cx) * 4;
+          const b   = bmp[pi], g = bmp[pi + 1], r = bmp[pi + 2];
+          let ch, refCh;
+          if (barType === 'hp')      { ch = r; refCh = barEntry.refR; }
+          else if (barType === 'mp') { ch = b; refCh = barEntry.refB; }
+          else                       { ch = g; refCh = barEntry.refG; }
+          pct = refCh > 0 ? Math.round(Math.min(100, (ch / refCh) * 100)) : 0;
         } else if (barRect) {
           const img = await view.webContents.capturePage(barRect);
           const { width, height } = img.getSize();
@@ -631,7 +644,7 @@ function startAutoHeal(account) {
   const wasm = acfg?.wasm || {};
   const hasAnySource = bars.some(b => {
     if (!acfg?.[b]?.enabled) return false;
-    return acfg?.barBounds?.[b] || wasm[b]?.offset != null;
+    return acfg?.barBounds?.[b] || wasm[b]?.offset != null || wasm[b]?.jsPath;
   });
   if (!hasAnySource) return;
 
@@ -643,17 +656,17 @@ function startAutoHeal(account) {
     const barEntry = acfg?.barBounds?.[barType] || null;
     const wasmCfg  = wasm[barType] || null;
     if (!barCfg?.enabled) continue;
-    if (!barEntry && wasmCfg?.offset == null) continue;
+    if (!barEntry && wasmCfg?.offset == null && !wasmCfg?.jsPath) continue;
     const src = wasmCfg?.offset != null ? `wasm:${wasmCfg.offset}` : `pixel:[${barEntry.x},${barEntry.y}]`;
     console.log(`[AutoHeal] ${account} ${barType} started – src=${src} interval=${barCfg.intervalMs}ms`);
     runBarLoop(account, barType, barCfg, barEntry, view, wasmCfg);
   }
 }
 
-async function openHpPicker(account, barType) {
+async function openHpPicker(account, barType, mode = 'bar') {
   if (pickerWindow) pickerWindow.close();
   if (!mainWindow) return;
-  currentPickerTarget = { account, barType };
+  currentPickerTarget = { account, barType, mode };
   const bounds = mainWindow.getBounds();
 
   // Game-View-Screenshot als Hintergrund – funktioniert auch in Gamescope (kein Compositor nötig)
@@ -684,7 +697,7 @@ async function openHpPicker(account, barType) {
   pickerWindow.loadFile(path.join(__dirname, 'ui', 'hp-picker.html'));
   pickerWindow.setSkipTaskbar(true);
   pickerWindow.webContents.on('did-finish-load', () => {
-    if (bgDataUrl) pickerWindow?.webContents.send('hp-picker-bg', { bg: bgDataUrl, barType: currentPickerTarget?.barType });
+    if (bgDataUrl) pickerWindow?.webContents.send('hp-picker-bg', { bg: bgDataUrl, barType: currentPickerTarget?.barType, mode: currentPickerTarget?.mode });
   });
   pickerWindow.on('closed', () => { pickerWindow = null; });
 }
@@ -1178,15 +1191,39 @@ function setupIPC() {
   });
 
   // HP-Bar-Picker öffnen
-  ipcMain.on('open-hp-picker', (_, { account, barType }) => openHpPicker(account, barType).catch(e => console.error('HP picker:', e)));
+  ipcMain.on('open-hp-picker', (_, { account, barType, mode }) => openHpPicker(account, barType, mode).catch(e => console.error('HP picker:', e)));
 
   // Picker: Rechteck wurde ausgewählt → direkt als barBounds[barType] speichern
-  // Kalibriert barLeft/barRight aus dem Picker-Screenshot (funktioniert korrekt wenn Bars voll sind)
   ipcMain.on('hp-picker-done', (_, rect) => {
     const target = currentPickerTarget;
     if (!target) { pickerWindow?.close(); return; }
     const { account, barType } = target;
 
+    // ── Pixel mode: single-click pick, capture reference color from live view ──
+    if (rect.mode === 'pixel') {
+      pickerWindow?.close();
+      const view = account === 'account1' ? view1 : view2;
+      if (!view) return;
+      const cr = { x: Math.max(0, rect.x - 1), y: Math.max(0, rect.y - 1), width: 3, height: 3 };
+      view.webContents.capturePage(cr).then(img => {
+        const bmp = img.toBitmap();
+        const { width } = img.getSize();
+        const cx = Math.floor(width / 2);
+        const i  = (cx * width + cx) * 4;
+        const refB = bmp[i], refG = bmp[i + 1], refR = bmp[i + 2];
+        const barEntry = { mode: 'pixel', x: rect.x, y: rect.y, refR, refG, refB };
+        const cfg = loadConfig('autoheal.json') || {};
+        if (!cfg[account]) cfg[account] = { barBounds: {} };
+        if (!cfg[account].barBounds) cfg[account].barBounds = {};
+        cfg[account].barBounds[barType] = barEntry;
+        try { saveConfig('autoheal.json', cfg); } catch {}
+        console.log(`[AutoHeal] ${account} ${barType} pixel saved: x=${rect.x} y=${rect.y} R=${refR} G=${refG} B=${refB}`);
+        settingsWindow?.webContents.send('autoheal-rect-picked', { account, barType, rect: barEntry });
+      }).catch(e => console.error('[AutoHeal] pixel pick error:', e.message));
+      return;
+    }
+
+    // ── Bar mode: drag-select rect, calibrate barLeft/barRight ──
     let barLeft = null, barRight = null;
     if (lastPickerScreenshot) {
       try {
@@ -1242,6 +1279,23 @@ function setupIPC() {
     for (const barType of ['hp', 'mp', 'fp']) {
       const barEntry = acfg.barBounds[barType];
       if (!barEntry) { result[barType] = null; continue; }
+      if (barEntry.mode === 'pixel') {
+        try {
+          const cr  = { x: Math.max(0, barEntry.x - 1), y: Math.max(0, barEntry.y - 1), width: 3, height: 3 };
+          const img = await view.webContents.capturePage(cr);
+          const bmp = img.toBitmap();
+          const { width: pw } = img.getSize();
+          const cx  = Math.floor(pw / 2);
+          const pi  = (cx * pw + cx) * 4;
+          const b = bmp[pi], g = bmp[pi + 1], r = bmp[pi + 2];
+          let ch, refCh;
+          if (barType === 'hp')      { ch = r; refCh = barEntry.refR; }
+          else if (barType === 'mp') { ch = b; refCh = barEntry.refB; }
+          else                       { ch = g; refCh = barEntry.refG; }
+          result[barType] = refCh > 0 ? Math.round(Math.min(100, (ch / refCh) * 100)) : 0;
+        } catch { result[barType] = null; }
+        continue;
+      }
       const barRect = { x: barEntry.x, y: barEntry.y, width: barEntry.width, height: barEntry.height };
       try {
         const img = await view.webContents.capturePage(barRect);

@@ -35,7 +35,7 @@ contextBridge.exposeInMainWorld('flyff', {
   // --- Auto-Heal ---
   getAutoHealConfig:  ()        => ipcRenderer.invoke('get-autoheal-config'),
   saveAutoHealConfig: (cfg)     => ipcRenderer.send('save-autoheal-config', cfg),
-  openHpPicker:       (account, barType) => ipcRenderer.send('open-hp-picker', { account, barType }),
+  openHpPicker:       (account, barType, mode) => ipcRenderer.send('open-hp-picker', { account, barType, mode }),
   testHpCapture:      (account) => ipcRenderer.invoke('test-hp-capture', account),
 
   // --- WASM Memory Scanner ---

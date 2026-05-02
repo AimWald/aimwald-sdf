@@ -178,6 +178,7 @@
     <div class="tab"        onclick="showTab('hotkeys')">Hotkeys</div>
     <div class="tab"        onclick="showTab('macros')">Macros</div>
     <div class="tab"        onclick="showTab('autoheal')">Auto-Heal</div>
+    <div class="tab"        onclick="showTab('memory')">Memory</div>
   </div>
 
   <!-- ── Automation tab ────────────────────────────────────────────────── -->
@@ -258,52 +259,46 @@
   <!-- ── Auto-Heal tab ─────────────────────────────────────────────────── -->
   <div id="tab-autoheal" class="tab-content">
     <p style="color:#555; font-size:11px; margin-bottom:10px;">
-      Pick the full status window — HP/MP/FP bars are detected automatically by color.<br>
-      Works best on the <b style="color:#aaa">active (visible)</b> account. Use timed Automation for background healing.
+      <b style="color:#aaa">Bar mode:</b> drag-select the bar area (📐). Works for all bars, supports multiple thresholds.<br>
+      <b style="color:#aaa">Pixel mode:</b> click one pixel on the bar at the desired threshold position (📍). Bars must be full when picking.
     </p>
 
     <h3>Account 1</h3>
     <span id="ah1-test" style="color:#88ff88; font-size:11px; display:block; margin-bottom:4px;"></span>
     <table>
       <thead>
-        <tr><th>Bar</th><th>Enable</th><th>Actions (key &lt; threshold%)</th><th>Interval (ms)</th><th>Area</th></tr>
+        <tr><th>Bar</th><th>Enable</th><th>Actions (key &lt; %)</th><th>Interval (ms)</th><th>Source</th></tr>
       </thead>
       <tbody>
         <tr>
           <td style="color:#ff7777; font-weight:600;">❤ HP</td>
           <td><input type="checkbox" id="ah1-hp-enabled"></td>
-          <td>
-            <div id="ah1-hp-actions"></div>
-            <button class="btn-add" style="margin:2px 0 0; padding:2px 8px; font-size:11px;" onclick="addAhAction('account1','hp')">+ action</button>
-          </td>
+          <td><div id="ah1-hp-actions"></div><button class="btn-add" style="margin:2px 0 0; padding:2px 8px; font-size:11px;" onclick="addAhAction('account1','hp')">+ action</button></td>
           <td><input type="number" id="ah1-hp-interval" min="200" max="5000" style="width:65px" value="500"></td>
-          <td><button class="btn-add" style="margin:0 2px;" onclick="pickBar('account1','hp')">📐</button>
+          <td><select id="ah1-hp-mode" style="font-size:11px; padding:2px; margin-bottom:3px;" onchange="updateAhModeUI('1','hp')"><option value="bar">Bar</option><option value="pixel">Pixel</option></select><br>
+              <button class="btn-add" id="ah1-hp-pick-btn" style="margin:0 2px 0 0;" onclick="pickAh('account1','hp')">📐</button>
               <button class="btn-add" style="margin:0;" onclick="testBar('account1','hp')">🔍</button>
-              <span id="ah1-hp-rect" style="color:#555; font-size:10px; font-family:monospace; margin-left:4px;">not set</span></td>
+              <span id="ah1-hp-rect" style="color:#555; font-size:10px; font-family:monospace; display:block; margin-top:2px;">not set</span></td>
         </tr>
         <tr>
           <td style="color:#7799ff; font-weight:600;">💧 MP</td>
           <td><input type="checkbox" id="ah1-mp-enabled"></td>
-          <td>
-            <div id="ah1-mp-actions"></div>
-            <button class="btn-add" style="margin:2px 0 0; padding:2px 8px; font-size:11px;" onclick="addAhAction('account1','mp')">+ action</button>
-          </td>
+          <td><div id="ah1-mp-actions"></div><button class="btn-add" style="margin:2px 0 0; padding:2px 8px; font-size:11px;" onclick="addAhAction('account1','mp')">+ action</button></td>
           <td><input type="number" id="ah1-mp-interval" min="200" max="5000" style="width:65px" value="1000"></td>
-          <td><button class="btn-add" style="margin:0 2px;" onclick="pickBar('account1','mp')">📐</button>
+          <td><select id="ah1-mp-mode" style="font-size:11px; padding:2px; margin-bottom:3px;" onchange="updateAhModeUI('1','mp')"><option value="bar">Bar</option><option value="pixel">Pixel</option></select><br>
+              <button class="btn-add" id="ah1-mp-pick-btn" style="margin:0 2px 0 0;" onclick="pickAh('account1','mp')">📐</button>
               <button class="btn-add" style="margin:0;" onclick="testBar('account1','mp')">🔍</button>
-              <span id="ah1-mp-rect" style="color:#555; font-size:10px; font-family:monospace; margin-left:4px;">not set</span></td>
+              <span id="ah1-mp-rect" style="color:#555; font-size:10px; font-family:monospace; display:block; margin-top:2px;">not set</span></td>
         </tr>
         <tr>
           <td style="color:#77ff99; font-weight:600;">⚡ FP</td>
           <td><input type="checkbox" id="ah1-fp-enabled"></td>
-          <td>
-            <div id="ah1-fp-actions"></div>
-            <button class="btn-add" style="margin:2px 0 0; padding:2px 8px; font-size:11px;" onclick="addAhAction('account1','fp')">+ action</button>
-          </td>
+          <td><div id="ah1-fp-actions"></div><button class="btn-add" style="margin:2px 0 0; padding:2px 8px; font-size:11px;" onclick="addAhAction('account1','fp')">+ action</button></td>
           <td><input type="number" id="ah1-fp-interval" min="200" max="5000" style="width:65px" value="1000"></td>
-          <td><button class="btn-add" style="margin:0 2px;" onclick="pickBar('account1','fp')">📐</button>
+          <td><select id="ah1-fp-mode" style="font-size:11px; padding:2px; margin-bottom:3px;" onchange="updateAhModeUI('1','fp')"><option value="bar">Bar</option><option value="pixel">Pixel</option></select><br>
+              <button class="btn-add" id="ah1-fp-pick-btn" style="margin:0 2px 0 0;" onclick="pickAh('account1','fp')">📐</button>
               <button class="btn-add" style="margin:0;" onclick="testBar('account1','fp')">🔍</button>
-              <span id="ah1-fp-rect" style="color:#555; font-size:10px; font-family:monospace; margin-left:4px;">not set</span></td>
+              <span id="ah1-fp-rect" style="color:#555; font-size:10px; font-family:monospace; display:block; margin-top:2px;">not set</span></td>
         </tr>
       </tbody>
     </table>
@@ -312,55 +307,54 @@
     <span id="ah2-test" style="color:#88ff88; font-size:11px; display:block; margin-bottom:4px;"></span>
     <table>
       <thead>
-        <tr><th>Bar</th><th>Enable</th><th>Actions (key &lt; threshold%)</th><th>Interval (ms)</th><th>Area</th></tr>
+        <tr><th>Bar</th><th>Enable</th><th>Actions (key &lt; %)</th><th>Interval (ms)</th><th>Source</th></tr>
       </thead>
       <tbody>
         <tr>
           <td style="color:#ff7777; font-weight:600;">❤ HP</td>
           <td><input type="checkbox" id="ah2-hp-enabled"></td>
-          <td>
-            <div id="ah2-hp-actions"></div>
-            <button class="btn-add" style="margin:2px 0 0; padding:2px 8px; font-size:11px;" onclick="addAhAction('account2','hp')">+ action</button>
-          </td>
+          <td><div id="ah2-hp-actions"></div><button class="btn-add" style="margin:2px 0 0; padding:2px 8px; font-size:11px;" onclick="addAhAction('account2','hp')">+ action</button></td>
           <td><input type="number" id="ah2-hp-interval" min="200" max="5000" style="width:65px" value="500"></td>
-          <td><button class="btn-add" style="margin:0 2px;" onclick="pickBar('account2','hp')">📐</button>
+          <td><select id="ah2-hp-mode" style="font-size:11px; padding:2px; margin-bottom:3px;" onchange="updateAhModeUI('2','hp')"><option value="bar">Bar</option><option value="pixel">Pixel</option></select><br>
+              <button class="btn-add" id="ah2-hp-pick-btn" style="margin:0 2px 0 0;" onclick="pickAh('account2','hp')">📐</button>
               <button class="btn-add" style="margin:0;" onclick="testBar('account2','hp')">🔍</button>
-              <span id="ah2-hp-rect" style="color:#555; font-size:10px; font-family:monospace; margin-left:4px;">not set</span></td>
+              <span id="ah2-hp-rect" style="color:#555; font-size:10px; font-family:monospace; display:block; margin-top:2px;">not set</span></td>
         </tr>
         <tr>
           <td style="color:#7799ff; font-weight:600;">💧 MP</td>
           <td><input type="checkbox" id="ah2-mp-enabled"></td>
-          <td>
-            <div id="ah2-mp-actions"></div>
-            <button class="btn-add" style="margin:2px 0 0; padding:2px 8px; font-size:11px;" onclick="addAhAction('account2','mp')">+ action</button>
-          </td>
+          <td><div id="ah2-mp-actions"></div><button class="btn-add" style="margin:2px 0 0; padding:2px 8px; font-size:11px;" onclick="addAhAction('account2','mp')">+ action</button></td>
           <td><input type="number" id="ah2-mp-interval" min="200" max="5000" style="width:65px" value="1000"></td>
-          <td><button class="btn-add" style="margin:0 2px;" onclick="pickBar('account2','mp')">📐</button>
+          <td><select id="ah2-mp-mode" style="font-size:11px; padding:2px; margin-bottom:3px;" onchange="updateAhModeUI('2','mp')"><option value="bar">Bar</option><option value="pixel">Pixel</option></select><br>
+              <button class="btn-add" id="ah2-mp-pick-btn" style="margin:0 2px 0 0;" onclick="pickAh('account2','mp')">📐</button>
               <button class="btn-add" style="margin:0;" onclick="testBar('account2','mp')">🔍</button>
-              <span id="ah2-mp-rect" style="color:#555; font-size:10px; font-family:monospace; margin-left:4px;">not set</span></td>
+              <span id="ah2-mp-rect" style="color:#555; font-size:10px; font-family:monospace; display:block; margin-top:2px;">not set</span></td>
         </tr>
         <tr>
           <td style="color:#77ff99; font-weight:600;">⚡ FP</td>
           <td><input type="checkbox" id="ah2-fp-enabled"></td>
-          <td>
-            <div id="ah2-fp-actions"></div>
-            <button class="btn-add" style="margin:2px 0 0; padding:2px 8px; font-size:11px;" onclick="addAhAction('account2','fp')">+ action</button>
-          </td>
+          <td><div id="ah2-fp-actions"></div><button class="btn-add" style="margin:2px 0 0; padding:2px 8px; font-size:11px;" onclick="addAhAction('account2','fp')">+ action</button></td>
           <td><input type="number" id="ah2-fp-interval" min="200" max="5000" style="width:65px" value="1000"></td>
-          <td><button class="btn-add" style="margin:0 2px;" onclick="pickBar('account2','fp')">📐</button>
+          <td><select id="ah2-fp-mode" style="font-size:11px; padding:2px; margin-bottom:3px;" onchange="updateAhModeUI('2','fp')"><option value="bar">Bar</option><option value="pixel">Pixel</option></select><br>
+              <button class="btn-add" id="ah2-fp-pick-btn" style="margin:0 2px 0 0;" onclick="pickAh('account2','fp')">📐</button>
               <button class="btn-add" style="margin:0;" onclick="testBar('account2','fp')">🔍</button>
-              <span id="ah2-fp-rect" style="color:#555; font-size:10px; font-family:monospace; margin-left:4px;">not set</span></td>
+              <span id="ah2-fp-rect" style="color:#555; font-size:10px; font-family:monospace; display:block; margin-top:2px;">not set</span></td>
         </tr>
       </tbody>
     </table>
+  </div>
 
-    <!-- ── WASM Memory Scanner ───────────────────────────────────────── -->
-    <h3 style="margin-top:16px;">🔬 WASM Memory Scanner</h3>
-    <p style="color:#555; font-size:11px; margin-bottom:8px;">
-      Reads HP/MP/FP directly from Unity's WebAssembly heap — exact values, no pixel scanning.<br>
-      Step 1: enter your current value → Scan. Step 2: take damage, enter new value → Refine. Repeat until ~1–5 candidates, then pick the right offset.
+  <!-- ── Memory tab ──────────────────────────────────────────────────────── -->
+  <div id="tab-memory" class="tab-content">
+    <p style="color:#555; font-size:11px; margin-bottom:10px;">
+      Advanced: read HP/MP/FP directly from the game's memory instead of pixel scanning.<br>
+      Try WASM heap scan first. If it returns 0 candidates on refine, try JS Object Scan.
     </p>
 
+    <h3>🔬 WASM Heap Scanner</h3>
+    <p style="color:#555; font-size:11px; margin-bottom:8px;">
+      Step 1: enter current HP → Scan. Step 2: take damage, enter new HP → Refine. Repeat until ~1–5 candidates remain.
+    </p>
     <table style="width:auto; margin-bottom:8px;">
       <tbody>
         <tr>
@@ -411,32 +405,20 @@
         </tr>
       </tbody>
     </table>
-
     <div id="wasm-status" style="color:#888; font-size:11px; margin-bottom:6px;">–</div>
-
     <div id="wasm-cands" style="display:none; margin-bottom:8px;">
       <table>
         <thead><tr><th>Offset</th><th>Neighbors (offset : value)</th><th></th></tr></thead>
         <tbody id="wasm-cands-body"></tbody>
       </table>
     </div>
-
     <div id="wasm-confirm" style="display:none; border:1px solid #2a2a4a; padding:8px; border-radius:4px; margin-bottom:8px;">
       <div style="color:#88aaff; font-size:11px; margin-bottom:6px;">Confirm offset</div>
       <table style="width:auto;">
         <tbody>
-          <tr>
-            <td style="color:#aaa; width:100px;">HP offset</td>
-            <td><input type="number" id="wasm-offset" style="width:90px;"></td>
-          </tr>
-          <tr>
-            <td style="color:#aaa;">MaxHP: offset</td>
-            <td><input type="number" id="wasm-maxoffset" style="width:90px;" placeholder="leave blank if using fixed"></td>
-          </tr>
-          <tr>
-            <td style="color:#aaa;">MaxHP: fixed</td>
-            <td><input type="number" id="wasm-maxhp" style="width:90px;" placeholder="e.g. 386 (if always same)"></td>
-          </tr>
+          <tr><td style="color:#aaa; width:100px;">HP offset</td><td><input type="number" id="wasm-offset" style="width:90px;"></td></tr>
+          <tr><td style="color:#aaa;">MaxHP: offset</td><td><input type="number" id="wasm-maxoffset" style="width:90px;" placeholder="leave blank if using fixed"></td></tr>
+          <tr><td style="color:#aaa;">MaxHP: fixed</td><td><input type="number" id="wasm-maxhp" style="width:90px;" placeholder="e.g. 386 (if always same)"></td></tr>
         </tbody>
       </table>
       <div style="margin-top:6px; display:flex; gap:8px;">
@@ -444,12 +426,10 @@
         <button class="btn-del" onclick="wasmClearOffset()">✕ Remove saved offset</button>
       </div>
     </div>
-
     <div id="wasm-saved-info" style="font-size:11px; color:#555;"></div>
 
-    <!-- JS Object Scan -->
-    <h3 style="margin-top:14px;">🔍 JS Object Scan (alternative)</h3>
-    <p style="color:#555; font-size:11px; margin-bottom:8px;">If WASM heap scan finds nothing, HP may be in a JavaScript object. Searches window.* recursively for the HP value and returns the property path.</p>
+    <h3 style="margin-top:14px;">🔍 JS Object Scan</h3>
+    <p style="color:#555; font-size:11px; margin-bottom:8px;">Recursively searches window.* for the HP value. Scan → take damage → Refine to narrow down.</p>
     <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px;">
       <input type="number" id="jsscan-val" min="0" max="9999999" style="width:90px;" placeholder="current HP">
       <span style="color:#555; font-size:11px;">±</span>
@@ -463,27 +443,20 @@
       <table><thead><tr><th>Path</th><th>Value</th><th></th></tr></thead>
       <tbody id="jsscan-tbody"></tbody></table>
     </div>
-
-    <!-- JS path confirm -->
     <div id="jsscan-confirm" style="display:none; border:1px solid #2a2a4a; padding:8px; border-radius:4px; margin-top:6px;">
       <div style="color:#88aaff; font-size:11px; margin-bottom:6px;">Save JS path for autoheal</div>
       <table style="width:auto;">
         <tbody>
-          <tr><td style="color:#aaa; width:100px;">Bar</td>
-              <td><select id="jsscan-bar"><option value="hp">❤ HP</option><option value="mp">💧 MP</option><option value="fp">⚡ FP</option></select></td></tr>
-          <tr><td style="color:#aaa;">Current HP path</td>
-              <td><input type="text" id="jsscan-path" style="width:280px; font-family:monospace; font-size:11px;"></td></tr>
-          <tr><td style="color:#aaa;">MaxHP path</td>
-              <td><input type="text" id="jsscan-maxpath" style="width:280px; font-family:monospace; font-size:11px;" placeholder="e.g. window.X.player.maxHp"></td></tr>
-          <tr><td style="color:#aaa;">MaxHP fixed</td>
-              <td><input type="number" id="jsscan-maxhp" style="width:90px;" placeholder="or enter fixed value"></td></tr>
+          <tr><td style="color:#aaa; width:100px;">Bar</td><td><select id="jsscan-bar"><option value="hp">❤ HP</option><option value="mp">💧 MP</option><option value="fp">⚡ FP</option></select></td></tr>
+          <tr><td style="color:#aaa;">Current HP path</td><td><input type="text" id="jsscan-path" style="width:280px; font-family:monospace; font-size:11px;"></td></tr>
+          <tr><td style="color:#aaa;">MaxHP path</td><td><input type="text" id="jsscan-maxpath" style="width:280px; font-family:monospace; font-size:11px;" placeholder="e.g. window.X.player.maxHp"></td></tr>
+          <tr><td style="color:#aaa;">MaxHP fixed</td><td><input type="number" id="jsscan-maxhp" style="width:90px;" placeholder="or enter fixed value"></td></tr>
         </tbody>
       </table>
-      <div style="margin-top:6px; display:flex; gap:8px;">
+      <div style="margin-top:6px;">
         <button class="btn-save" style="padding:4px 14px; font-size:12px;" onclick="jsSaveOffset()">💾 Save &amp; Enable</button>
       </div>
     </div>
-
   </div>
 
   <!-- ── Accounts tab ──────────────────────────────────────────────────── -->
@@ -828,7 +801,19 @@
 
     function formatRect(r) {
       if (!r) return 'not set';
+      if (r.mode === 'pixel') return `x:${r.x} y:${r.y}  ref R:${r.refR} G:${r.refG} B:${r.refB}`;
       return `x:${r.x} y:${r.y} w:${r.width} h:${r.height}`;
+    }
+
+    function pickAh(account, barType) {
+      const n    = account === 'account1' ? '1' : '2';
+      const mode = document.getElementById(`ah${n}-${barType}-mode`).value;
+      window.flyff.openHpPicker(account, barType, mode);
+    }
+
+    function updateAhModeUI(n, bar) {
+      const mode = document.getElementById(`ah${n}-${bar}-mode`).value;
+      document.getElementById(`ah${n}-${bar}-pick-btn`).textContent = mode === 'pixel' ? '📍' : '📐';
     }
 
     const AH_DEFAULTS = {
@@ -895,7 +880,11 @@
           const def  = AH_DEFAULTS[bar];
           document.getElementById(`ah${n}-${bar}-enabled`).checked  = !!bcfg.enabled;
           document.getElementById(`ah${n}-${bar}-interval`).value   = bcfg.intervalMs ?? def.intervalMs;
-          document.getElementById(`ah${n}-${bar}-rect`).textContent = formatRect(acfg.barBounds?.[bar]);
+          const bounds = acfg.barBounds?.[bar];
+          document.getElementById(`ah${n}-${bar}-rect`).textContent = formatRect(bounds);
+          const modeEl = document.getElementById(`ah${n}-${bar}-mode`);
+          modeEl.value = bounds?.mode === 'pixel' ? 'pixel' : 'bar';
+          updateAhModeUI(n, bar);
           const container = document.getElementById(`ah${n}-${bar}-actions`);
           container.innerHTML = '';
           const actions = bcfg.actions?.length
@@ -911,7 +900,7 @@
       for (const n of ['1', '2']) {
         const acc  = `account${n}`;
         const acfg = loadedAhConfig?.[acc] || {};
-        cfg[acc] = { barBounds: acfg.barBounds ?? {} };
+        cfg[acc] = { barBounds: acfg.barBounds ?? {}, wasm: acfg.wasm ?? {} };
         for (const bar of ['hp', 'mp', 'fp']) {
           const def = AH_DEFAULTS[bar];
           const container = document.getElementById(`ah${n}-${bar}-actions`);
