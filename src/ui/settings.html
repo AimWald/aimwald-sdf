@@ -454,7 +454,9 @@
       <input type="number" id="jsscan-val" min="0" max="9999999" style="width:90px;" placeholder="current HP">
       <span style="color:#555; font-size:11px;">±</span>
       <input type="number" id="jsscan-tol" style="width:52px;" value="2">
-      <button class="btn-add" style="margin:0;" onclick="jsDoScan()">JS Scan</button>
+      <button class="btn-add" style="margin:0;" onclick="jsDoScan(false)">JS Scan</button>
+      <button class="btn-add" style="margin:0;" onclick="jsDoScan(true)">Refine</button>
+      <button class="btn-del" style="margin:0;" onclick="jsResetScan()">Reset</button>
     </div>
     <div id="jsscan-status" style="color:#888; font-size:11px; margin-bottom:4px;"></div>
     <div id="jsscan-results" style="display:none; max-height:160px; overflow-y:auto;">
@@ -1133,16 +1135,16 @@
 
     // ── JS Object Scan ─────────────────────────────────────────────────────────
 
-    async function jsDoScan() {
+    async function jsDoScan(refine = false) {
       const account = wasmGetAccount();
       const value   = parseFloat(document.getElementById('jsscan-val').value);
       const tol     = parseFloat(document.getElementById('jsscan-tol').value) || 2;
       if (isNaN(value) || value <= 0) { document.getElementById('jsscan-status').textContent = 'Enter a valid HP value'; return; }
-      document.getElementById('jsscan-status').textContent = 'Scanning JS objects (may take a few seconds)…';
+      document.getElementById('jsscan-status').textContent = refine ? 'Refining candidates…' : 'Scanning JS objects (may take a few seconds)…';
       document.getElementById('jsscan-status').style.color = '#aaa';
-      document.getElementById('jsscan-results').style.display = 'none';
+      if (!refine) document.getElementById('jsscan-results').style.display = 'none';
 
-      const res = await window.flyff.wasmJsScan({ account, value, tol });
+      const res = await window.flyff.wasmJsScan({ account, value, tol, refine });
       if (res?.error) {
         document.getElementById('jsscan-status').textContent = '✗ ' + res.error;
         document.getElementById('jsscan-status').style.color = '#f88';
@@ -1187,6 +1189,14 @@
       loadedAhConfig[account].wasm[bar] = params;
       wasmRefreshSavedInfo();
       document.getElementById('jsscan-status').textContent = `✓ Saved ${bar} path for ${account}`;
+    }
+
+    function jsResetScan() {
+      window.flyff.wasmJsScan({ account: wasmGetAccount(), value: 0, tol: 0, refine: false, reset: true }).catch(() => {});
+      document.getElementById('jsscan-status').textContent = 'Scan reset – run JS Scan again';
+      document.getElementById('jsscan-status').style.color = '#888';
+      document.getElementById('jsscan-results').style.display = 'none';
+      document.getElementById('jsscan-confirm').style.display = 'none';
     }
 
     init();

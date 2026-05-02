@@ -1082,41 +1082,66 @@ function setupIPC() {
   });
 
   // Scan JS object graph for a numeric value; returns path strings like "window.X.y.hp"
-  ipcMain.handle('wasm-js-scan', async (_, { account, value, tol = 2 }) => {
+  const jsScanState = {}; // account → paths[]
+
+  ipcMain.handle('wasm-js-scan', async (_, { account, value, tol = 2, refine = false, reset = false }) => {
+    if (reset) { delete jsScanState[account]; return { results: [], count: 0 }; }
     const view = account === 'account1' ? view1 : view2;
     if (!view) return { error: 'View not available' };
-    const script = `(()=>{
-      const target=${value}, tol=${tol}, results=[], seen=new WeakSet();
-      const SKIP=new Set(['window','self','globalThis','top','parent','frames','document','history','location','navigator','screen','performance','crypto','indexedDB','localStorage','sessionStorage','caches','console','alert']);
-      function walk(obj, path, depth){
-        if(depth>6||!obj||typeof obj!=='object'&&typeof obj!=='function')return;
-        try{if(seen.has(obj))return;seen.add(obj);}catch{return;}
-        let keys;
-        try{keys=Object.keys(obj);}catch{return;}
-        for(const k of keys){
-          if(k.startsWith('__')||SKIP.has(k))continue;
-          try{
-            const v=obj[k];
-            const p=path+'.'+k;
-            if(typeof v==='number'&&isFinite(v)&&Math.abs(v-target)<=tol){
-              results.push({path:p,value:v});
-              if(results.length>=200)return;
-            }
-            if(v&&(typeof v==='object'||typeof v==='function')&&
-               !(v instanceof Float32Array)&&!(v instanceof Int32Array)&&
-               !(v instanceof ArrayBuffer)&&!(v instanceof HTMLElement)){
-              walk(v,p,depth+1);
-            }
-          }catch{}
-          if(results.length>=200)return;
+
+    let script;
+    if (refine && jsScanState[account]?.length) {
+      // Re-evaluate stored paths with new value
+      script = `(()=>{
+        const paths=${JSON.stringify(jsScanState[account])};
+        const t=${value}, tol=${tol};
+        const r=[];
+        for(const p of paths){
+          try{const v=eval(p);if(typeof v==='number'&&Math.abs(v-t)<=tol)r.push({path:p,value:v});}catch{}
         }
-      }
-      walk(window,'window',0);
-      return results;
-    })()`;
+        return r;
+      })()`;
+    } else {
+      script = `(()=>{
+        const target=${value}, tol=${tol}, results=[], seen=new WeakSet();
+        const SKIP=new Set(['window','self','globalThis','top','parent','frames','document','history',
+          'location','navigator','screen','performance','crypto','indexedDB','localStorage',
+          'sessionStorage','caches','console','alert','HEAP8','HEAP16','HEAP32','HEAPU8',
+          'HEAPU16','HEAPU32','HEAPF32','HEAPF64']);
+        function walk(obj,path,depth){
+          if(depth>7)return;
+          if(!obj||typeof obj!=='object'&&typeof obj!=='function')return;
+          try{if(seen.has(obj))return;seen.add(obj);}catch{return;}
+          // skip all typed arrays and binary buffers
+          if(ArrayBuffer.isView(obj)||obj instanceof ArrayBuffer)return;
+          let keys;
+          try{keys=Object.keys(obj);}catch{return;}
+          for(const k of keys){
+            if(SKIP.has(k)||k.startsWith('__')||/^\\d+$/.test(k))continue;
+            try{
+              const v=obj[k];
+              const p=path+'.'+k;
+              if(typeof v==='number'&&isFinite(v)&&Math.abs(v-target)<=tol){
+                results.push({path:p,value:v});
+                if(results.length>=500)return;
+              }
+              if(v&&(typeof v==='object'||typeof v==='function')&&!(v instanceof HTMLElement)){
+                walk(v,p,depth+1);
+              }
+            }catch{}
+            if(results.length>=500)return;
+          }
+        }
+        walk(window,'window',0);
+        return results;
+      })()`;
+    }
+
     try {
       const res = await view.webContents.executeJavaScript(script, true);
-      return Array.isArray(res) ? { results: res } : { error: 'unexpected result' };
+      if (!Array.isArray(res)) return { error: 'unexpected result' };
+      if (!refine) jsScanState[account] = res.map(r => r.path);
+      return { results: res, count: res.length };
     } catch(e) { return { error: e.message }; }
   });
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.55.6] – 2026-05-01
+### Added
+- **JS Object Scan: Refine + Reset buttons** — after an initial JS Scan, take damage, enter the new HP value and click Refine to narrow the candidates to only paths whose value still matches. Reset clears the stored path list to start fresh.
+
 ## [1.55.5] – 2026-05-02
 ### Fixed
 - **WASM Scanner: direct typed arrays on window** — Diagnose now finds typed arrays that are direct window globals (e.g. `window.HEAP16`) in addition to nested properties like `emGlobalThis.HEAP32`. Also lowered minimum size to 100k entries. Added custom heap expression text input as fallback.
