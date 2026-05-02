@@ -324,35 +324,65 @@ const CDP_KEYS = {
 // HP% = Füllkante / Balkenbreite × 100
 // Funktioniert für beliebige Balkenfarben (rot, blau, grün).
 
-function estimateHpFromBarFill(bitmap, width, height, barType, physLeft = null, physRight = null) {
+// v1 (max rightmost pixel – fast but sensitive to stray text pixels)
+function estimateHpFromBarFill_v1(bitmap, width, height, barType, physLeft = null, physRight = null) {
   if (!bitmap || bitmap.length < width * height * 4) return null;
-
   const scanL = physLeft  != null ? Math.max(0,         Math.round(physLeft)  - 1) : 2;
   const scanR = physRight != null ? Math.min(width - 1, Math.round(physRight) + 1) : width - 3;
-
   let rightmost = -1;
   for (let y = 1; y < height - 1; y++) {
     for (let x = scanR; x >= scanL; x--) {
       const i = (y * width + x) * 4;
-      const b = bitmap[i], g = bitmap[i + 1], r = bitmap[i + 2]; // BGRA
-
+      const b = bitmap[i], g = bitmap[i + 1], r = bitmap[i + 2];
       let isHit = false;
       if (barType === 'hp') isHit = r > 70 && r > g + 40 && r > b + 40;
       else if (barType === 'mp') isHit = b > 70 && b > r + 20 && b > g + 20;
       else if (barType === 'fp') isHit = g > 70 && g > r + 25 && g > b + 15;
       else { const mx = Math.max(r, g, b); isHit = mx > 50 && (mx - Math.min(r, g, b)) > 30; }
-
       if (isHit) { if (x > rightmost) rightmost = x; break; }
     }
   }
-
   if (rightmost < 0) return 0;
+  const L = physLeft != null ? physLeft : scanL;
+  const R = physRight != null ? physRight : scanR;
+  const span = R - L;
+  if (span <= 0) return 0;
+  return Math.round(Math.min(100, ((rightmost - L) / span) * 100));
+}
+
+// v2 (median per row – robust against stray text/border pixels)
+function estimateHpFromBarFill(bitmap, width, height, barType, physLeft = null, physRight = null) {
+  if (!bitmap || bitmap.length < width * height * 4) return null;
+  const scanL = physLeft  != null ? Math.max(0,         Math.round(physLeft)  - 1) : 2;
+  const scanR = physRight != null ? Math.min(width - 1, Math.round(physRight) + 1) : width - 3;
+
+  // skip top/bottom 20% of bar height to avoid border/shadow rows
+  const yStart = Math.max(1,          Math.floor(height * 0.2));
+  const yEnd   = Math.min(height - 1, Math.ceil(height  * 0.8));
+
+  const hits = [];
+  for (let y = yStart; y < yEnd; y++) {
+    for (let x = scanR; x >= scanL; x--) {
+      const i = (y * width + x) * 4;
+      const b = bitmap[i], g = bitmap[i + 1], r = bitmap[i + 2];
+      let isHit = false;
+      if (barType === 'hp') isHit = r > 70 && r > g + 40 && r > b + 40;
+      else if (barType === 'mp') isHit = b > 70 && b > r + 20 && b > g + 20;
+      else if (barType === 'fp') isHit = g > 70 && g > r + 25 && g > b + 15;
+      else { const mx = Math.max(r, g, b); isHit = mx > 50 && (mx - Math.min(r, g, b)) > 30; }
+      if (isHit) { hits.push(x); break; }
+    }
+  }
+
+  if (hits.length === 0) return 0;
+  hits.sort((a, b) => a - b);
+  const median = hits[Math.floor(hits.length / 2)];
 
   const L = physLeft  != null ? physLeft  : scanL;
   const R = physRight != null ? physRight : scanR;
   const span = R - L;
   if (span <= 0) return 0;
-  return Math.round(Math.min(100, ((rightmost - L) / span) * 100));
+  return Math.round(Math.min(100, ((median - L) / span) * 100));
 }
 
 // Scans each row for dominant color channel; groups consecutive same-color rows

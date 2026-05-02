@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.54.5] – 2026-05-02
+### Changed
+- **Auto-Heal: median-based bar scan** — instead of taking the rightmost colored pixel across all rows (easily thrown off by text anti-aliasing / number overlays), each row's rightmost hit is collected and the median is used. Stray pixels from overlaid numbers no longer skew the reading. Top and bottom 20% of the bar height are skipped to avoid border/shadow rows. Old max-based scan preserved as `estimateHpFromBarFill_v1` for rollback.
+
 ## [1.54.3] – 2026-05-01
 ### Fixed
 - **HP Detection Accuracy**: Significantly tightened the color dominance threshold for the HP bar (Rot > Grün+40 & Blau+40). This prevents the brownish/reddish UI frame of the status window from being misidentified as a full HP bar, which previously caused HP to be "stuck" at 100%.
