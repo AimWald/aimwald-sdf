@@ -1,5 +1,38 @@
 # Changelog
 
+## [1.58.0] – 2026-05-03
+### Removed
+- **Memory tab** — WASM heap scan, MaxHP Pair Scan, and JS Object Scan removed entirely. WASM heap addresses change on every game reload, making saved offsets useless across sessions. JS Object Scan found no results for Flyff Universe (game state is not exposed to the JS object graph). Bar mode and Pixel mode in Auto-Heal are the reliable alternatives.
+- **Memory source option** in Auto-Heal tab source dropdowns removed alongside the Memory tab.
+
+## [1.57.4] – 2026-05-02
+### Fixed
+- **Auto-Heal: Memory source now auto-detected** — when a WASM offset is saved in the Memory tab for a bar (HP/MP/FP), the Auto-Heal tab now automatically shows "Memory" in the source dropdown with the saved offset info instead of "Bar – not picked yet". Switching between sources in the dropdown updates the display accordingly.
+
+## [1.57.3] – 2026-05-03
+### Fixed
+- **Auto-Heal: Test button (🔍) now reads WASM offset** — previously the test always used bar/pixel mode even when a WASM offset was saved, showing `px: ✓` instead of the actual percentage. WASM now has priority in the test handler, matching the runtime behaviour.
+
+## [1.57.2] – 2026-05-03
+### Fixed
+- **Memory: MaxHP Pair Scan** — added "Hide pairs where HP = MaxHP" checkbox (on by default). When HP is full, every MaxHP entry in the heap looks like a valid HP neighbor, causing hundreds of false pairs. The checkbox removes these ambiguous entries. Description updated with warning to take damage before scanning.
+
+## [1.57.1] – 2026-05-03
+### Fixed
+- **Memory: MaxHP Pair Scan** — added "Filter by current HP ± tolerance" input. Enter your current HP after scanning to narrow 500+ results down to the few pairs that match. Filter applies instantly without rescanning.
+
+## [1.57.0] – 2026-05-03
+### Added
+- **Memory: MaxHP Pair Scan** — new section in the Memory tab. Enter your MaxHP (constant value shown in the status window). Scans the WASM heap for all offsets matching MaxHP and checks neighboring offsets (±8) for a value that looks like current HP (> 0, ≤ MaxHP, integer). Returns candidate pairs with their offsets and current HP value. Click "Use" on a pair to pre-fill the WASM confirm block, then "Save & Enable" as usual. Avoids the timing problem of the standard HP scan (MaxHP never changes between scans).
+
+## [1.56.3] – 2026-05-03
+### Fixed
+- **Auto-Heal: Bar mode calibration** — calibration scan now uses the same tight color thresholds as the runtime scan (`r > 70 && r > g + 40` for HP etc.). Previously looser thresholds caused reddish/bluish UI elements outside the bar to extend `barRight` too far, compressing the effective percentage range and making the trigger fire too early (e.g. at 80% HP instead of the configured 50%).
+- **Auto-Heal: Bar mode pct clamp** — added `Math.max(0, ...)` lower clamp; previously a median pixel slightly left of `barLeft` could yield a tiny negative pct, causing spurious triggers.
+- **Auto-Heal: Pixel mode** — replaced single-pixel color-distance check with a 3×7 area scan using bar-type color detection (same thresholds as bar mode). White HP/MP numbers overlaying the bar are now ignored (white fails `r > g + 40` etc.); bar-colored pixels above and below the text are still found. Fixes both the text-overlay false-trigger and the background-color false-negative for MP/FP.
+- **Auto-Heal: Pixel mode multi-position** — each bar in pixel mode now supports multiple pixel positions (one per action row). Each row has its own 📍 pick button and key selector. Example: pixel at 50% position → key 1, pixel at 20% position → key 2. Use `+ action` to add further positions. Old single-pixel configs are migrated automatically.
+- **Settings: Memory tab** — fixed Memory tab not opening (tab name was missing from the showTab array).
+
 ## [1.56.0] – 2026-05-02
 ### Added
 - **Auto-Heal: Pixel mode** — alternative to the bar-scan rect picker. Click one pixel on the bar at the desired threshold position (bars must be full). The reference color is captured automatically. Runtime computes a pseudo-% from the channel ratio (R for HP, B for MP, G for FP) so the existing threshold-based action system works unchanged. Switch per bar via the new Bar/Pixel dropdown in the Source column.

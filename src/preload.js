@@ -35,16 +35,8 @@ contextBridge.exposeInMainWorld('flyff', {
   // --- Auto-Heal ---
   getAutoHealConfig:  ()        => ipcRenderer.invoke('get-autoheal-config'),
   saveAutoHealConfig: (cfg)     => ipcRenderer.send('save-autoheal-config', cfg),
-  openHpPicker:       (account, barType, mode) => ipcRenderer.send('open-hp-picker', { account, barType, mode }),
+  openHpPicker:       (account, barType, mode, pixelIndex) => ipcRenderer.send('open-hp-picker', { account, barType, mode, pixelIndex }),
   testHpCapture:      (account) => ipcRenderer.invoke('test-hp-capture', account),
-
-  // --- WASM Memory Scanner ---
-  wasmDiagnose:  (params)  => ipcRenderer.invoke('wasm-diagnose', params),
-  wasmJsScan:    (params)  => ipcRenderer.invoke('wasm-js-scan', params),
-  wasmScan:      (params)  => ipcRenderer.invoke('wasm-scan', params),
-  wasmNeighbors: (params)  => ipcRenderer.invoke('wasm-neighbors', params),
-  wasmSave:      (params)  => ipcRenderer.send('wasm-save', params),
-  wasmClear:     (params)  => ipcRenderer.send('wasm-clear', params),
 
   // --- HP-Picker (wird im Picker-Fenster aufgerufen) ---
   hpPickerDone:   (rect) => ipcRenderer.send('hp-picker-done', rect),

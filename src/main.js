@@ -61,7 +61,6 @@ let questWindow    = null;
 let pickerWindow   = null;
 let currentPickerTarget = null; // { account, barType }
 const hpHealActive  = {};  // account → boolean: steuert den async Heal-Loop
-const wasmScanState = {};  // `${account}_${bar}` → candidates[] (stored between refine steps)
 let ocrWorker = null;
 let lastPickerScreenshot = null;
 let view1 = null;   // WebContentsView für Account 1
@@ -409,7 +408,7 @@ function estimateHpFromBarFill(bitmap, width, height, barType, physLeft = null, 
   const R = physRight != null ? physRight : scanR;
   const span = R - L;
   if (span <= 0) return 0;
-  return Math.round(Math.min(100, ((median - L) / span) * 100));
+  return Math.round(Math.max(0, Math.min(100, ((median - L) / span) * 100)));
 }
 
 // Scans each row for dominant color channel; groups consecutive same-color rows
@@ -550,7 +549,7 @@ function stopAutoHeal(account) {
   hpHealActive[account] = false;
 }
 
-async function runBarLoop(account, barType, barCfg, barEntry, view, wasmCfg = null) {
+async function runBarLoop(account, barType, barCfg, barEntry, view) {
   const delay    = Math.max(barCfg.intervalMs || 500, 200);
   const cooldown = 1500;
   const actions  = barCfg.actions?.length
@@ -562,66 +561,67 @@ async function runBarLoop(account, barType, barCfg, barEntry, view, wasmCfg = nu
     ? { x: barEntry.x, y: barEntry.y, width: barEntry.width, height: barEntry.height }
     : null;
 
-  // Pre-build read expression (avoids template work in hot loop)
-  let wasmExpr = null;
-  if (wasmCfg?.jsPath) {
-    // JS object path mode: e.g. wasmCfg.jsPath="window.Game.player.hp", wasmCfg.jsMaxPath or wasmCfg.maxHp
-    const maxExpr = wasmCfg.jsMaxPath
-      ? wasmCfg.jsMaxPath
-      : String(Number(wasmCfg.maxHp) || 0);
-    wasmExpr = `(()=>{try{const c=${wasmCfg.jsPath};const m=${maxExpr};` +
-      `return(typeof c==='number'&&m>0&&c>=0&&c<=m*1.1)?Math.round(c/m*100):null;}catch(e){return null;}})()`;
-  } else if (wasmCfg?.offset != null) {
-    // Typed array offset mode
-    const maxExpr = wasmCfg.maxOffset != null
-      ? `h[${wasmCfg.maxOffset}]`
-      : String(Number(wasmCfg.maxHp) || 0);
-    wasmExpr = `(()=>{try{const h=${wasmCfg.heapExpr||'Module.HEAPF32'};if(!h)return null;` +
-      `const c=h[${wasmCfg.offset}];const m=${maxExpr};` +
-      `return(m>0&&c>=0&&c<=m*1.1)?Math.round(c/m*100):null;}catch(e){return null;}})()`;
-  }
+  // normalize pixel entries: old format { mode:'pixel', x, y } → { mode:'pixel', pixels:[{x,y}] }
+  const pixelList = barEntry?.mode === 'pixel'
+    ? (Array.isArray(barEntry.pixels) ? barEntry.pixels : (barEntry.x != null ? [{ x: barEntry.x, y: barEntry.y }] : []))
+    : null;
+  // ensure lastPressed covers all pixel slots too
+  while (pixelList && lastPressed.length < pixelList.length) lastPressed.push(0);
 
   while (hpHealActive[account]) {
     const t0 = Date.now();
     try {
       if (view && mainWindow) {
-        let pct = null;
-
-        if (wasmExpr) {
-          pct = await view.webContents.executeJavaScript(wasmExpr);
-        } else if (barEntry?.mode === 'pixel') {
-          const cr  = { x: Math.max(0, barEntry.x - 1), y: Math.max(0, barEntry.y - 1), width: 3, height: 3 };
-          const img = await view.webContents.capturePage(cr);
-          const bmp = img.toBitmap();
-          const { width: pw } = img.getSize();
-          const cx  = Math.floor(pw / 2);
-          const pi  = (cx * pw + cx) * 4;
-          const b   = bmp[pi], g = bmp[pi + 1], r = bmp[pi + 2];
-          let ch, refCh;
-          if (barType === 'hp')      { ch = r; refCh = barEntry.refR; }
-          else if (barType === 'mp') { ch = b; refCh = barEntry.refB; }
-          else                       { ch = g; refCh = barEntry.refG; }
-          pct = refCh > 0 ? Math.round(Math.min(100, (ch / refCh) * 100)) : 0;
-        } else if (barRect) {
-          const img = await view.webContents.capturePage(barRect);
-          const { width, height } = img.getSize();
-          if (width && height) {
-            const dpr       = width / barRect.width;
-            const physLeft  = barEntry.barLeft  != null ? barEntry.barLeft  * dpr : null;
-            const physRight = barEntry.barRight != null ? barEntry.barRight * dpr : null;
-            pct = estimateHpFromBarFill(img.toBitmap(), width, height, barType, physLeft, physRight);
-          }
-        }
-
-        if (pct !== null) {
-          console.log(`[AutoHeal] ${account} ${barType.toUpperCase()}=${pct}%`);
+        if (pixelList) {
+          // Per-pixel scan: each pixel corresponds to actions[i].key
           const now = Date.now();
-          for (let i = 0; i < actions.length; i++) {
-            const { key, threshold } = actions[i];
-            if (pct < threshold && now - lastPressed[i] > cooldown) {
-              console.log(`[AutoHeal] ${account} ${barType}: pressing ${key} (<${threshold}%)`);
-              sendHealKey(view, key);
-              lastPressed[i] = now;
+          for (let i = 0; i < pixelList.length && i < actions.length; i++) {
+            const px = pixelList[i];
+            if (!px) continue;
+            const cr = { x: Math.max(0, px.x - 1), y: Math.max(0, px.y - 3), width: 3, height: 7 };
+            try {
+              const img = await view.webContents.capturePage(cr);
+              const bmp = img.toBitmap();
+              const { width: pw, height: ph } = img.getSize();
+              let found = false;
+              for (let row = 0; row < ph && !found; row++) {
+                for (let col = 0; col < pw && !found; col++) {
+                  const bi = (row * pw + col) * 4;
+                  const b2 = bmp[bi], g2 = bmp[bi + 1], r2 = bmp[bi + 2];
+                  if (barType === 'hp')      found = r2 > 70 && r2 > g2 + 40 && r2 > b2 + 40;
+                  else if (barType === 'mp') found = b2 > 70 && b2 > r2 + 20 && b2 > g2 + 20;
+                  else                       found = g2 > 70 && g2 > r2 + 25 && g2 > b2 + 15;
+                }
+              }
+              if (!found && now - lastPressed[i] > cooldown) {
+                console.log(`[AutoHeal] ${account} ${barType} pixel[${i}] empty → pressing ${actions[i].key}`);
+                sendHealKey(view, actions[i].key);
+                lastPressed[i] = now;
+              }
+            } catch (e2) { console.error(`[AutoHeal] pixel[${i}] error:`, e2.message); }
+          }
+        } else {
+          let pct = null;
+          if (barRect) {
+            const img = await view.webContents.capturePage(barRect);
+            const { width, height } = img.getSize();
+            if (width && height) {
+              const dpr       = width / barRect.width;
+              const physLeft  = barEntry.barLeft  != null ? barEntry.barLeft  * dpr : null;
+              const physRight = barEntry.barRight != null ? barEntry.barRight * dpr : null;
+              pct = estimateHpFromBarFill(img.toBitmap(), width, height, barType, physLeft, physRight);
+            }
+          }
+          if (pct !== null) {
+            console.log(`[AutoHeal] ${account} ${barType.toUpperCase()}=${pct}%`);
+            const now = Date.now();
+            for (let i = 0; i < actions.length; i++) {
+              const { key, threshold } = actions[i];
+              if (pct < threshold && now - lastPressed[i] > cooldown) {
+                console.log(`[AutoHeal] ${account} ${barType}: pressing ${key} (<${threshold}%)`);
+                sendHealKey(view, key);
+                lastPressed[i] = now;
+              }
             }
           }
         }
@@ -641,10 +641,9 @@ function startAutoHeal(account) {
   const anyEnabled = bars.some(b => acfg?.[b]?.enabled);
   if (!anyEnabled) return;
 
-  const wasm = acfg?.wasm || {};
   const hasAnySource = bars.some(b => {
     if (!acfg?.[b]?.enabled) return false;
-    return acfg?.barBounds?.[b] || wasm[b]?.offset != null || wasm[b]?.jsPath;
+    return !!acfg?.barBounds?.[b];
   });
   if (!hasAnySource) return;
 
@@ -654,19 +653,17 @@ function startAutoHeal(account) {
   for (const barType of bars) {
     const barCfg  = acfg[barType];
     const barEntry = acfg?.barBounds?.[barType] || null;
-    const wasmCfg  = wasm[barType] || null;
     if (!barCfg?.enabled) continue;
-    if (!barEntry && wasmCfg?.offset == null && !wasmCfg?.jsPath) continue;
-    const src = wasmCfg?.offset != null ? `wasm:${wasmCfg.offset}` : `pixel:[${barEntry.x},${barEntry.y}]`;
-    console.log(`[AutoHeal] ${account} ${barType} started – src=${src} interval=${barCfg.intervalMs}ms`);
-    runBarLoop(account, barType, barCfg, barEntry, view, wasmCfg);
+    if (!barEntry) continue;
+    console.log(`[AutoHeal] ${account} ${barType} started – interval=${barCfg.intervalMs}ms`);
+    runBarLoop(account, barType, barCfg, barEntry, view);
   }
 }
 
-async function openHpPicker(account, barType, mode = 'bar') {
+async function openHpPicker(account, barType, mode = 'bar', pixelIndex = 0) {
   if (pickerWindow) pickerWindow.close();
   if (!mainWindow) return;
-  currentPickerTarget = { account, barType, mode };
+  currentPickerTarget = { account, barType, mode, pixelIndex };
   const bounds = mainWindow.getBounds();
 
   // Game-View-Screenshot als Hintergrund – funktioniert auch in Gamescope (kein Compositor nötig)
@@ -1003,195 +1000,9 @@ function setupIPC() {
     });
   });
 
-  // ── WASM Memory Scanner ───────────────────────────────────────────────────
-
-  // Discover candidate typed array heap expressions in the page's global scope
-  ipcMain.handle('wasm-diagnose', async (_, { account }) => {
-    const view = account === 'account1' ? view1 : view2;
-    if (!view) return { error: 'View not available' };
-    const script = `(()=>{
-      const found=[];
-      const seen=new Set();
-      function add(expr,len,bytesPerEl,type){
-        if(seen.has(expr))return;seen.add(expr);
-        found.push({expr,sizeMB:Math.round(len*bytesPerEl/1024/1024),type});
-      }
-      const CTORS=[
-        [Int16Array,'i16',2],[Uint16Array,'u16',2],
-        [Int32Array,'i32',4],[Uint32Array,'u32',4],
-        [Float32Array,'f32',4],[Float64Array,'f64',8],[Uint8Array,'u8',1],
-      ];
-      const NAMED=[
-        ['HEAP16',Int16Array,'i16',2],['HEAPU16',Uint16Array,'u16',2],
-        ['HEAP32',Int32Array,'i32',4],['HEAPU32',Uint32Array,'u32',4],
-        ['HEAPF32',Float32Array,'f32',4],['HEAPF64',Float64Array,'f64',8],['HEAPU8',Uint8Array,'u8',1],
-      ];
-      for(const k of Object.keys(window)){
-        try{
-          const v=window[k];
-          if(!v||typeof v!=='object')continue;
-          // direct typed array on window (e.g. window.HEAP16)
-          for(const [Ctor,type,bpe] of CTORS){
-            if(v instanceof Ctor&&v.length>100000){add(k,v.length,bpe,type);break;}
-          }
-          // nested property (e.g. emGlobalThis.HEAP32)
-          for(const [prop,Ctor,type,bpe] of NAMED){
-            if(v[prop] instanceof Ctor&&v[prop].length>100000)add(k+'.'+prop,v[prop].length,bpe,type);
-          }
-          if(v instanceof WebAssembly.Memory&&v.buffer.byteLength>500000){
-            add('new Int32Array('+k+'.buffer)',v.buffer.byteLength/4,4,'i32');
-            add('new Float32Array('+k+'.buffer)',v.buffer.byteLength/4,4,'f32');
-          }
-        }catch{}
-      }
-      return found.length?found:{error:'No typed array found in window scope'};
-    })()`;
-    try { return await view.webContents.executeJavaScript(script, true); }
-    catch (e) { return { error: e.message }; }
-  });
-
-  ipcMain.handle('wasm-scan', async (_, { account, bar, value, heapExpr, tol: tolIn, refine = false }) => {
-    const view = account === 'account1' ? view1 : view2;
-    if (!view) return { error: 'View not available' };
-    const key   = `${account}_${bar}`;
-    const hExpr = heapExpr || 'Module.HEAPF32';
-    const tol   = Number.isFinite(tolIn) ? tolIn : 2;
-    const t     = value; // keep as-is (float or int, both work)
-
-    let script;
-    if (refine && wasmScanState[key]?.length) {
-      script = `(()=>{try{
-        const h=${hExpr};if(!h)return{error:'heap not found'};
-        const c=${JSON.stringify(wasmScanState[key])};
-        const t=${t},tol=${tol};
-        const r=c.filter(i=>{const v=h[i];return v>=t-tol&&v<=t+tol;});
-        return{candidates:r};
-      }catch(e){return{error:e.message};}})()`;
-    } else {
-      script = `(()=>{try{
-        const h=${hExpr};
-        if(!h)return{error:'${hExpr} not available – run Diagnose first'};
-        const t=${t},tol=${tol},r=[];
-        for(let i=0;i<h.length;i++){const v=h[i];if(v>=t-tol&&v<=t+tol){r.push(i);if(r.length>=5000)break;}}
-        return{candidates:r};
-      }catch(e){return{error:e.message};}})()`;
-    }
-
-    try {
-      const res = await view.webContents.executeJavaScript(script, true);
-      if (res?.candidates) {
-        wasmScanState[key] = res.candidates;
-        return { count: res.candidates.length, candidates: res.candidates.length <= 30 ? res.candidates : [] };
-      }
-      return res;
-    } catch (e) { return { error: e.message }; }
-  });
-
-  ipcMain.handle('wasm-neighbors', async (_, { account, offset, heapExpr, range = 10 }) => {
-    const view = account === 'account1' ? view1 : view2;
-    if (!view) return null;
-    const hExpr = heapExpr || 'Module.HEAPF32';
-    try {
-      return await view.webContents.executeJavaScript(
-        `(()=>{try{const h=${hExpr};if(!h)return null;
-          const r=[];for(let i=${offset}-${range};i<=${offset}+${range};i++){if(i>=0&&i<h.length)r.push({i,v:Math.round(h[i]*10)/10});}
-          return r;}catch(e){return null;}})()`, true
-      );
-    } catch { return null; }
-  });
-
-  ipcMain.on('wasm-save', (_, { account, bar, offset, maxOffset, maxHp, heapExpr, jsPath, jsMaxPath }) => {
-    const cfg = loadConfig('autoheal.json') || {};
-    if (!cfg[account]) cfg[account] = {};
-    if (!cfg[account].wasm) cfg[account].wasm = {};
-    const entry = {};
-    if (jsPath) {
-      entry.jsPath = jsPath;
-      if (jsMaxPath)       entry.jsMaxPath = jsMaxPath;
-      else if (maxHp != null) entry.maxHp = maxHp;
-    } else {
-      entry.offset = offset;
-      if (heapExpr)          entry.heapExpr  = heapExpr;
-      if (maxOffset != null) entry.maxOffset = maxOffset;
-      else if (maxHp != null) entry.maxHp   = maxHp;
-    }
-    cfg[account].wasm[bar] = entry;
-    saveConfig('autoheal.json', cfg);
-    startAutoHeal(account);
-  });
-
-  // Scan JS object graph for a numeric value; returns path strings like "window.X.y.hp"
-  const jsScanState = {}; // account → paths[]
-
-  ipcMain.handle('wasm-js-scan', async (_, { account, value, tol = 2, refine = false, reset = false }) => {
-    if (reset) { delete jsScanState[account]; return { results: [], count: 0 }; }
-    const view = account === 'account1' ? view1 : view2;
-    if (!view) return { error: 'View not available' };
-
-    let script;
-    if (refine && jsScanState[account]?.length) {
-      // Re-evaluate stored paths with new value
-      script = `(()=>{
-        const paths=${JSON.stringify(jsScanState[account])};
-        const t=${value}, tol=${tol};
-        const r=[];
-        for(const p of paths){
-          try{const v=eval(p);if(typeof v==='number'&&Math.abs(v-t)<=tol)r.push({path:p,value:v});}catch{}
-        }
-        return r;
-      })()`;
-    } else {
-      script = `(()=>{
-        const target=${value}, tol=${tol}, results=[], seen=new WeakSet();
-        const SKIP=new Set(['window','self','globalThis','top','parent','frames','document','history',
-          'location','navigator','screen','performance','crypto','indexedDB','localStorage',
-          'sessionStorage','caches','console','alert','HEAP8','HEAP16','HEAP32','HEAPU8',
-          'HEAPU16','HEAPU32','HEAPF32','HEAPF64']);
-        function walk(obj,path,depth){
-          if(depth>7)return;
-          if(!obj||typeof obj!=='object'&&typeof obj!=='function')return;
-          try{if(seen.has(obj))return;seen.add(obj);}catch{return;}
-          // skip all typed arrays and binary buffers
-          if(ArrayBuffer.isView(obj)||obj instanceof ArrayBuffer)return;
-          let keys;
-          try{keys=Object.keys(obj);}catch{return;}
-          for(const k of keys){
-            if(SKIP.has(k)||k.startsWith('__')||/^\\d+$/.test(k))continue;
-            try{
-              const v=obj[k];
-              const p=path+'.'+k;
-              if(typeof v==='number'&&isFinite(v)&&Math.abs(v-target)<=tol){
-                results.push({path:p,value:v});
-                if(results.length>=500)return;
-              }
-              if(v&&(typeof v==='object'||typeof v==='function')&&!(v instanceof HTMLElement)){
-                walk(v,p,depth+1);
-              }
-            }catch{}
-            if(results.length>=500)return;
-          }
-        }
-        walk(window,'window',0);
-        return results;
-      })()`;
-    }
-
-    try {
-      const res = await view.webContents.executeJavaScript(script, true);
-      if (!Array.isArray(res)) return { error: 'unexpected result' };
-      if (!refine) jsScanState[account] = res.map(r => r.path);
-      return { results: res, count: res.length };
-    } catch(e) { return { error: e.message }; }
-  });
-
-  ipcMain.on('wasm-clear', (_, { account, bar }) => {
-    const cfg = loadConfig('autoheal.json') || {};
-    if (cfg[account]?.wasm?.[bar]) delete cfg[account].wasm[bar];
-    saveConfig('autoheal.json', cfg);
-  });
 
   // HP-Bar-Picker öffnen
-  ipcMain.on('open-hp-picker', (_, { account, barType, mode }) => openHpPicker(account, barType, mode).catch(e => console.error('HP picker:', e)));
+  ipcMain.on('open-hp-picker', (_, { account, barType, mode, pixelIndex }) => openHpPicker(account, barType, mode, pixelIndex ?? 0).catch(e => console.error('HP picker:', e)));
 
   // Picker: Rechteck wurde ausgewählt → direkt als barBounds[barType] speichern
   ipcMain.on('hp-picker-done', (_, rect) => {
@@ -1199,27 +1010,23 @@ function setupIPC() {
     if (!target) { pickerWindow?.close(); return; }
     const { account, barType } = target;
 
-    // ── Pixel mode: single-click pick, capture reference color from live view ──
+    // ── Pixel mode: single-click pick, save x/y into pixels[pixelIndex] ──
     if (rect.mode === 'pixel') {
       pickerWindow?.close();
-      const view = account === 'account1' ? view1 : view2;
-      if (!view) return;
-      const cr = { x: Math.max(0, rect.x - 1), y: Math.max(0, rect.y - 1), width: 3, height: 3 };
-      view.webContents.capturePage(cr).then(img => {
-        const bmp = img.toBitmap();
-        const { width } = img.getSize();
-        const cx = Math.floor(width / 2);
-        const i  = (cx * width + cx) * 4;
-        const refB = bmp[i], refG = bmp[i + 1], refR = bmp[i + 2];
-        const barEntry = { mode: 'pixel', x: rect.x, y: rect.y, refR, refG, refB };
-        const cfg = loadConfig('autoheal.json') || {};
-        if (!cfg[account]) cfg[account] = { barBounds: {} };
-        if (!cfg[account].barBounds) cfg[account].barBounds = {};
-        cfg[account].barBounds[barType] = barEntry;
-        try { saveConfig('autoheal.json', cfg); } catch {}
-        console.log(`[AutoHeal] ${account} ${barType} pixel saved: x=${rect.x} y=${rect.y} R=${refR} G=${refG} B=${refB}`);
-        settingsWindow?.webContents.send('autoheal-rect-picked', { account, barType, rect: barEntry });
-      }).catch(e => console.error('[AutoHeal] pixel pick error:', e.message));
+      const { pixelIndex = 0 } = target;
+      const cfg = loadConfig('autoheal.json') || {};
+      if (!cfg[account]) cfg[account] = {};
+      if (!cfg[account].barBounds) cfg[account].barBounds = {};
+      const existing = cfg[account].barBounds[barType];
+      const pixels = (existing?.mode === 'pixel' && Array.isArray(existing.pixels))
+        ? [...existing.pixels]
+        : [];
+      while (pixels.length <= pixelIndex) pixels.push(null);
+      pixels[pixelIndex] = { x: rect.x, y: rect.y };
+      cfg[account].barBounds[barType] = { mode: 'pixel', pixels };
+      try { saveConfig('autoheal.json', cfg); } catch {}
+      console.log(`[AutoHeal] ${account} ${barType} pixel[${pixelIndex}] saved: x=${rect.x} y=${rect.y}`);
+      settingsWindow?.webContents.send('autoheal-rect-picked', { account, barType, pixelIndex, rect: { x: rect.x, y: rect.y } });
       return;
     }
 
@@ -1237,9 +1044,9 @@ function setupIPC() {
             const i = (y * pw + x) * 4;
             const b = bmp[i], g = bmp[i + 1], r = bmp[i + 2];
             let isHit = false;
-            if (barType === 'hp') isHit = r > 60 && r > g + 15 && r > b + 15;
-            else if (barType === 'mp') isHit = b > 60 && b > r + 15 && b > g + 15;
-            else if (barType === 'fp') isHit = g > 60 && g > r + 15 && g > b + 10;
+            if (barType === 'hp') isHit = r > 70 && r > g + 40 && r > b + 40;
+            else if (barType === 'mp') isHit = b > 70 && b > r + 20 && b > g + 20;
+            else if (barType === 'fp') isHit = g > 70 && g > r + 25 && g > b + 15;
             if (isHit) { if (x < left) left = x; if (x > right) right = x; }
           }
         }
@@ -1272,27 +1079,37 @@ function setupIPC() {
   ipcMain.handle('test-hp-capture', async (_, account) => {
     const cfg  = loadConfig('autoheal.json');
     const acfg = cfg?.[account];
-    if (!acfg?.barBounds || Object.keys(acfg.barBounds).length === 0) return { error: 'no-rect' };
     const view = account === 'account1' ? view1 : view2;
     if (!view) return { error: 'no-view' };
     const result = {};
     for (const barType of ['hp', 'mp', 'fp']) {
-      const barEntry = acfg.barBounds[barType];
+      const barEntry = acfg?.barBounds?.[barType];
       if (!barEntry) { result[barType] = null; continue; }
       if (barEntry.mode === 'pixel') {
         try {
-          const cr  = { x: Math.max(0, barEntry.x - 1), y: Math.max(0, barEntry.y - 1), width: 3, height: 3 };
-          const img = await view.webContents.capturePage(cr);
-          const bmp = img.toBitmap();
-          const { width: pw } = img.getSize();
-          const cx  = Math.floor(pw / 2);
-          const pi  = (cx * pw + cx) * 4;
-          const b = bmp[pi], g = bmp[pi + 1], r = bmp[pi + 2];
-          let ch, refCh;
-          if (barType === 'hp')      { ch = r; refCh = barEntry.refR; }
-          else if (barType === 'mp') { ch = b; refCh = barEntry.refB; }
-          else                       { ch = g; refCh = barEntry.refG; }
-          result[barType] = refCh > 0 ? Math.round(Math.min(100, (ch / refCh) * 100)) : 0;
+          const pxList = Array.isArray(barEntry.pixels)
+            ? barEntry.pixels
+            : (barEntry.x != null ? [{ x: barEntry.x, y: barEntry.y }] : []);
+          const statuses = [];
+          for (const px of pxList) {
+            if (!px) { statuses.push('?'); continue; }
+            const cr = { x: Math.max(0, px.x - 1), y: Math.max(0, px.y - 3), width: 3, height: 7 };
+            const img = await view.webContents.capturePage(cr);
+            const bmp = img.toBitmap();
+            const { width: pw, height: ph } = img.getSize();
+            let found = false;
+            for (let y = 0; y < ph && !found; y++) {
+              for (let x = 0; x < pw && !found; x++) {
+                const i = (y * pw + x) * 4;
+                const b = bmp[i], g = bmp[i + 1], r = bmp[i + 2];
+                if (barType === 'hp')      found = r > 70 && r > g + 40 && r > b + 40;
+                else if (barType === 'mp') found = b > 70 && b > r + 20 && b > g + 20;
+                else                       found = g > 70 && g > r + 25 && g > b + 15;
+              }
+            }
+            statuses.push(found ? '✓' : '✗');
+          }
+          result[barType] = statuses.length ? `px: ${statuses.join(' ')}` : 'no pixels set';
         } catch { result[barType] = null; }
         continue;
       }
