@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.59.0] – 2026-05-15
+### Added
+- **Resolution display in toolbar** — game view resolution (e.g. `1280×770`) shown in the status bar; updates live on window resize.
+### Changed
+- **Right stick → arrow keys (camera)** — right stick now sends Arrow Left/Right/Up/Down directly, no L2 hold required. Camera can be controlled freely without occupying L2. L2 remains mappable to right-click or other actions in the Controller tab.
+
 ## [1.58.0] – 2026-05-03
 ### Removed
 - **Memory tab** — WASM heap scan, MaxHP Pair Scan, and JS Object Scan removed entirely. WASM heap addresses change on every game reload, making saved offsets useless across sessions. JS Object Scan found no results for Flyff Universe (game state is not exposed to the JS object graph). Bar mode and Pixel mode in Auto-Heal are the reliable alternatives.

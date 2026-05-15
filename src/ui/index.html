@@ -236,6 +236,9 @@
     <button id="btn-guide" onclick="openGuide()" title="Madrigal Guide (Quests & Monsters)" style="padding:0 5px; font-size:10px; color:#aaa; border-color:#2a2a4a; background:#1e1e3a;">📖 Guide</button>
     <button id="btn-changelog" onclick="openChangelog()" title="Show Changelog" style="padding:0 5px; font-size:10px; color:#444; border-color:#2a2a4a; background:#12122a;">📋</button>
 
+    <!-- Resolution indicator -->
+    <span id="res-label" class="label no-drag" style="color:#333; font-size:10px;" title="Game view resolution"></span>
+
     <!-- Gamepad status indicator -->
     <span id="gp-status" class="label no-drag" title="Gamepad Status">🎮 <span id="gp-label">–</span></span>
 
@@ -269,6 +272,13 @@
       applyRunningState('account1', state.account1Running);
       applyRunningState('account2', state.account2Running);
       document.getElementById('app-version').textContent = 'v' + state.version;
+
+      window.flyff.getViewSize().then(({ w, h }) => {
+        document.getElementById('res-label').textContent = w + '×' + h;
+      });
+      window.flyff.on('view-size-changed', ({ w, h }) => {
+        document.getElementById('res-label').textContent = w + '×' + h;
+      });
 
       macros = await window.flyff.getMacros() || [];
       renderMacroButtons();
@@ -315,8 +325,6 @@
     // ── Events vom Main-Prozess (z.B. via F9 / F10) ───────────────────────────
 
     window.flyff.on('account-switched', (account) => {
-      pendingDx = 0;
-      pendingDy = 0;
       window.flyff.sendMouseUp('right');
       window.flyff.resetCursor();
       applyAccountState(account);
@@ -329,21 +337,15 @@
     // ── Gamepad-Polling (läuft im Renderer-Hauptkontext) ─────────────────────
 
     let currentButtonMap = null;
-    let pendingDx = 0;
-    let pendingDy = 0;
 
     function startGamepadPolling() {
       const WASD_PRESS     = 0.40;
       const WASD_RELEASE   = 0.20;
       const STICK_DEADZONE = 0.25;
-      const SPEED_RIGHT    = 6;
-      const MOUSE_RATE_MS  = 33;   // Maus-IPC max 30fps – verhindert Queue-Flooding
 
       const prevBtns = {};
       const gpLabel  = document.getElementById('gp-label');
-      const heldKeys = { W: false, A: false, S: false, D: false };
-
-      let lastMouseMs = 0;
+      const heldKeys = { W: false, A: false, S: false, D: false, ArrowLeft: false, ArrowRight: false, ArrowUp: false, ArrowDown: false };
 
       function updateAxis(key, val) {
         const held = heldKeys[key];
@@ -388,14 +390,11 @@
           updateAxis('W', -(gp.axes[1] || 0));
 
           // Buttons: sofort, kein Throttle
-          let rHoldActive = false;
           gp.buttons.forEach((btn, idx) => {
             const key        = `${gp.index}_${idx}`;
             const pressed    = btn.pressed;
             const wasPressed = prevBtns[key];
             const action     = currentButtonMap && currentButtonMap[String(idx)];
-
-            if (action === '__RHOLD') rHoldActive = pressed;
 
             if (pressed && !wasPressed) {
               if      (action === '__LCLICK')      { window.flyff.sendMouseDown('left'); setTimeout(() => window.flyff.sendMouseUp('left'), 80); }
@@ -407,27 +406,17 @@
             } else if (!pressed && wasPressed && action === '__RHOLD') {
               window.flyff.sendMouseUp('right');
               window.flyff.resetCursor();
-              pendingDx = 0;
-              pendingDy = 0;
             }
             prevBtns[key] = pressed;
           });
 
-          // Rechter Stick → Mausdelta nur wenn L2 (__RHOLD) gehalten
-          if (rHoldActive) {
-            const rx = gp.axes[2] || 0;
-            const ry = gp.axes[3] || 0;
-            if (Math.abs(rx) > STICK_DEADZONE) pendingDx += rx * SPEED_RIGHT;
-            if (Math.abs(ry) > STICK_DEADZONE) pendingDy += ry * SPEED_RIGHT;
-          }
-        }
-
-        // Maus-IPC gebündelt max 30fps senden
-        if (now - lastMouseMs >= MOUSE_RATE_MS && (pendingDx !== 0 || pendingDy !== 0)) {
-          window.flyff.sendGamepadMove(pendingDx, pendingDy);
-          pendingDx   = 0;
-          pendingDy   = 0;
-          lastMouseMs = now;
+          // Rechter Stick → Pfeil-Tasten (Kamera)
+          const rx = gp.axes[2] || 0;
+          const ry = gp.axes[3] || 0;
+          updateAxis('ArrowLeft',   rx);
+          updateAxis('ArrowRight', -rx);
+          updateAxis('ArrowDown',   ry);
+          updateAxis('ArrowUp',    -ry);
         }
 
         requestAnimationFrame(poll);

@@ -20,6 +20,7 @@ contextBridge.exposeInMainWorld('flyff', {
 
   // --- Daten abfragen (Promise) ---
   getState:            () => ipcRenderer.invoke('get-state'),
+  getViewSize:         () => ipcRenderer.invoke('get-view-size'),
   getAutomationConfig: () => ipcRenderer.invoke('get-automation-config'),
   getGamepadConfig:    () => ipcRenderer.invoke('get-gamepad-config'),
   getMacros:           () => ipcRenderer.invoke('get-macros'),
@@ -44,7 +45,7 @@ contextBridge.exposeInMainWorld('flyff', {
 
   // --- Events empfangen ---
   on: (channel, cb) => {
-    const allowed = ['account-switched', 'automation-state-changed', 'gamepad-config-updated', 'macros-updated', 'autoheal-rect-picked', 'hp-picker-bg'];
+    const allowed = ['account-switched', 'automation-state-changed', 'gamepad-config-updated', 'macros-updated', 'autoheal-rect-picked', 'hp-picker-bg', 'view-size-changed'];
     if (!allowed.includes(channel)) return;
     ipcRenderer.on(channel, (_event, ...args) => cb(...args));
   },

@@ -8,7 +8,7 @@ const automation = require('./automation.js');
 const FLYFF_URL     = 'https://universe.flyff.com';
 
 // sendInputEvent erwartet DOM-Keywerte, nicht Accelerator-Namen
-const KEY_NAME_MAP = { 'Space': ' ', 'Return': '\r', 'Enter': '\r' };
+const KEY_NAME_MAP = { 'Space': ' ', 'Return': '\r', 'Enter': '\r', 'ArrowLeft': 'Left', 'ArrowRight': 'Right', 'ArrowUp': 'Up', 'ArrowDown': 'Down' };
 function normalizeKey(k) { return KEY_NAME_MAP[k] ?? k; }
 const TOOLBAR_H     = 30;     // Höhe der Toolbar in px
 const DEFAULT_W     = 1280;
@@ -97,6 +97,8 @@ function createMainWindow() {
     if (mainWindow) {
       store.set('windowBounds', mainWindow.getBounds());
       updateViewBounds();
+      const [w, h] = mainWindow.getContentSize();
+      mainWindow.webContents.send('view-size-changed', { w, h: h - TOOLBAR_H });
     }
   });
 
@@ -787,6 +789,11 @@ function setupIPC() {
   });
 
   // Zustand für Toolbar-Initialisierung liefern
+  ipcMain.handle('get-view-size', () => {
+    const [w, h] = mainWindow.getContentSize();
+    return { w, h: h - TOOLBAR_H };
+  });
+
   ipcMain.handle('get-state', () => ({
     activeAccount,
     account1Running: automation.isRunning('account1'),
