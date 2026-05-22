@@ -4,6 +4,19 @@ Desktop wrapper for [Flyff Universe](https://universe.flyff.com) with **multibox
 
 ---
 
+## 💡 Why This Exists
+
+Playing Flyff Universe in a web browser on the Steam Deck is incredibly uncomfortable. The game requires a lot of keyboard keys for normal gameplay — buffs, heals, skill rotations — which is painful to manage with the virtual keyboard and without proper gamepad mapping.
+
+I'm not a programmer, but with modern AI assistance (Claude), building something like this became possible. This wrapper solves the core problems:
+- **Gamepad control** that actually works (WASD movement, camera on right stick, mapped skill keys)
+- **Multiboxing** for running a second character (or player shop) in the background
+- **Automation** for repetitive actions (buff rotations, heal macros) so you can focus on gameplay instead of spamming keys
+
+What started as a personal Steam Deck quality-of-life project turned into a full-featured wrapper with quest guides, auto-heal, and even a virtual keyboard — all built iteratively with AI.
+
+---
+
 ## ✨ Features at a Glance
 
 - **Up to 4 accounts simultaneously** — Account 1 & 2 always loaded, Account 3 & 4 optional (e.g. player shop in background)
@@ -142,6 +155,23 @@ Example: You're on Acc1, press the `⛵ Acc2` button → Acc2 executes follow+bo
 
 ---
 
+## 🛡️ Anti-Detection (Randomized Timing)
+
+All automation intervals include **±10% random variation** to avoid constant timing patterns that might trigger anti-cheat detection. This makes automated actions appear more human-like.
+
+**Example:**
+- You set interval: `2000 ms`
+- Actual interval: randomly varies between `1800–2200 ms` each execution
+
+**Applies to:**
+- **Automation timers** (buff/heal rotations)
+- **Auto-Heal polling** (HP/MP/FP check intervals)
+- **Macro key delays**
+
+No configuration needed — randomization is built-in and automatic.
+
+---
+
 ## 🎮 Gamepad Support (Steam Deck)
 
 ### Default Button Layout
@@ -154,7 +184,7 @@ Example: You're on Acc1, press the `⛵ Acc2` button → Acc2 executes follow+bo
 | Y (3) | Space (Jump) |
 | L1 (4) | Key `1` (Heal) |
 | R1 (5) | Key `2` (Buff) |
-| **L2 (6)** | **Hold for camera control** — right stick moves mouse while held |
+| L2 (6) | Right click hold (for camera drag — not needed with right-stick arrow keys) |
 | R2 (7) | Key `4` |
 | Back (8) | Escape |
 | Start (9) | M (Map) |
@@ -163,10 +193,10 @@ Example: You're on Acc1, press the `⛵ Acc2` button → Acc2 executes follow+bo
 | D-Pad → (15) | Tab (switch skill bar) |
 
 ### Sticks
-- **Left stick:** WASD movement
-- **Right stick:** Mouse / camera — **only active while L2 is held** (prevents accidental drift)
+- **Left stick:** WASD movement (hysteresis: press at 0.40, release at 0.20 to prevent jitter)
+- **Right stick:** Arrow keys (camera control) — mapped to ↑↓←→ for smooth in-game camera rotation
 
-Releasing L2 resets the virtual cursor to screen center.
+No L2-hold required for camera anymore.
 
 ### Auto-Targeting
 Assign `__TARGET` to any button in **Settings → Controller**. When pressed, a spiral cursor sweeps from screen center and clicks the first hovered target. Configure search radius in **Settings → Controller → Auto-Target**.

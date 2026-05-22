@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.60.0] – 2026-05-22
+### Added
+- **Multi-instance support** — up to 4 accounts total (Acc 1 & 2 always loaded, Acc 3 & 4 optional). Open Acc 3/4 via `+ Acc3` / `+ Acc4` toolbar buttons, close via `✕ Acc3` / `✕ Acc4`. Ideal for player shops running in the background. Acc 3 & 4 are switch-only (no automation buttons).
+- **Follow + Board hotkey** — sends Z + Alt+6 in sequence. Configurable global hotkey (default: `,`) sends to active account. Toolbar buttons `⛵ Acc1` and `⛵ Acc2` send to specific account, even in background.
+- **Virtual keyboard overlay** — built-in on-screen keyboard (F8 toggle or 🔤 toolbar button). QWERTY layout + numbers + Backspace/Enter/Space. Stays open when switching chat fields (unlike Steam keyboard). Sends keys directly to active game view.
+- **Quest progress: Skipped status** — quests can now be marked as Open (○), Done (✓), or Skipped (⊗). Filter bar updated: Open / Done / Skipped / All. Skipped quests are excluded from Questlines progress calculation.
+- **Quest progress: Export/Import** — 📤 Export Progress saves quest data as JSON file (backup). 📥 Import Progress restores from backup. Quest progress survives AppImage updates (stored in `~/.config/flyff-wrapper/`).
+- **Anti-detection: Randomized timing** — all automation intervals include ±10% random variation to avoid constant timing patterns. Applies to: Automation timers, Auto-Heal polling, Macro key delays. No configuration needed — built-in.
+### Changed
+- **Quest progress data format** — migrated from boolean (`true`/`false`) to object format `{done: boolean, skipped: boolean}`. Migration happens automatically on load; existing progress is preserved.
+- **README.md** — completely rewritten for newcomers. Added: "Why This Exists" section, feature overview with emojis, Anti-Detection explanation, gamepad corrections (right stick = arrow keys, no L2 hold). All features now documented comprehensively.
+### Fixed
+- **Auto-Heal bug** — `startAutoHeal()` no longer starts loops when all bars are disabled. Previously `hpHealActive[account]` was set to `true` even when no bar had `enabled: true`, causing the loop to run with no valid sources.
+
 ## [1.59.0] – 2026-05-15
 ### Added
 - **Resolution display in toolbar** — game view resolution (e.g. `1280×770`) shown in the status bar; updates live on window resize.

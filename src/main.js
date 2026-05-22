@@ -618,9 +618,15 @@ function stopAutoHeal(account) {
   hpHealActive[account] = false;
 }
 
+// ±10% Variation für Anti-Detection
+function randomizeInterval(baseMs) {
+  const variation = baseMs * 0.1;
+  return baseMs + (Math.random() * 2 - 1) * variation;
+}
+
 async function runBarLoop(account, barType, barCfg, barEntry, view) {
-  const delay    = Math.max(barCfg.intervalMs || 500, 200);
-  const cooldown = 1500;
+  const baseDelay = Math.max(barCfg.intervalMs || 500, 200);
+  const cooldown  = 1500;
   const actions  = barCfg.actions?.length
     ? barCfg.actions
     : [{ key: barCfg.key, threshold: barCfg.threshold }];
@@ -696,7 +702,9 @@ async function runBarLoop(account, barType, barCfg, barEntry, view) {
         }
       }
     } catch (e) { console.error(`[AutoHeal] ${account} ${barType} error:`, e.message); }
-    const wait = Math.max(0, delay - (Date.now() - t0));
+    const elapsed = Date.now() - t0;
+    const delay = randomizeInterval(baseDelay);
+    const wait = Math.max(0, delay - elapsed);
     await new Promise(r => setTimeout(r, wait));
   }
 }
@@ -1277,17 +1285,21 @@ function setupIPC() {
     const macro  = macros.find(m => m.id === macroId);
     if (!macro) return;
     const account = macro.account || 'account2';
-    const view    = account === 'account1' ? view1 : view2;
+    const view    = gameViews[account];
     if (!view) return;
 
     const wasRunning = automation.isRunning(account);
     if (wasRunning) stopAutomation(account);
 
-    const delay      = macro.delay || 200;
+    const baseDelay  = macro.delay || 200;
     const keys       = macro.keys  || [];
     const startDelay = wasRunning ? 100 : 0;
 
+    let accumulatedDelay = startDelay;
     keys.forEach((keyCode, i) => {
+      const thisDelay = i === 0 ? 0 : randomizeInterval(baseDelay);
+      accumulatedDelay += thisDelay;
+
       setTimeout(() => {
         const cdpDef = CDP_KEYS[keyCode];
         if (cdpDef) {
@@ -1299,11 +1311,11 @@ function setupIPC() {
             view.webContents.sendInputEvent({ type: 'keyUp',   keyCode });
           } catch {}
         }
-      }, startDelay + i * delay);
+      }, accumulatedDelay);
     });
 
     if (wasRunning) {
-      setTimeout(() => startAutomation(account), startDelay + keys.length * delay + 200);
+      setTimeout(() => startAutomation(account), accumulatedDelay + 200);
     }
   });
 

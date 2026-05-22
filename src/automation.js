@@ -23,6 +23,12 @@ function sendKey(webContents, keyCode) {
   }
 }
 
+// ±10% Variation für Anti-Detection
+function randomizeInterval(baseMs) {
+  const variation = baseMs * 0.1;
+  return baseMs + (Math.random() * 2 - 1) * variation;
+}
+
 // Startet die Automation für einen Account
 function start(account, webContents, onStateChange) {
   const s = state[account];
@@ -32,11 +38,20 @@ function start(account, webContents, onStateChange) {
   const actions = (config[account] && config[account].actions) || [];
   actions.forEach(action => {
     if (!action.enabled) return;
-    const timer = setInterval(() => {
+
+    // Rekursive Funktion mit randomisiertem Intervall
+    function scheduleNext() {
       if (!s.running) return;
-      sendKey(webContents, action.key);
-    }, action.intervalMs);
-    s.timers.push(timer);
+      const nextDelay = randomizeInterval(action.intervalMs);
+      const timer = setTimeout(() => {
+        if (!s.running) return;
+        sendKey(webContents, action.key);
+        scheduleNext(); // nächste Ausführung planen
+      }, nextDelay);
+      s.timers.push(timer);
+    }
+
+    scheduleNext();
   });
 
   if (onStateChange) onStateChange(account, true);
@@ -46,7 +61,7 @@ function start(account, webContents, onStateChange) {
 function stop(account, onStateChange) {
   const s = state[account];
   s.running = false;
-  s.timers.forEach(t => clearInterval(t));
+  s.timers.forEach(t => clearTimeout(t)); // clearTimeout statt clearInterval
   s.timers = [];
   if (onStateChange) onStateChange(account, false);
 }
