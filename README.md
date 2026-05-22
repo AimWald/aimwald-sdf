@@ -63,6 +63,18 @@ Then add `$HOME/launch-sdf.sh` as a **Non-Steam Game**:
 3. Select `$HOME/launch-sdf.sh` (typically `/home/deck/launch-sdf.sh`)
 4. Add to Steam
 
+**⚠️ CRITICAL: Enable Touchscreen Support (Steam Deck)**
+
+After adding to Steam, you **MUST** configure the Steam Controller settings for touchscreen to work properly:
+
+1. In Steam (Desktop Mode), right-click **AimWald-SDF** → **Manage** → **Controller Layout**
+2. Navigate to **Action Sets** tab
+3. Find **Always On Commands** (under System)
+4. Enable **Touchscreen Native Support**
+5. Save and exit
+
+**Without this setting, the Steam Deck touchscreen will not work in the app!**
+
 **Install Custom Artwork (Automated)**
 
 The installer downloads artwork automatically. To apply it:
@@ -234,6 +246,8 @@ No configuration needed — randomization is built-in and automatic.
 ---
 
 ## 🎮 Gamepad Support (Steam Deck)
+
+**⚠️ Important:** To use the Steam Deck touchscreen, you must enable **Touchscreen Native Support** in Steam Controller settings. See the [Installation section](#-installation) for setup instructions.
 
 ### Default Button Layout
 
