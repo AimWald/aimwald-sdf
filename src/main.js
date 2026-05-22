@@ -958,12 +958,14 @@ function setupIPC() {
   ipcMain.handle('export-quest-progress', async () => {
     const { dialog } = require('electron');
     const progress = store.get('questProgress', {});
-    const result = await dialog.showSaveDialog(mainWindow, {
+    const result = await dialog.showSaveDialog({
       title: 'Export Quest Progress',
       defaultPath: `flyff-quest-progress-${new Date().toISOString().slice(0, 10)}.json`,
-      filters: [{ name: 'JSON', extensions: ['json'] }]
+      filters: [{ name: 'JSON', extensions: ['json'] }],
+      modal: true,
+      properties: []
     });
-    if (result.canceled || !result.filePath) return { success: false };
+    if (result.canceled || !result.filePath) return { success: false, canceled: true };
     try {
       fs.writeFileSync(result.filePath, JSON.stringify(progress, null, 2), 'utf8');
       return { success: true, path: result.filePath };
@@ -975,12 +977,13 @@ function setupIPC() {
   // Import quest progress from JSON file
   ipcMain.handle('import-quest-progress', async () => {
     const { dialog } = require('electron');
-    const result = await dialog.showOpenDialog(mainWindow, {
+    const result = await dialog.showOpenDialog({
       title: 'Import Quest Progress',
       filters: [{ name: 'JSON', extensions: ['json'] }],
-      properties: ['openFile']
+      properties: ['openFile'],
+      modal: true
     });
-    if (result.canceled || !result.filePaths.length) return { success: false };
+    if (result.canceled || !result.filePaths.length) return { success: false, canceled: true };
     try {
       const data = JSON.parse(fs.readFileSync(result.filePaths[0], 'utf8'));
       store.set('questProgress', data);

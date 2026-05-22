@@ -181,7 +181,7 @@
     .quest-table td { padding: 6px 5px; border-bottom: 1px solid #1a1a3a; vertical-align: top; word-wrap: break-word; }
     .quest-table tr:hover { background: #1a1a3a; }
 
-    .quest-table .col-done     { width: 28px; text-align: center; }
+    .quest-table .col-done     { width: 80px; text-align: center; padding: 4px; }
     .quest-table .col-lv       { width: 30px; color: #88ee88; font-weight: bold; }
     .quest-table .col-line     { width: 100px; color: #6688cc; }
     .quest-table .col-name           { width: 150px; color: #fff; font-weight: bold; }
@@ -211,9 +211,9 @@
     .qf-btn { padding: 3px 10px; border: 1px solid #3a3a6a; background: #1e1e3a; color: #aaa; border-radius: 3px; cursor: pointer; font-size: 11px; }
     .qf-btn.active { background: #2a4a8a; color: #fff; border-color: #5a8ad8; }
     .quest-count { font-size: 10px; color: #555; }
-    .quest-status-group { display: flex; gap: 4px; align-items: center; }
-    .quest-status-radio { margin: 0; cursor: pointer; }
-    .quest-status-label { font-size: 10px; color: #888; cursor: pointer; user-select: none; }
+    .quest-status-group { display: flex; gap: 2px; align-items: center; justify-content: center; flex-wrap: nowrap; }
+    .quest-status-radio { margin: 0; cursor: pointer; width: 14px; height: 14px; }
+    .quest-status-label { font-size: 14px; color: #888; cursor: pointer; user-select: none; line-height: 1; }
 
     .diff-hard     { color: #ff6666; }
     .diff-vhard    { color: #ff4400; font-weight: bold; }
@@ -532,17 +532,22 @@
 
     // ── Virtual Keyboard ──────────────────────────────────────────────────────
 
+    let vkbdOpen = false;
+
     function toggleVkbd() {
       const overlay = document.getElementById('vkbd-overlay');
-      if (overlay.style.display === 'block') {
-        overlay.style.display = 'none';
-      } else {
-        overlay.style.display = 'block';
-      }
+      vkbdOpen = !vkbdOpen;
+      overlay.style.display = vkbdOpen ? 'block' : 'none';
+      console.log('[VKBD] Toggled:', vkbdOpen ? 'open' : 'closed');
     }
 
     function sendVkbdKey(key) {
-      window.flyff.sendGamepadButton(key);
+      console.log('[VKBD] Sending key:', key);
+      try {
+        window.flyff.sendGamepadButton(key);
+      } catch (e) {
+        console.error('[VKBD] Error sending key:', e);
+      }
     }
 
     // F8 Hotkey für Virtual Keyboard (nicht konfigurierbar)
@@ -667,9 +672,10 @@
       const result = await window.flyff.exportQuestProgress();
       if (result.success) {
         alert('Quest progress exported to:\n' + result.path);
-      } else {
-        alert('Export failed: ' + (result.error || 'cancelled'));
+      } else if (result.error) {
+        alert('Export failed: ' + result.error);
       }
+      // If canceled, do nothing (no alert)
     }
 
     async function importProgress() {
@@ -681,6 +687,7 @@
       } else if (result.error) {
         alert('Import failed: ' + result.error);
       }
+      // If canceled, do nothing (no alert)
     }
 
     function filterByQuestline(lineName) {
