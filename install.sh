@@ -1,16 +1,16 @@
 #!/bin/bash
-# AimWald SDFlyff Installer for Steam Deck
-# Usage: curl -L https://github.com/AimWald/aimwald-sdflyff/raw/main/install.sh | sh
+# AimWald-SDF (SteamDeckFlyff) Installer for Steam Deck
+# Usage: curl -L https://aimwald.github.io/sdf/install.sh | sh
 
 set -e
 
-REPO="AimWald/aimwald-sdflyff"
+REPO="AimWald/aimwald-sdf"
 INSTALL_DIR="/home/deck"
-APPIMAGE_NAME="SDFlyff.AppImage"
-LAUNCH_SCRIPT="launch-sdflyff.sh"
+APPIMAGE_NAME="AimWald-SDF.AppImage"
+LAUNCH_SCRIPT="launch-sdf.sh"
 
 echo "╔════════════════════════════════════════════════════╗"
-echo "║   AimWald SDFlyff Installer for Steam Deck        ║"
+echo "║   AimWald-SDF Installer for Steam Deck            ║"
 echo "╚════════════════════════════════════════════════════╝"
 echo ""
 
@@ -70,7 +70,7 @@ export XMODIFIERS=""
 export GTK_IM_MODULE=""
 export QT_IM_MODULE=""
 
-/home/deck/SDFlyff.AppImage --appimage-extract-and-run --disable-gpu-sandbox
+/home/deck/AimWald-SDF.AppImage --appimage-extract-and-run --disable-gpu-sandbox
 EOF
 
 chmod +x "$LAUNCH_SCRIPT"

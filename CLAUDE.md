@@ -1,7 +1,7 @@
-# AimWald SDFlyff – Projektübersicht
+# AimWald-SDF – Projektübersicht
 
-**Repository:** https://github.com/AimWald/aimwald-sdflyff  
-**Name:** AimWald SDFlyff (SD = Steam Deck)  
+**Repository:** https://github.com/AimWald/aimwald-sdf  
+**Name:** AimWald-SDF (SteamDeckFlyff)  
 **Autor:** AimWald (ehemals Evaldazz)
 
 ## Ziel

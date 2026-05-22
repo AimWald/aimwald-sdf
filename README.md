@@ -1,4 +1,4 @@
-# Flyff Universe Electron Wrapper
+# AimWald-SDF (SteamDeckFlyff)
 
 Desktop wrapper for [Flyff Universe](https://universe.flyff.com) with **multiboxing**, **automation**, **gamepad support**, and an **in-app quest guide**. Built and optimized for the **Valve Steam Deck** (SteamOS) but runs on any Linux desktop.
 
@@ -35,9 +35,14 @@ What started as a personal Steam Deck quality-of-life project turned into a full
 
 ### Steam Deck (One-Command Install)
 
-Open Konsole and run:
+Open Konsole (Desktop Mode) and run:
 ```bash
-curl -L https://github.com/AimWald/aimwald-sdflyff/raw/main/install.sh | sh
+curl -L https://aimwald.github.io/sdf/install.sh | sh
+```
+
+Or with full GitHub URL:
+```bash
+curl -L https://github.com/AimWald/aimwald-sdf/raw/main/install.sh | sh
 ```
 
 This will:
@@ -46,24 +51,24 @@ This will:
 - Create launch script with proper environment variables
 - Clean up old AppImage extracts
 
-Then add `/home/deck/launch-sdflyff.sh` as a **Non-Steam Game** and launch from Game Mode.
+Then add `/home/deck/launch-sdf.sh` as a **Non-Steam Game** and launch from Game Mode.
 
 **Optional: Add custom artwork to Steam Library**
 1. Right-click the game in Steam Library → **Manage** → **Set custom artwork**
-2. Download and select: [steam-grid.png](https://github.com/AimWald/aimwald-sdflyff/raw/main/build/steam-grid.png)
+2. Download and select: [steam-grid.png](https://github.com/AimWald/aimwald-sdf/raw/main/build/steam-grid.png)
 
-Or use the app icon: [icon.png](https://github.com/AimWald/aimwald-sdflyff/raw/main/build/icon.png)
+Or use the app icon: [icon.png](https://github.com/AimWald/aimwald-sdf/raw/main/build/icon.png)
 
 ### Manual Installation (Linux)
 
-1. Download the latest `SDFlyff.AppImage` from [Releases](https://github.com/AimWald/aimwald-sdflyff/releases)
-2. Make it executable: `chmod +x SDFlyff.AppImage`
-3. Run: `./SDFlyff.AppImage`
+1. Download the latest `AimWald-SDF.AppImage` from [Releases](https://github.com/AimWald/aimwald-sdf/releases)
+2. Make it executable: `chmod +x AimWald-SDF.AppImage`
+3. Run: `./AimWald-SDF.AppImage`
 
 ### Manual Steam Deck Setup (Advanced)
 
-1. Copy `SDFlyff.AppImage` to `/home/deck/`
-2. Create a launch script `/home/deck/launch-sdflyff.sh`:
+1. Copy `AimWald-SDF.AppImage` to `/home/deck/`
+2. Create a launch script `/home/deck/launch-sdf.sh`:
 
 ```bash
 #!/bin/bash
@@ -75,21 +80,21 @@ export XMODIFIERS=""
 export GTK_IM_MODULE=""
 export QT_IM_MODULE=""
 
-/home/deck/SDFlyff.AppImage --appimage-extract-and-run --disable-gpu-sandbox
+/home/deck/AimWald-SDF.AppImage --appimage-extract-and-run --disable-gpu-sandbox
 ```
 
-3. Make it executable: `chmod +x /home/deck/launch-sdflyff.sh`
-4. Add `/home/deck/launch-sdflyff.sh` as a **Non-Steam Game** in Steam
+3. Make it executable: `chmod +x /home/deck/launch-sdf.sh`
+4. Add `/home/deck/launch-sdf.sh` as a **Non-Steam Game** in Steam
 5. Launch from Game Mode
 
 ### Build from Source
 
 ```bash
-git clone https://github.com/AimWald/aimwald-sdflyff.git
-cd aimwald-sdflyff
+git clone https://github.com/AimWald/aimwald-sdf.git
+cd aimwald-sdf
 npm install
 npm start              # dev mode
-npm run build          # builds dist/SDFlyff.AppImage
+npm run build          # builds dist/AimWald-SDF.AppImage
 ```
 
 ---
@@ -337,16 +342,16 @@ Use **Export Progress** in the Guide for an extra backup before updating.
 ## 🛠️ Development
 
 ```bash
-git clone https://github.com/AimWald/aimwald-sdflyff.git
-cd aimwald-sdflyff
+git clone https://github.com/AimWald/aimwald-sdf.git
+cd aimwald-sdf
 npm install
 npm start              # dev mode (Electron + devtools)
-npm run build          # builds dist/SDFlyff.AppImage
+npm run build          # builds dist/AimWald-SDF.AppImage
 ```
 
 Deploy to Steam Deck:
 ```bash
-scp dist/SDFlyff.AppImage deck@<deck-ip>:/home/deck/
+scp dist/AimWald-SDF.AppImage deck@<deck-ip>:/home/deck/
 # Or run the installer again to update
 ```
 
@@ -384,12 +389,12 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 ## 🐛 Issues & Feedback
 
-Report bugs or request features at [github.com/AimWald/aimwald-sdflyff/issues](https://github.com/AimWald/aimwald-sdflyff/issues)
+Report bugs or request features at [github.com/AimWald/aimwald-sdf/issues](https://github.com/AimWald/aimwald-sdf/issues)
 
 ---
 
 ## 💬 About the Name
 
-**SDFlyff** = **S**team **D**eck + Flyff Universe
+**AimWald-SDF** = **S**team**D**eck**F**lyff by AimWald
 
 The project started as a personal quality-of-life wrapper for playing Flyff Universe on the Steam Deck, where the web browser experience is uncomfortable and lacks proper gamepad support. With modern AI assistance (Claude), what began as a simple fix turned into a full-featured multiboxing wrapper with automation, quest guides, and more.

@@ -1,4 +1,4 @@
-# AimWald SDFlyff - Icons & Artwork
+# AimWald-SDF - Icons & Artwork
 
 ## Files
 
