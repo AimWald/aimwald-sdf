@@ -1,7 +1,7 @@
 # AimWald-SDF (SteamDeckFlyff)
 
 <p align="center">
-  <img src="build/preview-hero-with-logo.png" alt="AimWald-SDF Banner" width="100%">
+  <img src="build/readme-banner.png" alt="AimWald-SDF Banner" width="100%">
 </p>
 
 <p align="center">
