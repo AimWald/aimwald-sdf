@@ -10,7 +10,7 @@ const FLYFF_URL     = 'https://universe.flyff.com';
 // sendInputEvent erwartet DOM-Keywerte, nicht Accelerator-Namen
 const KEY_NAME_MAP = { 'Space': ' ', 'Return': '\r', 'Enter': '\r', 'ArrowLeft': 'Left', 'ArrowRight': 'Right', 'ArrowUp': 'Up', 'ArrowDown': 'Down' };
 function normalizeKey(k) { return KEY_NAME_MAP[k] ?? k; }
-const TOOLBAR_H     = 30;     // Höhe der Toolbar in px
+const TOOLBAR_H     = 30;     // Toolbar height in pixels
 const DEFAULT_W     = 1280;
 const DEFAULT_H     = 800;
 
@@ -87,7 +87,7 @@ function createMainWindow() {
   mainWindow = new BrowserWindow({
     width:  saved.width  || DEFAULT_W,
     height: saved.height || DEFAULT_H,
-    frame: false,                   // Kein OS-Rahmen; Toolbar liegt direkt im HTML
+    frame: false,                   // No OS frame; toolbar is in HTML
     backgroundColor: '#1a1a2e',
     icon: path.join(__dirname, '../build/icon.png'),
     webPreferences: {
@@ -331,7 +331,7 @@ function openSettings() {
   settingsWindow = new BrowserWindow({
     width: 680,
     height: 740,
-    title: 'Flyff Wrapper – Einstellungen',
+    title: 'AimWald-SDF Settings',
     backgroundColor: '#1a1a2e',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -369,7 +369,7 @@ function openQuestUrl(url) {
   questWindow = new BrowserWindow({
     width: 1000,
     height: 750,
-    title: 'Flyff Wrapper – Quest Details',
+    title: 'AimWald-SDF Quest Details',
     backgroundColor: '#1a1a2e',
     autoHideMenuBar: true,
     webPreferences: {
