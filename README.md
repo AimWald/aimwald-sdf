@@ -66,12 +66,23 @@ Then add `/home/deck/launch-sdf.sh` as a **Non-Steam Game** and launch from Game
 
 **Optional: Add custom artwork to Steam Library**
 
-Download artwork from the repo:
+**Easy: Automated (recommended)**
+```bash
+cd /home/deck
+curl -L -O https://github.com/AimWald/aimwald-sdf/raw/main/install-steam-artwork.sh
+chmod +x install-steam-artwork.sh
+./install-steam-artwork.sh
+```
+The script auto-downloads artwork, detects your game's App ID, and installs all artwork files. Restart Steam to see changes.
+
+**Manual: Via Steam UI**
+
+Download artwork manually:
 - **Grid** (Library): [steam-grid.png](https://github.com/AimWald/aimwald-sdf/raw/main/build/steam-grid.png) (460×215)
 - **Hero** (Background): [steam-hero.png](https://github.com/AimWald/aimwald-sdf/raw/main/build/steam-hero.png) (1920×620)
 - **Logo** (Overlay): [steam-logo.png](https://github.com/AimWald/aimwald-sdf/raw/main/build/steam-logo.png) (transparent)
 
-Apply in Steam:
+Apply in Steam (Desktop Mode):
 1. Right-click game → **Manage** → **Set custom artwork** (Grid)
 2. Right-click game → **Manage** → **Set custom background** (Hero)
 3. Right-click game → **Manage** → **Set custom logo** (Logo overlay)
