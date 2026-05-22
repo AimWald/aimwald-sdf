@@ -81,7 +81,7 @@ What started as a personal Steam Deck quality-of-life project turned into a full
 - **Macro Buttons** — Toolbar buttons for full buff sequences (configurable key lists)
 - **Follow + Board Hotkey** — Press one button to send Z + Alt+6 (for follow + mount) to any account
 - **Gamepad Control** — Full Steam Deck layout with WASD movement, camera control (right stick = arrow keys), and auto-targeting
-- **Virtual Keyboard** — Built-in on-screen keyboard (F8 toggle) — no need to open Steam's overlay
+- **Virtual Keyboard** — Built-in on-screen keyboard (toolbar button) — no need to open Steam's overlay
 - **Madrigal Guide** — 492 quests, 36 questlines, daily quests, with progress tracking and export/import
 - **Quest Progress Export/Import** — Backup your quest data as JSON; survives AppImage updates
 
@@ -396,7 +396,7 @@ This two-layer system gives you maximum flexibility: the app handles core combat
 
 Built-in on-screen keyboard overlay — no need for Steam's sidebar.
 
-- **Toggle:** Press **F8** or click **🔤** in toolbar
+- **Toggle:** Click **🔤** in toolbar (F8 hotkey removed due to conflict with in-game Action Bar 8)
 - Sends keys directly to the active game view
 - Stays open when you click between chat fields (unlike Steam keyboard)
 - Includes: QWERTY layout + numbers + Backspace/Enter/Space
