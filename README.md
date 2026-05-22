@@ -305,11 +305,16 @@ For optimal gameplay, configure these additional Steam Controller settings:
 - Or map to automation toggle, macros, or frequently used skills
 
 **D-Pad**
-- Map to game windows/UI shortcuts:
+- **Default in-app:**
+  - **↑**: Scroll in (zoom)
+  - **↓**: Scroll out (zoom)
+  - **→**: `Tab` — Switch skill bar
+- **Recommended Steam override** (for more useful shortcuts):
   - **↑**: `P` — Party Window
   - **↓**: `H` — Stats Window  
   - **←**: `I` — Inventory
-  - **→**: `Tab` — Switch skill bar (already default in-app)
+  - Keep **→** as default or map to other keys (e.g. `C` for Character window)
+- You can still zoom using mouse scroll or touchscreen pinch
 
 **Right Trackpad**
 - **Mode**: Mouse (not Joystick)
