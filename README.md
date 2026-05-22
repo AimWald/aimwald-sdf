@@ -33,13 +33,28 @@ What started as a personal Steam Deck quality-of-life project turned into a full
 
 ## 📥 Installation
 
-### Download (Linux)
+### Steam Deck (One-Command Install)
 
-1. Download the latest `FlyffWrapper.AppImage` from [Releases](https://github.com/Evaldazz/flyff-wrapper/releases)
+Open Konsole and run:
+```bash
+curl -L https://github.com/AimWald/aimwald-sdflyff/raw/main/install.sh | sh
+```
+
+This will:
+- Download the latest AppImage
+- Install to `/home/deck/`
+- Create launch script with proper environment variables
+- Clean up old AppImage extracts
+
+Then add `/home/deck/launch-flyff.sh` as a **Non-Steam Game** and launch from Game Mode.
+
+### Manual Installation (Linux)
+
+1. Download the latest `FlyffWrapper.AppImage` from [Releases](https://github.com/AimWald/aimwald-sdflyff/releases)
 2. Make it executable: `chmod +x FlyffWrapper.AppImage`
 3. Run: `./FlyffWrapper.AppImage`
 
-### Steam Deck Setup
+### Manual Steam Deck Setup (Advanced)
 
 1. Copy `FlyffWrapper.AppImage` to `/home/deck/`
 2. Create a launch script `/home/deck/launch-flyff.sh`:
@@ -64,8 +79,8 @@ export QT_IM_MODULE=""
 ### Build from Source
 
 ```bash
-git clone https://github.com/Evaldazz/flyff-wrapper.git
-cd flyff-wrapper
+git clone https://github.com/AimWald/aimwald-sdflyff.git
+cd aimwald-sdflyff
 npm install
 npm start              # dev mode
 npm run build          # builds dist/FlyffWrapper.AppImage
@@ -316,8 +331,8 @@ Use **Export Progress** in the Guide for an extra backup before updating.
 ## 🛠️ Development
 
 ```bash
-git clone https://github.com/Evaldazz/flyff-wrapper.git
-cd flyff-wrapper
+git clone https://github.com/AimWald/aimwald-sdflyff.git
+cd aimwald-sdflyff
 npm install
 npm start              # dev mode (Electron + devtools)
 npm run build          # builds dist/FlyffWrapper.AppImage
@@ -326,6 +341,7 @@ npm run build          # builds dist/FlyffWrapper.AppImage
 Deploy to Steam Deck:
 ```bash
 scp dist/FlyffWrapper.AppImage deck@<deck-ip>:/home/deck/
+# Or run the installer again to update
 ```
 
 ---
@@ -348,4 +364,12 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 ## 🐛 Issues & Feedback
 
-Report bugs or request features at [github.com/Evaldazz/flyff-wrapper/issues](https://github.com/Evaldazz/flyff-wrapper/issues)
+Report bugs or request features at [github.com/AimWald/aimwald-sdflyff/issues](https://github.com/AimWald/aimwald-sdflyff/issues)
+
+---
+
+## 💬 About the Name
+
+**SDFlyff** = **S**team **D**eck + Flyff Universe
+
+The project started as a personal quality-of-life wrapper for playing Flyff Universe on the Steam Deck, where the web browser experience is uncomfortable and lacks proper gamepad support. With modern AI assistance (Claude), what began as a simple fix turned into a full-featured multiboxing wrapper with automation, quest guides, and more.

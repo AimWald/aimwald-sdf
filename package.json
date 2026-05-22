@@ -1,13 +1,13 @@
 {
-  "name": "flyff-wrapper",
+  "name": "aimwald-sdflyff",
   "version": "1.60.0",
-  "description": "Electron Wrapper für Flyff Universe – Multiboxing, Automation, Gamepad",
+  "description": "Flyff Universe wrapper for Steam Deck – Multiboxing, Automation, Gamepad",
   "main": "src/main.js",
-  "author": "Evaldazz",
+  "author": "AimWald",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Evaldazz/flyff-wrapper.git"
+    "url": "https://github.com/AimWald/aimwald-sdflyff.git"
   },
   "scripts": {
     "start": "electron . --disable-gpu-sandbox",

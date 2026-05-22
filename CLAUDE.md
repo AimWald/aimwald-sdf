@@ -1,4 +1,8 @@
-# Flyff Universe Electron Wrapper – Projektübersicht
+# AimWald SDFlyff – Projektübersicht
+
+**Repository:** https://github.com/AimWald/aimwald-sdflyff  
+**Name:** AimWald SDFlyff (SD = Steam Deck)  
+**Autor:** AimWald (ehemals Evaldazz)
 
 ## Ziel
 
