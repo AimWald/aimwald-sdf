@@ -16,6 +16,7 @@
 - **Macros:** Delay field now accepts seconds (default: 2sec) with 0.1sec precision  
 - **AutoHeal:** Interval field now accepts seconds (default: 0.5sec for HP, 1sec for MP/FP) with 0.1sec precision
 - **Gamepad Settings:** Removed Back Buttons (L4/R4/L5/R5) from UI — configure these in Steam Controller settings instead
+- **Virtual Keyboard:** Removed entirely (was not functional/usable)
 - All timing configs maintain backward compatibility with old ms-based values
 
 ## v1.61.0 (2026-05-22)

@@ -81,7 +81,6 @@ What started as a personal Steam Deck quality-of-life project turned into a full
 - **Macro Buttons** — Toolbar buttons for full buff sequences (configurable key lists)
 - **Follow + Board Hotkey** — Press one button to send Z + Alt+6 (for follow + mount) to any account
 - **Gamepad Control** — Full Steam Deck layout with WASD movement, camera control (right stick = arrow keys), and auto-targeting
-- **Virtual Keyboard** — Built-in on-screen keyboard (toolbar button) — no need to open Steam's overlay
 - **Madrigal Guide** — 492 quests, 36 questlines, daily quests, with progress tracking and export/import
 - **Quest Progress Export/Import** — Backup your quest data as JSON; survives AppImage updates
 
@@ -392,17 +391,6 @@ This two-layer system gives you maximum flexibility: the app handles core combat
 
 ---
 
-## 🎹 Virtual Keyboard
-
-Built-in on-screen keyboard overlay — no need for Steam's sidebar.
-
-- **Toggle:** Click **🔤** in toolbar (F8 hotkey removed due to conflict with in-game Action Bar 8)
-- Sends keys directly to the active game view
-- Stays open when you click between chat fields (unlike Steam keyboard)
-- Includes: QWERTY layout + numbers + Backspace/Enter/Space
-
----
-
 ## 🗺️ Madrigal Guide
 
 Click **📖 Guide** in the toolbar to open the in-app overlay.
@@ -463,8 +451,6 @@ Automation on the target account pauses during macro execution and resumes after
 | **F10** | Toggle automation on active account | ✅ |
 | **`,`** | Follow + Board (Z + Alt+6) on active account | ✅ |
 | **F11** | Toggle fullscreen | ❌ |
-
-**Note:** F8 is no longer used for virtual keyboard (conflicts with in-game Action Bar 8). Use the **🔤** toolbar button instead.
 
 **Important:** Wrapper hotkeys (F9, F10, comma) are captured globally and **will not reach the game**. If you need F9/F10 in-game (Action Bar switching), change the wrapper hotkeys in **Settings → Hotkeys** to different keys.
 
@@ -546,7 +532,6 @@ This project is an **independent, community-driven wrapper** for Flyff Universe 
 - Gamepad controls (WASD, camera, button mapping)
 - Multiboxing (multiple accounts)
 - Quest guide
-- Virtual keyboard
 
 **Medium to High Risk** (May violate ToS):
 - **Auto-Heal/MP/FP** — Automated input based on screen monitoring
