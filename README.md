@@ -100,12 +100,19 @@ Apply in Steam (Desktop Mode):
 # Clean up old extracted AppImage directories to free /tmp space
 rm -rf /tmp/appimage_extracted_*
 
-export ELECTRON_OZONE_PLATFORM_HINT=auto
+# Force X11 mode to avoid Wayland crashes in Gaming Mode
+export ELECTRON_OZONE_PLATFORM_HINT=x11
+
+# Disable input method modules that can cause crashes
 export XMODIFIERS=""
 export GTK_IM_MODULE=""
 export QT_IM_MODULE=""
 
-"$HOME/AimWald-SDF.AppImage" --appimage-extract-and-run --disable-gpu-sandbox
+# Use mesa software rendering if GPU fails
+export LIBGL_ALWAYS_SOFTWARE=0
+
+# Execute AppImage with proper quoting and flags
+"$HOME/AimWald-SDF.AppImage" --appimage-extract-and-run --disable-gpu-sandbox --no-sandbox
 ```
 
 3. Make it executable: `chmod +x $HOME/launch-sdf.sh`
