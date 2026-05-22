@@ -5,7 +5,7 @@
 set -e
 
 REPO="AimWald/aimwald-sdf"
-INSTALL_DIR="/home/deck"
+INSTALL_DIR="$HOME"  # Use $HOME instead of hardcoded /home/deck to support any user
 APPIMAGE_NAME="AimWald-SDF.AppImage"
 LAUNCH_SCRIPT="launch-sdf.sh"
 
@@ -14,14 +14,10 @@ echo "║   AimWald-SDF Installer for Steam Deck            ║"
 echo "╚════════════════════════════════════════════════════╝"
 echo ""
 
-# Check if running on Steam Deck
-if [ ! -d "/home/deck" ]; then
-    echo "⚠️  Warning: /home/deck not found. Are you running this on a Steam Deck?"
-    read -p "Continue anyway? (y/N): " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        exit 1
-    fi
+# Check if HOME directory exists (removed hardcoded /home/deck check for broader compatibility)
+if [ -z "$HOME" ] || [ ! -d "$HOME" ]; then
+    echo "❌ Error: HOME directory not found"
+    exit 1
 fi
 
 echo "📥 Fetching latest release..."
@@ -70,7 +66,7 @@ export XMODIFIERS=""
 export GTK_IM_MODULE=""
 export QT_IM_MODULE=""
 
-/home/deck/AimWald-SDF.AppImage --appimage-extract-and-run --disable-gpu-sandbox
+$HOME/AimWald-SDF.AppImage --appimage-extract-and-run --disable-gpu-sandbox
 EOF
 
 chmod +x "$LAUNCH_SCRIPT"

@@ -53,21 +53,21 @@ curl -L https://raw.githubusercontent.com/AimWald/aimwald-sdf/main/install.sh | 
 
 This will:
 - Download the latest AppImage
-- Install to `/home/deck/`
+- Install to your home directory (`$HOME`)
 - Create launch script with proper environment variables
 - Clean up old AppImage extracts
 
-Then add `/home/deck/launch-sdf.sh` as a **Non-Steam Game**:
+Then add `$HOME/launch-sdf.sh` as a **Non-Steam Game**:
 1. Open Steam (Desktop Mode)
 2. Games → Add a Non-Steam Game → Browse
-3. Select `/home/deck/launch-sdf.sh`
+3. Select `$HOME/launch-sdf.sh` (typically `/home/deck/launch-sdf.sh`)
 4. Add to Steam
 
 **Install Custom Artwork (Automated)**
 
 The installer downloads artwork automatically. To apply it:
 ```bash
-cd /home/deck
+cd $HOME
 ./install-steam-artwork.sh
 ```
 The script detects your game's App ID and installs all artwork (Grid, Hero, Logo). Restart Steam to see changes.
@@ -92,8 +92,8 @@ Apply in Steam (Desktop Mode):
 
 ### Manual Steam Deck Setup (Advanced)
 
-1. Copy `AimWald-SDF.AppImage` to `/home/deck/`
-2. Create a launch script `/home/deck/launch-sdf.sh`:
+1. Copy `AimWald-SDF.AppImage` to your home directory (`$HOME`, typically `/home/deck/`)
+2. Create a launch script `$HOME/launch-sdf.sh`:
 
 ```bash
 #!/bin/bash
@@ -105,11 +105,11 @@ export XMODIFIERS=""
 export GTK_IM_MODULE=""
 export QT_IM_MODULE=""
 
-/home/deck/AimWald-SDF.AppImage --appimage-extract-and-run --disable-gpu-sandbox
+"$HOME/AimWald-SDF.AppImage" --appimage-extract-and-run --disable-gpu-sandbox
 ```
 
-3. Make it executable: `chmod +x /home/deck/launch-sdf.sh`
-4. Add `/home/deck/launch-sdf.sh` as a **Non-Steam Game** in Steam
+3. Make it executable: `chmod +x $HOME/launch-sdf.sh`
+4. Add `$HOME/launch-sdf.sh` as a **Non-Steam Game** in Steam
 5. Launch from Game Mode
 
 ### Build from Source
@@ -376,7 +376,7 @@ npm run build          # builds dist/AimWald-SDF.AppImage
 
 Deploy to Steam Deck:
 ```bash
-scp dist/AimWald-SDF.AppImage deck@<deck-ip>:/home/deck/
+scp dist/AimWald-SDF.AppImage deck@<deck-ip>:~/
 # Or run the installer again to update
 ```
 
