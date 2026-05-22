@@ -48,12 +48,7 @@ What started as a personal Steam Deck quality-of-life project turned into a full
 
 Open Konsole (Desktop Mode) and run:
 ```bash
-curl -L https://aimwald.github.io/sdf/install.sh | sh
-```
-
-Or with full GitHub URL:
-```bash
-curl -L https://github.com/AimWald/aimwald-sdf/raw/main/install.sh | sh
+curl -L https://raw.githubusercontent.com/AimWald/aimwald-sdf/main/install.sh | sh
 ```
 
 This will:
