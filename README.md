@@ -26,6 +26,22 @@ I'm not a programmer, but with modern AI assistance (Claude), building something
 
 What started as a personal Steam Deck quality-of-life project turned into a full-featured wrapper with quest guides, auto-heal, and even a virtual keyboard — all built iteratively with AI.
 
+### ⚠️ Use at Your Own Risk
+
+**You can use this wrapper in two ways:**
+
+1. **Safe Mode (Gamepad + Multibox only)** — Use only the gamepad controls, quest guide, and multiboxing features. These are quality-of-life improvements for comfortable Steam Deck gameplay with no automation.
+
+2. **Automation Mode (Higher Risk)** — Enable auto-heal, buff timers, macros, or auto-targeting. **These features may violate Flyff Universe's Terms of Service** and could result in account suspension or ban. Ban risk is unknown and varies by feature.
+
+**Automation Feature Risk Assessment:**
+- **Auto-Heal/MP/FP** — Medium risk (detectable input patterns)
+- **Buff/Heal Timers** — Medium risk (detectable timing patterns, includes ±10% randomization)
+- **Macros** — Medium risk (rapid key sequences)
+- **Auto-Targeting (Spiral)** — ⚠️ **Experimental/High risk** — unreliable, not recommended for regular use
+
+**If you only want comfortable Steam Deck controls, simply don't enable any automation features.** The core gamepad mapping, multiboxing, and quest guide are safe quality-of-life improvements.
+
 ---
 
 ## ✨ Features at a Glance
@@ -290,8 +306,11 @@ See the [Installation section](#-installation) for detailed setup instructions.
 
 No L2-hold required for camera anymore.
 
-### Auto-Targeting
+### Auto-Targeting (⚠️ Experimental)
+
 Assign `__TARGET` to any button in **Settings → Controller** inside the app. When pressed, a spiral cursor sweeps from screen center and clicks the first hovered target. Configure search radius in **Settings → Controller → Auto-Target**.
+
+**⚠️ Warning:** This feature is **experimental and unreliable**. It may miss targets, click wrong locations, or behave unpredictably. **Ban risk is unknown.** Use at your own risk. Not recommended for regular gameplay.
 
 ---
 
@@ -484,8 +503,25 @@ This project is an **independent, community-driven wrapper** for Flyff Universe 
 
 - **Flyff Universe** is a trademark of Gala Lab Corp.
 - This wrapper is provided **as-is** for educational and personal use.
-- Use at your own risk. The author is not responsible for any consequences of using this software, including potential violations of Flyff Universe's Terms of Service.
-- **Automation features** (auto-heal, buff timers) may be against the game's Terms of Service. Use responsibly and at your own discretion.
+- **Use at your own risk.** The author is not responsible for any consequences of using this software, including account suspensions, bans, or violations of Flyff Universe's Terms of Service.
+
+### Risk Levels by Feature
+
+**Safe for casual use** (Quality-of-life only):
+- Gamepad controls (WASD, camera, button mapping)
+- Multiboxing (multiple accounts)
+- Quest guide
+- Virtual keyboard
+
+**Medium to High Risk** (May violate ToS):
+- **Auto-Heal/MP/FP** — Automated input based on screen monitoring
+- **Automation timers** — Timed buff/heal rotations (includes randomization to reduce detection)
+- **Macros** — Rapid key sequences
+- **Auto-Targeting** — Experimental cursor automation (unreliable, ban risk unknown)
+
+**If you only want comfortable Steam Deck controls without automation, simply don't enable any automation features.** You can enjoy the wrapper safely with just gamepad mapping and the quest guide.
+
+**The author assumes no liability for bans or ToS violations. Use automation features at your own discretion.**
 
 **Support the official game:**  
 If you enjoy Flyff Universe, consider supporting the developers by purchasing in-game items or subscribing to premium services at [universe.flyff.com](https://universe.flyff.com).
