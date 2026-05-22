@@ -23,8 +23,8 @@
     "electron-builder": "^25.1.8"
   },
   "build": {
-    "appId": "com.flyff.wrapper",
-    "productName": "Flyff Wrapper",
+    "appId": "com.aimwald.sdflyff",
+    "productName": "AimWald SDFlyff",
     "files": [
       "src/**/*",
       "config/**/*",
@@ -33,9 +33,10 @@
     ],
     "linux": {
       "target": "AppImage",
-      "category": "Game"
+      "category": "Game",
+      "icon": "build/icon.png"
     },
-    "artifactName": "FlyffWrapper.AppImage",
+    "artifactName": "SDFlyff.AppImage",
     "extraMetadata": {
       "main": "src/main.js"
     }

@@ -6,8 +6,8 @@ set -e
 
 REPO="AimWald/aimwald-sdflyff"
 INSTALL_DIR="/home/deck"
-APPIMAGE_NAME="FlyffWrapper.AppImage"
-LAUNCH_SCRIPT="launch-flyff.sh"
+APPIMAGE_NAME="SDFlyff.AppImage"
+LAUNCH_SCRIPT="launch-sdflyff.sh"
 
 echo "╔════════════════════════════════════════════════════╗"
 echo "║   AimWald SDFlyff Installer for Steam Deck        ║"
@@ -70,7 +70,7 @@ export XMODIFIERS=""
 export GTK_IM_MODULE=""
 export QT_IM_MODULE=""
 
-/home/deck/FlyffWrapper.AppImage --appimage-extract-and-run --disable-gpu-sandbox
+/home/deck/SDFlyff.AppImage --appimage-extract-and-run --disable-gpu-sandbox
 EOF
 
 chmod +x "$LAUNCH_SCRIPT"
@@ -92,7 +92,9 @@ echo "   • $INSTALL_DIR/$LAUNCH_SCRIPT"
 echo ""
 echo "🎮 Next steps:"
 echo "   1. Add $INSTALL_DIR/$LAUNCH_SCRIPT as a Non-Steam Game"
-echo "   2. Launch from Game Mode"
+echo "   2. Optional: Set custom artwork in Steam Library"
+echo "      Download: https://github.com/$REPO/raw/main/build/steam-grid.png"
+echo "   3. Launch from Game Mode"
 echo ""
 echo "🔄 To update, just run this installer again!"
 echo ""

@@ -46,18 +46,24 @@ This will:
 - Create launch script with proper environment variables
 - Clean up old AppImage extracts
 
-Then add `/home/deck/launch-flyff.sh` as a **Non-Steam Game** and launch from Game Mode.
+Then add `/home/deck/launch-sdflyff.sh` as a **Non-Steam Game** and launch from Game Mode.
+
+**Optional: Add custom artwork to Steam Library**
+1. Right-click the game in Steam Library → **Manage** → **Set custom artwork**
+2. Download and select: [steam-grid.png](https://github.com/AimWald/aimwald-sdflyff/raw/main/build/steam-grid.png)
+
+Or use the app icon: [icon.png](https://github.com/AimWald/aimwald-sdflyff/raw/main/build/icon.png)
 
 ### Manual Installation (Linux)
 
-1. Download the latest `FlyffWrapper.AppImage` from [Releases](https://github.com/AimWald/aimwald-sdflyff/releases)
-2. Make it executable: `chmod +x FlyffWrapper.AppImage`
-3. Run: `./FlyffWrapper.AppImage`
+1. Download the latest `SDFlyff.AppImage` from [Releases](https://github.com/AimWald/aimwald-sdflyff/releases)
+2. Make it executable: `chmod +x SDFlyff.AppImage`
+3. Run: `./SDFlyff.AppImage`
 
 ### Manual Steam Deck Setup (Advanced)
 
-1. Copy `FlyffWrapper.AppImage` to `/home/deck/`
-2. Create a launch script `/home/deck/launch-flyff.sh`:
+1. Copy `SDFlyff.AppImage` to `/home/deck/`
+2. Create a launch script `/home/deck/launch-sdflyff.sh`:
 
 ```bash
 #!/bin/bash
@@ -69,11 +75,11 @@ export XMODIFIERS=""
 export GTK_IM_MODULE=""
 export QT_IM_MODULE=""
 
-/home/deck/FlyffWrapper.AppImage --appimage-extract-and-run --disable-gpu-sandbox
+/home/deck/SDFlyff.AppImage --appimage-extract-and-run --disable-gpu-sandbox
 ```
 
-3. Make it executable: `chmod +x /home/deck/launch-flyff.sh`
-4. Add `/home/deck/launch-flyff.sh` as a **Non-Steam Game** in Steam
+3. Make it executable: `chmod +x /home/deck/launch-sdflyff.sh`
+4. Add `/home/deck/launch-sdflyff.sh` as a **Non-Steam Game** in Steam
 5. Launch from Game Mode
 
 ### Build from Source
@@ -83,7 +89,7 @@ git clone https://github.com/AimWald/aimwald-sdflyff.git
 cd aimwald-sdflyff
 npm install
 npm start              # dev mode
-npm run build          # builds dist/FlyffWrapper.AppImage
+npm run build          # builds dist/SDFlyff.AppImage
 ```
 
 ---
@@ -335,12 +341,12 @@ git clone https://github.com/AimWald/aimwald-sdflyff.git
 cd aimwald-sdflyff
 npm install
 npm start              # dev mode (Electron + devtools)
-npm run build          # builds dist/FlyffWrapper.AppImage
+npm run build          # builds dist/SDFlyff.AppImage
 ```
 
 Deploy to Steam Deck:
 ```bash
-scp dist/FlyffWrapper.AppImage deck@<deck-ip>:/home/deck/
+scp dist/SDFlyff.AppImage deck@<deck-ip>:/home/deck/
 # Or run the installer again to update
 ```
 
@@ -353,6 +359,20 @@ scp dist/FlyffWrapper.AppImage deck@<deck-ip>:/home/deck/
 - Original post: [I made a spreadsheet with detailed info about all quests and drops](https://www.reddit.com/r/FlyffUniverse/comments/1k0n6mo/i_made_a_spreadsheet_with_detailed_info_about_all/)
 
 **Auto-targeting spiral search** inspired by [Ariorh1337/flyff_bot](https://github.com/Ariorh1337/flyff_bot).
+
+---
+
+## ⚠️ Disclaimer
+
+This project is an **independent, community-driven wrapper** for Flyff Universe and is **not affiliated with, endorsed by, or sponsored by Gala Lab Corp., Galanet, or any official Flyff developers**.
+
+- **Flyff Universe** is a trademark of Gala Lab Corp.
+- This wrapper is provided **as-is** for educational and personal use.
+- Use at your own risk. The author is not responsible for any consequences of using this software, including potential violations of Flyff Universe's Terms of Service.
+- **Automation features** (auto-heal, buff timers) may be against the game's Terms of Service. Use responsibly and at your own discretion.
+
+**Support the official game:**  
+If you enjoy Flyff Universe, consider supporting the developers by purchasing in-game items or subscribing to premium services at [universe.flyff.com](https://universe.flyff.com).
 
 ---
 

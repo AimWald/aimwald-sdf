@@ -89,6 +89,7 @@ function createMainWindow() {
     height: saved.height || DEFAULT_H,
     frame: false,                   // Kein OS-Rahmen; Toolbar liegt direkt im HTML
     backgroundColor: '#1a1a2e',
+    icon: path.join(__dirname, '../build/icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

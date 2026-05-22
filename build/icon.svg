@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Circle -->
+  <circle cx="256" cy="256" r="240" fill="#1a1a3a" stroke="#5a8ad8" stroke-width="8"/>
+
+  <!-- Outer Glow -->
+  <circle cx="256" cy="256" r="240" fill="none" stroke="#88aaff" stroke-width="4" opacity="0.3"/>
+
+  <!-- Wings (Flyff theme) -->
+  <!-- Left Wing -->
+  <path d="M 180 200 Q 100 180 80 220 Q 60 260 100 280 Q 140 300 180 270 Z"
+        fill="#88aaff" opacity="0.8"/>
+  <path d="M 180 220 Q 120 200 100 240 Q 90 260 120 270 Q 150 280 180 260 Z"
+        fill="#aaccff" opacity="0.6"/>
+
+  <!-- Right Wing -->
+  <path d="M 332 200 Q 412 180 432 220 Q 452 260 412 280 Q 372 300 332 270 Z"
+        fill="#88aaff" opacity="0.8"/>
+  <path d="M 332 220 Q 392 200 412 240 Q 422 260 392 270 Q 362 280 332 260 Z"
+        fill="#aaccff" opacity="0.6"/>
+
+  <!-- SD Text (Steam Deck) -->
+  <text x="256" y="240" font-family="Arial, sans-serif" font-size="120" font-weight="bold"
+        text-anchor="middle" fill="#d0d0e8" stroke="#2a4a8a" stroke-width="3">SD</text>
+
+  <!-- Flyff Subtitle -->
+  <text x="256" y="320" font-family="Arial, sans-serif" font-size="32" font-weight="normal"
+        text-anchor="middle" fill="#88aaff">FLYFF</text>
+
+  <!-- Gamepad Icon (bottom) -->
+  <g transform="translate(256, 370)">
+    <rect x="-30" y="-12" width="60" height="24" rx="8" fill="#5a8ad8" opacity="0.6"/>
+    <circle cx="-15" cy="0" r="4" fill="#d0d0e8"/>
+    <circle cx="15" cy="0" r="4" fill="#d0d0e8"/>
+  </g>
+
+  <!-- Decorative corners -->
+  <path d="M 80 80 L 120 80 L 120 120" stroke="#5a8ad8" stroke-width="4" fill="none" opacity="0.5"/>
+  <path d="M 432 80 L 392 80 L 392 120" stroke="#5a8ad8" stroke-width="4" fill="none" opacity="0.5"/>
+  <path d="M 80 432 L 120 432 L 120 392" stroke="#5a8ad8" stroke-width="4" fill="none" opacity="0.5"/>
+  <path d="M 432 432 L 392 432 L 392 392" stroke="#5a8ad8" stroke-width="4" fill="none" opacity="0.5"/>
+</svg>
