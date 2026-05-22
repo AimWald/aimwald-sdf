@@ -2,12 +2,20 @@
 
 ## Files
 
-- **`icon.svg`** - Vector logo (512×512)
-- **`icon.png`** - App icon 512×512 (for electron-builder)
+### App Icons
+- **`icon.png`** - App icon 512×512 (for electron-builder, dark blue with crosshair + bat)
 - **`icon-256.png`** - App icon 256×256
 - **`icon-128.png`** - App icon 128×128
-- **`steam-grid.svg`** - Steam library grid image (460×215)
-- **`steam-grid.png`** - Steam library grid image PNG
+
+### Steam Artwork
+- **`steam-grid.png`** - Steam library grid image (460×215, horizontal capsule)
+- **`steam-hero.png`** - Steam library hero image (1920×620, full background with text)
+- **`steam-logo.png`** - Steam logo overlay (transparent, 400×200)
+- **`preview-hero-with-logo.png`** - Preview/README banner (1920×620)
+
+### Legacy (auto-generated, replaced by custom artwork)
+- **`icon.svg`** - Old vector logo
+- **`steam-grid.svg`** - Old vector grid
 
 ## Usage
 
@@ -16,9 +24,18 @@ The icon is automatically embedded in the AppImage during `npm run build` via el
 
 ### Steam Library Artwork
 
+**Grid (Library View):**
 1. Add the game to Steam (right-click `.AppImage` → Add to Steam)
 2. In Steam Library, right-click the game → **Manage** → **Set custom artwork**
-3. Select `build/steam-grid.png`
+3. Select `build/steam-grid.png` (460×215)
+
+**Hero (Big Picture / Details Page):**
+1. Right-click game → **Manage** → **Set custom background**
+2. Select `build/steam-hero.png` (1920×620)
+
+**Logo (Overlay on Hero):**
+1. Right-click game → **Manage** → **Set custom logo**
+2. Select `build/steam-logo.png` (transparent overlay)
 
 ### SteamGridDB Integration (Advanced)
 

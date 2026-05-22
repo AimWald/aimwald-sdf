@@ -1,6 +1,17 @@
 # AimWald-SDF (SteamDeckFlyff)
 
-Desktop wrapper for [Flyff Universe](https://universe.flyff.com) with **multiboxing**, **automation**, **gamepad support**, and an **in-app quest guide**. Built and optimized for the **Valve Steam Deck** (SteamOS) but runs on any Linux desktop.
+<p align="center">
+  <img src="build/preview-hero-with-logo.png" alt="AimWald-SDF Banner" width="100%">
+</p>
+
+<p align="center">
+  <strong>Desktop wrapper for <a href="https://universe.flyff.com">Flyff Universe</a></strong><br>
+  Multiboxing • Automation • Gamepad Support • Quest Guide
+</p>
+
+<p align="center">
+  Built and optimized for the <strong>Valve Steam Deck</strong> (SteamOS) — also runs on any Linux desktop
+</p>
 
 ---
 
@@ -54,10 +65,16 @@ This will:
 Then add `/home/deck/launch-sdf.sh` as a **Non-Steam Game** and launch from Game Mode.
 
 **Optional: Add custom artwork to Steam Library**
-1. Right-click the game in Steam Library → **Manage** → **Set custom artwork**
-2. Download and select: [steam-grid.png](https://github.com/AimWald/aimwald-sdf/raw/main/build/steam-grid.png)
 
-Or use the app icon: [icon.png](https://github.com/AimWald/aimwald-sdf/raw/main/build/icon.png)
+Download artwork from the repo:
+- **Grid** (Library): [steam-grid.png](https://github.com/AimWald/aimwald-sdf/raw/main/build/steam-grid.png) (460×215)
+- **Hero** (Background): [steam-hero.png](https://github.com/AimWald/aimwald-sdf/raw/main/build/steam-hero.png) (1920×620)
+- **Logo** (Overlay): [steam-logo.png](https://github.com/AimWald/aimwald-sdf/raw/main/build/steam-logo.png) (transparent)
+
+Apply in Steam:
+1. Right-click game → **Manage** → **Set custom artwork** (Grid)
+2. Right-click game → **Manage** → **Set custom background** (Hero)
+3. Right-click game → **Manage** → **Set custom logo** (Logo overlay)
 
 ### Manual Installation (Linux)
 
