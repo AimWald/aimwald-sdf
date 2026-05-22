@@ -212,7 +212,6 @@
     .qf-btn.active { background: #2a4a8a; color: #fff; border-color: #5a8ad8; }
     .quest-count { font-size: 10px; color: #555; }
     .quest-status-group { display: flex; gap: 3px; align-items: center; justify-content: center; flex-wrap: nowrap; white-space: nowrap; }
-    .quest-status-radio { margin: 0; cursor: pointer; width: 15px; height: 15px; flex-shrink: 0; }
     .quest-status-label { font-size: 16px; color: #888; cursor: pointer; user-select: none; line-height: 1; flex-shrink: 0; }
 
     .diff-hard     { color: #ff6666; }
@@ -296,7 +295,7 @@
     <span id="app-version" class="label no-drag" style="color:#333; font-size:10px;"></span>
     <button id="btn-guide" onclick="openGuide()" title="Madrigal Guide (Quests & Monsters)" style="padding:0 5px; font-size:10px; color:#aaa; border-color:#2a2a4a; background:#1e1e3a;">📖 Guide</button>
     <button id="btn-changelog" onclick="openChangelog()" title="Show Changelog" style="padding:0 5px; font-size:10px; color:#444; border-color:#2a2a4a; background:#12122a;">📋</button>
-    <button id="btn-vkbd" onclick="toggleVkbd()" title="Virtual Keyboard (F8)" style="padding:0 5px; font-size:10px; color:#666; border-color:#2a2a4a; background:#12122a;">🔤</button>
+    <button id="btn-vkbd" onclick="toggleVkbd()" title="Virtual Keyboard" style="padding:0 5px; font-size:10px; color:#666; border-color:#2a2a4a; background:#12122a;">🔤</button>
 
     <!-- Resolution indicator -->
     <span id="res-label" class="label no-drag" style="color:#333; font-size:10px;" title="Game view resolution"></span>
@@ -550,13 +549,9 @@
       }
     }
 
-    // F8 Hotkey für Virtual Keyboard (nicht konfigurierbar)
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'F8' && !e.repeat) {
-        e.preventDefault();
-        toggleVkbd();
-      }
-    });
+    // F8 Hotkey für Virtual Keyboard entfernt - nur noch über Toolbar-Button
+    // (F8 ist im Game für Action Bar 8 reserviert)
+    // Nutze nur noch den 🔤 Button in der Toolbar
 
     // ── Changelog-Overlay ─────────────────────────────────────────────────────
 
@@ -754,11 +749,9 @@
         html += `<tr class="quest-row${rowClass}">
           <td class="col-done">
             <div class="quest-status-group">
-              <input type="radio" name="status-${qIdSafe}" value="open" class="quest-status-radio"${currentStatus === 'open' ? ' checked' : ''} onchange="setQuestStatus('${qIdSafe}', 'open')" id="open-${qIdSafe}">
-              <label for="open-${qIdSafe}" class="quest-status-label" style="color:#4a4">○</label>
-              <input type="radio" name="status-${qIdSafe}" value="done" class="quest-status-radio"${currentStatus === 'done' ? ' checked' : ''} onchange="setQuestStatus('${qIdSafe}', 'done')" id="done-${qIdSafe}">
+              <input type="checkbox" ${isDone ? 'checked' : ''} onchange="setQuestStatus('${qIdSafe}', this.checked ? 'done' : 'open')" id="done-${qIdSafe}" style="margin:0; cursor:pointer; width:15px; height:15px;">
               <label for="done-${qIdSafe}" class="quest-status-label" style="color:#4a4">✓</label>
-              <input type="radio" name="status-${qIdSafe}" value="skipped" class="quest-status-radio"${currentStatus === 'skipped' ? ' checked' : ''} onchange="setQuestStatus('${qIdSafe}', 'skipped')" id="skip-${qIdSafe}">
+              <input type="checkbox" ${isSkipped ? 'checked' : ''} onchange="setQuestStatus('${qIdSafe}', this.checked ? 'skipped' : 'open')" id="skip-${qIdSafe}" style="margin:0; cursor:pointer; width:15px; height:15px;">
               <label for="skip-${qIdSafe}" class="quest-status-label" style="color:#a44">⊗</label>
             </div>
           </td>

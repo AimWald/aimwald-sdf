@@ -430,8 +430,11 @@ Automation on the target account pauses during macro execution and resumes after
 | **F9** | Switch active account | ✅ |
 | **F10** | Toggle automation on active account | ✅ |
 | **`,`** | Follow + Board (Z + Alt+6) on active account | ✅ |
-| **F8** | Toggle virtual keyboard | ❌ |
 | **F11** | Toggle fullscreen | ❌ |
+
+**Note:** F8 is no longer used for virtual keyboard (conflicts with in-game Action Bar 8). Use the **🔤** toolbar button instead.
+
+**Important:** Wrapper hotkeys (F9, F10, comma) are captured globally and **will not reach the game**. If you need F9/F10 in-game (Action Bar switching), change the wrapper hotkeys in **Settings → Hotkeys** to different keys.
 
 Change configurable hotkeys in **Settings → Hotkeys**.
 
