@@ -291,43 +291,55 @@ See the [Installation section](#-installation) for detailed setup instructions.
 No L2-hold required for camera anymore.
 
 ### Auto-Targeting
-Assign `__TARGET` to any button in **Settings → Controller**. When pressed, a spiral cursor sweeps from screen center and clicks the first hovered target. Configure search radius in **Settings → Controller → Auto-Target**.
+Assign `__TARGET` to any button in **Settings → Controller** inside the app. When pressed, a spiral cursor sweeps from screen center and clicks the first hovered target. Configure search radius in **Settings → Controller → Auto-Target**.
 
-### Customization
-All 20 buttons (0–19) are remappable in **Settings → Controller**.
+---
 
-### Recommended Steam Controller Setup (Steam Deck)
+## Controller Configuration: Two Layers Explained
 
-For optimal gameplay, configure these additional Steam Controller settings:
+There are **two places** to configure controller buttons, and understanding the difference is important:
 
-**Back Buttons (L4/R4/L5/R5)**
-- Use for **Account Switch** (F9) — quick multibox switching without leaving combat
-- Or map to automation toggle, macros, or frequently used skills
+### 1️⃣ In-App Settings (Settings → Controller)
 
-**D-Pad**
-- **Default in-app:**
-  - **↑**: Scroll in (zoom)
-  - **↓**: Scroll out (zoom)
-  - **→**: `Tab` — Switch skill bar
-- **Recommended Steam override** (for more useful shortcuts):
-  - **↑**: `P` — Party Window
-  - **↓**: `H` — Stats Window  
-  - **←**: `I` — Inventory
-  - Keep **→** as default or map to other keys (e.g. `C` for Character window)
-- You can still zoom using mouse scroll or touchscreen pinch
+Configure the **main gamepad buttons** (A/B/X/Y, L1/R1/L2/R2, D-Pad, Start/Back) here:
+- All 20 buttons (0–19) are remappable
+- Change what keyboard keys they send to the game
+- Configure auto-targeting (`__TARGET` special function)
+- These settings apply to the physical Steam Deck buttons
 
-**Right Trackpad**
-- **Mode**: Mouse (not Joystick)
-- **Click Action**: Left Mouse Click
-- Gives you precise cursor control for UI, targeting, and camera adjustment
-- Works alongside the built-in auto-targeting for hybrid control
+**Example:** Change X button from `3` to `5`, or map D-Pad ↑ to `P` for Party Window.
 
-**Example Setup:**
-1. Right-click game in Steam → **Manage** → **Controller Layout**
-2. Configure back buttons, D-pad, and right trackpad as above
-3. Save as custom layout for AimWald-SDF
+### 2️⃣ Steam Controller Layout (Steam → Manage → Controller Layout)
 
-This setup gives you full control without needing the virtual keyboard for common actions.
+Configure **extra inputs** that the app doesn't handle natively:
+- **Back buttons** (L4/R4/L5/R5) — not accessible in-app, must configure in Steam
+- **Right trackpad** — set to Mouse mode + Left Click for precise cursor control
+- **Gyro** — if you want motion controls
+- **Touchscreen Native Support** ⚠️ **REQUIRED** — enable in Action Sets → Always On Commands
+
+**Recommended Steam-only mappings:**
+- **L4**: `F9` (Account Switch) — quick multibox switching
+- **R4**: Automation toggle hotkey or macro button
+- **Right Trackpad**: Mouse mode + Left Click action
+
+### ⚡ Quick Decision Guide
+
+| What do you want to change? | Where to configure it? |
+|------------------------------|------------------------|
+| A/B/X/Y buttons, D-Pad, L1/R1/L2/R2 | **In-App** (Settings → Controller) |
+| Back buttons (L4/R4/L5/R5) | **Steam Controller Layout** |
+| Right trackpad behavior | **Steam Controller Layout** |
+| Touchscreen support | **Steam Controller Layout** (Action Sets) |
+| Auto-targeting | **In-App** (Settings → Controller) |
+
+### 💡 Recommended Workflow
+
+1. **Start with in-app defaults** — they're optimized for Flyff gameplay
+2. **Add Steam-only features** — back buttons for F9 (account switch), right trackpad as mouse
+3. **Enable touchscreen** in Steam Action Sets (CRITICAL!)
+4. **Optionally override D-Pad** in Steam if you prefer UI shortcuts (P/H/I) over zoom
+
+This two-layer system gives you maximum flexibility: the app handles core combat controls, Steam handles extra hardware features.
 
 ---
 
