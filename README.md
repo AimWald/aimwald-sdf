@@ -75,6 +75,19 @@ After adding to Steam, you **MUST** configure the Steam Controller settings for 
 
 **Without this setting, the Steam Deck touchscreen will not work in the app!**
 
+**⚠️ CRITICAL: In-Game Keybind Setup**
+
+You **MUST** configure this keybind in Flyff Universe game settings for the B button to work:
+
+1. Launch the game
+2. Open **Settings** (Esc → Settings)
+3. Go to **Keybinds**
+4. Find **Clear Target**
+5. Set it to **`.`** (period/dot key)
+6. Save settings
+
+**Without this keybind, the B button (Clear Target) will not work!**
+
 **Install Custom Artwork (Automated)**
 
 The installer downloads artwork automatically. To apply it:
@@ -247,7 +260,11 @@ No configuration needed — randomization is built-in and automatic.
 
 ## 🎮 Gamepad Support (Steam Deck)
 
-**⚠️ Important:** To use the Steam Deck touchscreen, you must enable **Touchscreen Native Support** in Steam Controller settings. See the [Installation section](#-installation) for setup instructions.
+**⚠️ Important Setup Required:**
+1. **Touchscreen:** Enable **Touchscreen Native Support** in Steam Controller settings
+2. **Clear Target (B button):** Set **Clear Target** keybind to **`.`** in Flyff Universe game settings
+
+See the [Installation section](#-installation) for detailed setup instructions.
 
 ### Default Button Layout
 
