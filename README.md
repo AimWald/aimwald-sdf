@@ -62,18 +62,20 @@ This will:
 - Create launch script with proper environment variables
 - Clean up old AppImage extracts
 
-Then add `/home/deck/launch-sdf.sh` as a **Non-Steam Game** and launch from Game Mode.
+Then add `/home/deck/launch-sdf.sh` as a **Non-Steam Game**:
+1. Open Steam (Desktop Mode)
+2. Games → Add a Non-Steam Game → Browse
+3. Select `/home/deck/launch-sdf.sh`
+4. Add to Steam
 
-**Optional: Add custom artwork to Steam Library**
+**Install Custom Artwork (Automated)**
 
-**Easy: Automated (recommended)**
+The installer downloads artwork automatically. To apply it:
 ```bash
 cd /home/deck
-curl -L -O https://github.com/AimWald/aimwald-sdf/raw/main/install-steam-artwork.sh
-chmod +x install-steam-artwork.sh
 ./install-steam-artwork.sh
 ```
-The script auto-downloads artwork, detects your game's App ID, and installs all artwork files. Restart Steam to see changes.
+The script detects your game's App ID and installs all artwork (Grid, Hero, Logo). Restart Steam to see changes.
 
 **Manual: Via Steam UI**
 

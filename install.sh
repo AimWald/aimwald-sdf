@@ -77,9 +77,59 @@ chmod +x "$LAUNCH_SCRIPT"
 echo "✅ Launch script created: $INSTALL_DIR/$LAUNCH_SCRIPT"
 echo ""
 
+# Download artwork installer script
+echo "📥 Downloading artwork installer..."
+ARTWORK_SCRIPT="install-steam-artwork.sh"
+curl -sL -o "$ARTWORK_SCRIPT" "https://github.com/$REPO/raw/main/install-steam-artwork.sh" || {
+    echo "⚠️  Failed to download artwork installer"
+}
+
+if [ -f "$ARTWORK_SCRIPT" ]; then
+    chmod +x "$ARTWORK_SCRIPT"
+    echo "✅ Artwork installer: $INSTALL_DIR/$ARTWORK_SCRIPT"
+fi
+echo ""
+
 # Clean up old extracts
 echo "🧹 Cleaning up old AppImage extracts..."
 rm -rf /tmp/appimage_extracted_* 2>/dev/null || true
+
+echo ""
+echo "🎨 Installing Steam artwork..."
+
+# Find Steam directory and user ID
+STEAM_DIR="$HOME/.local/share/Steam"
+if [ -d "$STEAM_DIR/userdata" ]; then
+    USER_ID=$(ls -1 "$STEAM_DIR/userdata" | grep -E '^[0-9]+$' | head -1)
+    if [ -n "$USER_ID" ]; then
+        GRID_DIR="$STEAM_DIR/userdata/$USER_ID/config/grid"
+        mkdir -p "$GRID_DIR"
+
+        # Download artwork to temp directory
+        ARTWORK_TMP="/tmp/sdf-artwork-$$"
+        mkdir -p "$ARTWORK_TMP"
+
+        echo "   → Downloading artwork files..."
+        curl -sL -o "$ARTWORK_TMP/steam-grid.png" "https://github.com/$REPO/raw/main/build/steam-grid.png" 2>/dev/null || true
+        curl -sL -o "$ARTWORK_TMP/steam-hero.png" "https://github.com/$REPO/raw/main/build/steam-hero.png" 2>/dev/null || true
+        curl -sL -o "$ARTWORK_TMP/steam-logo.png" "https://github.com/$REPO/raw/main/build/steam-logo.png" 2>/dev/null || true
+        curl -sL -o "$ARTWORK_TMP/icon.png" "https://github.com/$REPO/raw/main/build/icon.png" 2>/dev/null || true
+
+        # Store in a known location for later use
+        ARTWORK_CACHE="$HOME/.cache/aimwald-sdf-artwork"
+        mkdir -p "$ARTWORK_CACHE"
+        cp -f "$ARTWORK_TMP"/*.png "$ARTWORK_CACHE/" 2>/dev/null || true
+        rm -rf "$ARTWORK_TMP"
+
+        echo "   ✓ Artwork downloaded to cache"
+        echo "   ℹ️  Artwork will be applied after adding the game to Steam"
+        echo "      Run: $INSTALL_DIR/install-steam-artwork.sh"
+    else
+        echo "   ⚠️  Steam user not found - skipping artwork download"
+    fi
+else
+    echo "   ⚠️  Steam not found - skipping artwork download"
+fi
 
 echo ""
 echo "╔════════════════════════════════════════════════════╗"
@@ -91,10 +141,11 @@ echo "   • $INSTALL_DIR/$APPIMAGE_NAME"
 echo "   • $INSTALL_DIR/$LAUNCH_SCRIPT"
 echo ""
 echo "🎮 Next steps:"
-echo "   1. Add $INSTALL_DIR/$LAUNCH_SCRIPT as a Non-Steam Game"
-echo "   2. Optional: Set custom artwork in Steam Library"
-echo "      Download: https://github.com/$REPO/raw/main/build/steam-grid.png"
-echo "   3. Launch from Game Mode"
+echo "   1. Add $INSTALL_DIR/$LAUNCH_SCRIPT as a Non-Steam Game (Desktop Mode)"
+echo "      Steam → Games → Add a Non-Steam Game → Browse"
+echo "   2. Install artwork: $INSTALL_DIR/install-steam-artwork.sh"
+echo "   3. Restart Steam to see artwork"
+echo "   4. Launch from Game Mode"
 echo ""
 echo "🔄 To update, just run this installer again!"
 echo ""
