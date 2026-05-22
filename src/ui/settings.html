@@ -370,10 +370,14 @@
           <td>Automation (active account) on/off</td>
           <td><input type="text" id="hk-auto"   placeholder="F10" style="width:70px"></td>
         </tr>
+        <tr>
+          <td>Follow + Board (active account)</td>
+          <td><input type="text" id="hk-follow" placeholder="," style="width:70px"></td>
+        </tr>
       </tbody>
     </table>
     <p style="color:#555; font-size:11px; margin-top:8px;">
-      F11 (Fullscreen) is fixed and cannot be changed.
+      F11 (Fullscreen) is fixed and cannot be changed. Follow+Board sends: Z, then Alt+6.
     </p>
 
   </div>
@@ -641,6 +645,7 @@
       const state = await window.flyff.getState();
       document.getElementById('hk-switch').value = state.hotkeys?.switchAccount     || 'F9';
       document.getElementById('hk-auto').value   = state.hotkeys?.toggleAutomation || 'F10';
+      document.getElementById('hk-follow').value = state.hotkeys?.followBoard      || ',';
 
       loadedMacros = await window.flyff.getMacros() || [];
       renderMacrosTable(loadedMacros);
@@ -663,7 +668,8 @@
       // Hotkeys
       window.flyff.saveHotkeys({
         switchAccount:    document.getElementById('hk-switch').value.trim() || 'F9',
-        toggleAutomation: document.getElementById('hk-auto').value.trim()   || 'F10'
+        toggleAutomation: document.getElementById('hk-auto').value.trim()   || 'F10',
+        followBoard:      document.getElementById('hk-follow').value.trim() || ','
       });
 
       // Macros

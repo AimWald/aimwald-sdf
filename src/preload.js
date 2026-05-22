@@ -6,10 +6,13 @@ contextBridge.exposeInMainWorld('flyff', {
 
   // --- Account-Verwaltung ---
   switchAccount: (account) => ipcRenderer.send('switch-account', account),
+  openAccount:   (account) => ipcRenderer.send('open-account', account),
+  closeAccount:  (account) => ipcRenderer.send('close-account', account),
 
   // --- Automation ---
   startAutomation: (account) => ipcRenderer.send('start-automation', account),
   stopAutomation:  (account) => ipcRenderer.send('stop-automation', account),
+  followBoard:     (account) => ipcRenderer.send('follow-board', account),
 
   // --- UI-Fenster ---
   openSettings:  () => ipcRenderer.send('open-settings'),
@@ -45,7 +48,7 @@ contextBridge.exposeInMainWorld('flyff', {
 
   // --- Events empfangen ---
   on: (channel, cb) => {
-    const allowed = ['account-switched', 'automation-state-changed', 'gamepad-config-updated', 'macros-updated', 'autoheal-rect-picked', 'hp-picker-bg', 'view-size-changed'];
+    const allowed = ['account-switched', 'account-opened', 'account-closed', 'automation-state-changed', 'gamepad-config-updated', 'macros-updated', 'autoheal-rect-picked', 'hp-picker-bg', 'view-size-changed'];
     if (!allowed.includes(channel)) return;
     ipcRenderer.on(channel, (_event, ...args) => cb(...args));
   },
@@ -67,5 +70,7 @@ contextBridge.exposeInMainWorld('flyff', {
   getDailies:         ()               => ipcRenderer.invoke('get-dailies'),
   getQuestProgress:    ()               => ipcRenderer.invoke('get-quest-progress'),
   saveQuestProgress:   (progress)       => ipcRenderer.send('save-quest-progress', progress),
+  exportQuestProgress: ()               => ipcRenderer.invoke('export-quest-progress'),
+  importQuestProgress: ()               => ipcRenderer.invoke('import-quest-progress'),
   clearSession:       (account)        => ipcRenderer.invoke('clear-session', account),
 });

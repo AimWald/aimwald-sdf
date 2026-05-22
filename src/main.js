@@ -21,7 +21,7 @@ async function initStore() {
   store = new Store({
     defaults: {
       activeAccount: 'account1',
-      hotkeys: { switchAccount: 'F9', toggleAutomation: 'F10' },
+      hotkeys: { switchAccount: 'F9', toggleAutomation: 'F10', followBoard: ',' },
       windowBounds: { width: DEFAULT_W, height: DEFAULT_H }
     }
   });
@@ -63,8 +63,15 @@ let currentPickerTarget = null; // { account, barType }
 const hpHealActive  = {};  // account → boolean: steuert den async Heal-Loop
 let ocrWorker = null;
 let lastPickerScreenshot = null;
-let view1 = null;   // WebContentsView für Account 1
-let view2 = null;   // WebContentsView für Account 2
+
+// Game Views: 1 & 2 sind immer geladen, 3 & 4 optional (null bis geöffnet)
+const gameViews = {
+  account1: null,
+  account2: null,
+  account3: null,
+  account4: null
+};
+
 let activeAccount = 'account1';
 let overlayOpen   = false;  // Guide oder Changelog sichtbar → Game-Views versteckt halten
 
@@ -110,7 +117,7 @@ function createMainWindow() {
   // event.preventDefault() stops the toolbar page from also handling it.
   mainWindow.webContents.on('before-input-event', (event, input) => {
     if (overlayOpen) return;
-    const view = activeAccount === 'account1' ? view1 : view2;
+    const view = gameViews[activeAccount];
     if (!view?.webContents) return;
     event.preventDefault();
     const mods = [];
@@ -133,10 +140,10 @@ function createMainWindow() {
 
 // ── Game-Views (WebContentsView) ──────────────────────────────────────────────
 
-function createGameViews() {
-  view1 = new WebContentsView({
+function createGameView(account) {
+  const view = new WebContentsView({
     webPreferences: {
-      partition: 'persist:account1',  // Isolierte Session für Account 1
+      partition: `persist:${account}`,
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
@@ -144,52 +151,76 @@ function createGameViews() {
     }
   });
 
-  view2 = new WebContentsView({
-    webPreferences: {
-      partition: 'persist:account2',  // Isolierte Session für Account 2
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: false,
-      backgroundThrottling: true
-    }
-  });
+  mainWindow.contentView.addChildView(view);
+  view.webContents.loadURL(FLYFF_URL);
 
-  // Beide Views dauerhaft als Kinder des Hauptfensters – bleiben auch im Hintergrund aktiv
-  mainWindow.contentView.addChildView(view1);
-  mainWindow.contentView.addChildView(view2);
-
-  view1.webContents.loadURL(FLYFF_URL);
-  view2.webContents.loadURL(FLYFF_URL);
-
-  // Cursor sichtbar halten (Spiel setzt canvas { cursor: none })
   const CURSOR_CSS = '*, canvas { cursor: default !important; }';
+  view.webContents.on('did-finish-load', () => {
+    view.webContents.insertCSS(CURSOR_CSS);
+  });
 
-  view1.webContents.on('did-finish-load', () => { view1.webContents.insertCSS(CURSOR_CSS); });
-  view2.webContents.on('did-finish-load', () => { view2.webContents.insertCSS(CURSOR_CSS); });
+  gameViews[account] = view;
+  return view;
+}
 
+function createGameViews() {
+  // Account 1 & 2 werden beim Start immer geladen
+  createGameView('account1');
+  createGameView('account2');
   updateViewBounds();
+}
+
+function openAccount(account) {
+  if (gameViews[account]) {
+    switchAccount(account);
+    return;
+  }
+  createGameView(account);
+  switchAccount(account);
+  mainWindow?.webContents.send('account-opened', account);
+}
+
+function closeAccount(account) {
+  if (account === 'account1' || account === 'account2') {
+    console.warn(`Cannot close ${account} - core accounts cannot be closed`);
+    return;
+  }
+  const view = gameViews[account];
+  if (!view) return;
+
+  stopAutomation(account);
+  stopAutoHeal(account);
+  mainWindow.contentView.removeChildView(view);
+  view.webContents.close();
+  gameViews[account] = null;
+
+  // Switch to account1 if we just closed the active account
+  if (activeAccount === account) {
+    switchAccount('account1');
+  }
+
+  mainWindow?.webContents.send('account-closed', account);
 }
 
 // Setzt Bounds und Sichtbarkeit der Views je nach aktivem Account.
 // Ist ein Overlay offen, bleibt der aktive View versteckt bis es geschlossen wird.
 function updateViewBounds() {
-  if (!mainWindow || !view1 || !view2) return;
+  if (!mainWindow) return;
   const [w, h] = mainWindow.getContentSize();
   const activeBounds = { x: 0, y: TOOLBAR_H, width: w, height: h - TOOLBAR_H };
-  const hiddenBounds  = { x: -w - 100, y: TOOLBAR_H, width: w, height: h - TOOLBAR_H };
+  const hiddenBounds = { x: -w - 100, y: TOOLBAR_H, width: w, height: h - TOOLBAR_H };
 
-  if (activeAccount === 'account1') {
-    view1.setBounds(activeBounds);
-    view1.setVisible(!overlayOpen);
-    if (!overlayOpen) view1.webContents.focus();
-    view2.setBounds(hiddenBounds);
-    view2.setVisible(true);
-  } else {
-    view2.setBounds(activeBounds);
-    view2.setVisible(!overlayOpen);
-    if (!overlayOpen) view2.webContents.focus();
-    view1.setBounds(hiddenBounds);
-    view1.setVisible(true);
+  for (const [account, view] of Object.entries(gameViews)) {
+    if (!view) continue;
+
+    if (account === activeAccount) {
+      view.setBounds(activeBounds);
+      view.setVisible(!overlayOpen);
+      if (!overlayOpen) view.webContents.focus();
+    } else {
+      view.setBounds(hiddenBounds);
+      view.setVisible(true);
+    }
   }
 }
 
@@ -216,7 +247,7 @@ function onAutomationStateChange(account, running) {
 }
 
 function startAutomation(account) {
-  const view = account === 'account1' ? view1 : view2;
+  const view = gameViews[account];
   if (!view) return;
   automation.start(account, view.webContents, onAutomationStateChange);
 }
@@ -225,10 +256,37 @@ function stopAutomation(account) {
   automation.stop(account, onAutomationStateChange);
 }
 
+// ── Follow + Board: Z + Alt+6 Key-Kombination ────────────────────────────────
+
+async function sendFollowBoard(account) {
+  const view = gameViews[account];
+  if (!view) return;
+
+  console.log(`[FollowBoard] Sending to ${account}: Z, then Alt+6`);
+
+  // Z drücken
+  const zKey = CDP_KEYS['Z'] || { windowsVirtualKeyCode: 90, nativeVirtualKeyCode: 90, code: 'KeyZ', key: 'z', text: 'z', unmodifiedText: 'z', autoRepeat: false };
+  await sendKeyCDP(view, zKey);
+  await new Promise(r => setTimeout(r, 150));
+
+  // Alt+6 drücken
+  try {
+    view.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Alt' });
+    await new Promise(r => setTimeout(r, 50));
+    view.webContents.sendInputEvent({ type: 'keyDown', keyCode: '6', modifiers: ['alt'] });
+    view.webContents.sendInputEvent({ type: 'char', keyCode: '6', modifiers: ['alt'] });
+    await new Promise(r => setTimeout(r, 80));
+    view.webContents.sendInputEvent({ type: 'keyUp', keyCode: '6', modifiers: ['alt'] });
+    view.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'Alt' });
+  } catch (e) {
+    console.error('[FollowBoard] Error sending Alt+6:', e.message);
+  }
+}
+
 // ── Globale Shortcuts ─────────────────────────────────────────────────────────
 
 function registerShortcuts() {
-  const hk = store.get('hotkeys', { switchAccount: 'F9', toggleAutomation: 'F10' });
+  const hk = store.get('hotkeys', { switchAccount: 'F9', toggleAutomation: 'F10', followBoard: ',' });
 
   // F9 (konfigurierbar): Account wechseln
   try { globalShortcut.register(hk.switchAccount, () => switchAccount()); } catch (e) {
@@ -252,6 +310,15 @@ function registerShortcuts() {
       mainWindow?.setFullScreen(!mainWindow.isFullScreen());
     });
   } catch {}
+
+  // Follow + Board Hotkey (konfigurierbar, Standard: ,)
+  try {
+    globalShortcut.register(hk.followBoard, () => {
+      sendFollowBoard(activeAccount);
+    });
+  } catch (e) {
+    console.error('Shortcut konnte nicht registriert werden:', hk.followBoard, e.message);
+  }
 
 }
 
@@ -640,16 +707,19 @@ function startAutoHeal(account) {
   const acfg = cfg?.[account];
 
   const bars = ['hp', 'mp', 'fp'];
-  const anyEnabled = bars.some(b => acfg?.[b]?.enabled);
-  if (!anyEnabled) return;
 
-  const hasAnySource = bars.some(b => {
+  // Check if any bar is actually enabled AND has a valid source configured
+  const hasEnabledBar = bars.some(b => {
     if (!acfg?.[b]?.enabled) return false;
     return !!acfg?.barBounds?.[b];
   });
-  if (!hasAnySource) return;
 
-  const view = account === 'account1' ? view1 : view2;
+  if (!hasEnabledBar) {
+    console.log(`[AutoHeal] ${account} – no enabled bars with valid bounds, not starting`);
+    return;
+  }
+
+  const view = gameViews[account];
   hpHealActive[account] = true;
 
   for (const barType of bars) {
@@ -671,7 +741,7 @@ async function openHpPicker(account, barType, mode = 'bar', pixelIndex = 0) {
   // Game-View-Screenshot als Hintergrund – funktioniert auch in Gamescope (kein Compositor nötig)
   let bgDataUrl = null;
   try {
-    const activeView = activeAccount === 'account1' ? view1 : view2;
+    const activeView = gameViews[activeAccount];
     const [w, h] = mainWindow.getContentSize();
     const img = await activeView.webContents.capturePage({ x: 0, y: 0, width: w, height: h - TOOLBAR_H });
     bgDataUrl = img.toDataURL();
@@ -775,8 +845,11 @@ function spiralSearch(maxRadius) {
 
 function setupIPC() {
   ipcMain.on('switch-account',      (_, acc)  => switchAccount(acc));
+  ipcMain.on('open-account',        (_, acc)  => openAccount(acc));
+  ipcMain.on('close-account',       (_, acc)  => closeAccount(acc));
   ipcMain.on('start-automation',    (_, acc)  => startAutomation(acc));
   ipcMain.on('stop-automation',     (_, acc)  => stopAutomation(acc));
+  ipcMain.on('follow-board',        (_, acc)  => sendFollowBoard(acc));
   ipcMain.on('open-settings',       ()        => openSettings());
   ipcMain.on('close-settings',      ()        => settingsWindow?.close());
   ipcMain.on('open-quest-url',      (_, url)  => openQuestUrl(url));
@@ -798,6 +871,8 @@ function setupIPC() {
     activeAccount,
     account1Running: automation.isRunning('account1'),
     account2Running: automation.isRunning('account2'),
+    account3Open: !!gameViews.account3,
+    account4Open: !!gameViews.account4,
     hotkeys: store.get('hotkeys'),
     version: app.getVersion()
   }));
@@ -814,10 +889,10 @@ function setupIPC() {
 
   ipcMain.handle('clear-session', async (_, account) => {
     const { session } = require('electron');
-    const partition = account === 'account1' ? 'persist:account1' : 'persist:account2';
+    const partition = `persist:${account}`;
     await session.fromPartition(partition).clearStorageData();
-    const view = account === 'account1' ? view1 : view2;
-    view?.webContents.loadURL('https://universe.flyff.com');
+    const view = gameViews[account];
+    view?.webContents.loadURL(FLYFF_URL);
   });
 
   ipcMain.handle('get-changelog', () => {
@@ -851,11 +926,59 @@ function setupIPC() {
   });
 
   ipcMain.handle('get-quest-progress', () => {
-    return store.get('questProgress', {});
+    const raw = store.get('questProgress', {});
+    // Migration: convert old boolean format to { done, skipped }
+    const migrated = {};
+    for (const [key, val] of Object.entries(raw)) {
+      if (typeof val === 'boolean') {
+        migrated[key] = { done: val, skipped: false };
+      } else if (typeof val === 'object' && val !== null) {
+        migrated[key] = { done: !!val.done, skipped: !!val.skipped };
+      } else {
+        migrated[key] = { done: false, skipped: false };
+      }
+    }
+    return migrated;
   });
 
   ipcMain.on('save-quest-progress', (_, progress) => {
     store.set('questProgress', progress);
+  });
+
+  // Export quest progress as JSON file
+  ipcMain.handle('export-quest-progress', async () => {
+    const { dialog } = require('electron');
+    const progress = store.get('questProgress', {});
+    const result = await dialog.showSaveDialog(mainWindow, {
+      title: 'Export Quest Progress',
+      defaultPath: `flyff-quest-progress-${new Date().toISOString().slice(0, 10)}.json`,
+      filters: [{ name: 'JSON', extensions: ['json'] }]
+    });
+    if (result.canceled || !result.filePath) return { success: false };
+    try {
+      fs.writeFileSync(result.filePath, JSON.stringify(progress, null, 2), 'utf8');
+      return { success: true, path: result.filePath };
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
+  });
+
+  // Import quest progress from JSON file
+  ipcMain.handle('import-quest-progress', async () => {
+    const { dialog } = require('electron');
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: 'Import Quest Progress',
+      filters: [{ name: 'JSON', extensions: ['json'] }],
+      properties: ['openFile']
+    });
+    if (result.canceled || !result.filePaths.length) return { success: false };
+    try {
+      const data = JSON.parse(fs.readFileSync(result.filePaths[0], 'utf8'));
+      store.set('questProgress', data);
+      return { success: true, count: Object.keys(data).length };
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
   });
 
   // Neue Automation-Config übernehmen und in Datei schreiben
@@ -882,7 +1005,7 @@ function setupIPC() {
 
   // Gamepad-Mausbewegung: Delta auf virtuelle Position anwenden und an aktiven View senden
   ipcMain.on('gamepad-mouse-move', (_, { dx, dy }) => {
-    const view = activeAccount === 'account1' ? view1 : view2;
+    const view = gameViews[activeAccount];
     if (!view || !mainWindow) return;
     const [w, h] = mainWindow.getContentSize();
     cursor.x = Math.max(0, Math.min(w - 1,             cursor.x + dx));
@@ -910,7 +1033,7 @@ function setupIPC() {
   // Gamepad-Button: kurzer Tastendruck
   // Space/J via CDP (80ms Hold nötig weil Spiel Input per rAF pollt); alle anderen Keys via sendInputEvent sofort
   ipcMain.on('gamepad-button', (_, { keyCode }) => {
-    const view = activeAccount === 'account1' ? view1 : view2;
+    const view = gameViews[activeAccount];
     if (!view) return;
     const cdpDef = CDP_KEYS[keyCode];
     if (cdpDef) {
@@ -926,20 +1049,20 @@ function setupIPC() {
 
   // Gamepad-WASD: Taste gedrückt halten (linker Stick)
   ipcMain.on('gamepad-keydown', (_, { keyCode }) => {
-    const view = activeAccount === 'account1' ? view1 : view2;
+    const view = gameViews[activeAccount];
     if (!view) return;
     try { view.webContents.sendInputEvent({ type: 'keyDown', keyCode: normalizeKey(keyCode) }); } catch {}
   });
 
   ipcMain.on('gamepad-keyup', (_, { keyCode }) => {
-    const view = activeAccount === 'account1' ? view1 : view2;
+    const view = gameViews[activeAccount];
     if (!view) return;
     try { view.webContents.sendInputEvent({ type: 'keyUp', keyCode: normalizeKey(keyCode) }); } catch {}
   });
 
   // Mausklicks für Controller-Buttons (__LCLICK / __RHOLD)
   ipcMain.on('gamepad-mousedown', (_, { button }) => {
-    const view = activeAccount === 'account1' ? view1 : view2;
+    const view = gameViews[activeAccount];
     if (!view) return;
     try {
       view.webContents.sendInputEvent({
@@ -950,7 +1073,7 @@ function setupIPC() {
   });
 
   ipcMain.on('gamepad-mouseup', (_, { button }) => {
-    const view = activeAccount === 'account1' ? view1 : view2;
+    const view = gameViews[activeAccount];
     if (!view) return;
     try {
       view.webContents.sendInputEvent({
@@ -962,7 +1085,7 @@ function setupIPC() {
 
   // Scrollrad (D-Pad Zoom)
   ipcMain.on('gamepad-scroll', (_, { deltaX, deltaY }) => {
-    const view = activeAccount === 'account1' ? view1 : view2;
+    const view = gameViews[activeAccount];
     if (!view) return;
     try {
       view.webContents.sendInputEvent({
@@ -978,7 +1101,7 @@ function setupIPC() {
 
   // Auto-Targeting: Spiralsuche im aktiven Game-View
   ipcMain.on('search-target', () => {
-    const view = activeAccount === 'account1' ? view1 : view2;
+    const view = gameViews[activeAccount];
     if (!view) return;
     const gpCfg = loadConfig('gamepad.json') || {};
     const radius = gpCfg.targetRadius || 300;
@@ -1086,7 +1209,7 @@ function setupIPC() {
   ipcMain.handle('test-hp-capture', async (_, account) => {
     const cfg  = loadConfig('autoheal.json');
     const acfg = cfg?.[account];
-    const view = account === 'account1' ? view1 : view2;
+    const view = gameViews[account];
     if (!view) return { error: 'no-view' };
     const result = {};
     for (const barType of ['hp', 'mp', 'fp']) {
