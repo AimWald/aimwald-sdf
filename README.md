@@ -35,7 +35,7 @@ What started as a personal Steam Deck quality-of-life project turned into a full
 - **Automation Engine** — Timed buff/heal rotations that run even on background accounts
 - **Macro Buttons** — Toolbar buttons for full buff sequences (configurable key lists)
 - **Follow + Board Hotkey** — Press one button to send Z + Alt+6 (for follow + mount) to any account
-- **Gamepad Control** — Full Steam Deck layout with WASD movement, camera control (right stick while holding L2), and auto-targeting
+- **Gamepad Control** — Full Steam Deck layout with WASD movement, camera control (right stick = arrow keys), and auto-targeting
 - **Virtual Keyboard** — Built-in on-screen keyboard (F8 toggle) — no need to open Steam's overlay
 - **Madrigal Guide** — 492 quests, 36 questlines, daily quests, with progress tracking and export/import
 - **Quest Progress Export/Import** — Backup your quest data as JSON; survives AppImage updates
