@@ -279,6 +279,34 @@ Assign `__TARGET` to any button in **Settings → Controller**. When pressed, a 
 ### Customization
 All 20 buttons (0–19) are remappable in **Settings → Controller**.
 
+### Recommended Steam Controller Setup (Steam Deck)
+
+For optimal gameplay, configure these additional Steam Controller settings:
+
+**Back Buttons (L4/R4/L5/R5)**
+- Use for **Account Switch** (F9) — quick multibox switching without leaving combat
+- Or map to automation toggle, macros, or frequently used skills
+
+**D-Pad**
+- Map to game windows/UI shortcuts:
+  - **↑**: `P` — Party Window
+  - **↓**: `H` — Stats Window  
+  - **←**: `I` — Inventory
+  - **→**: `Tab` — Switch skill bar (already default in-app)
+
+**Right Trackpad**
+- **Mode**: Mouse (not Joystick)
+- **Click Action**: Left Mouse Click
+- Gives you precise cursor control for UI, targeting, and camera adjustment
+- Works alongside the built-in auto-targeting for hybrid control
+
+**Example Setup:**
+1. Right-click game in Steam → **Manage** → **Controller Layout**
+2. Configure back buttons, D-pad, and right trackpad as above
+3. Save as custom layout for AimWald-SDF
+
+This setup gives you full control without needing the virtual keyboard for common actions.
+
 ---
 
 ## 🎹 Virtual Keyboard
