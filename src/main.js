@@ -40,12 +40,30 @@ function bundledConfigPath(filename) {
   return path.join(__dirname, '..', 'config', filename);
 }
 
-function loadConfig(filename) {
-  // Zuerst Nutzer-Config, dann gebündelter Default
-  for (const p of [userConfigPath(filename), bundledConfigPath(filename)]) {
-    try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch {}
+function loadConfig(filename, merge = false) {
+  const userP = userConfigPath(filename);
+  const bundP = bundledConfigPath(filename);
+
+  let userCfg = null;
+  try { userCfg = JSON.parse(fs.readFileSync(userP, 'utf8')); } catch {}
+
+  let bundCfg = null;
+  try { bundCfg = JSON.parse(fs.readFileSync(bundP, 'utf8')); } catch {}
+
+  if (merge && bundCfg && !Array.isArray(bundCfg)) {
+    // merge: bundled defaults + user overrides (only non-empty keys)
+    const merged = { ...bundCfg };
+    if (userCfg && typeof userCfg === 'object') {
+      for (const key in userCfg) {
+        if (userCfg[key] !== '' && userCfg[key] != null) {
+          merged[key] = userCfg[key];
+        }
+      }
+    }
+    return merged;
   }
-  return null;
+
+  return userCfg || bundCfg;
 }
 
 function saveConfig(filename, data) {
@@ -616,7 +634,9 @@ function sendHealKey(view, keyCode) {
 }
 
 function stopAutoHeal(account) {
-  hpHealActive[account] = false;
+  if (hpHealActive[account] !== undefined) {
+    hpHealActive[account] = false;
+  }
 }
 
 // ±10% Variation für Anti-Detection
@@ -626,7 +646,7 @@ function randomizeInterval(baseMs) {
 }
 
 async function runBarLoop(account, barType, barCfg, barEntry, view) {
-  const baseDelay = Math.max(barCfg.intervalMs || 500, 200);
+  const baseDelay = Math.max((barCfg.intervalSec || barCfg.intervalMs/1000 || 0.5) * 1000, 200);
   const cooldown  = 1500;
   const actions  = barCfg.actions?.length
     ? barCfg.actions
@@ -712,7 +732,7 @@ async function runBarLoop(account, barType, barCfg, barEntry, view) {
 
 function startAutoHeal(account) {
   stopAutoHeal(account);
-  const cfg  = loadConfig('autoheal.json');
+  const cfg  = loadConfig('autoheal.json', true);
   const acfg = cfg?.[account];
 
   const bars = ['hp', 'mp', 'fp'];
@@ -736,7 +756,7 @@ function startAutoHeal(account) {
     const barEntry = acfg?.barBounds?.[barType] || null;
     if (!barCfg?.enabled) continue;
     if (!barEntry) continue;
-    console.log(`[AutoHeal] ${account} ${barType} started – interval=${barCfg.intervalMs}ms`);
+    console.log(`[AutoHeal] ${account} ${barType} started – interval=${barCfg.intervalSec || barCfg.intervalMs/1000 || 0.5}sec`);
     runBarLoop(account, barType, barCfg, barEntry, view);
   }
 }
@@ -863,8 +883,6 @@ function setupIPC() {
   ipcMain.on('close-settings',      ()        => settingsWindow?.close());
   ipcMain.on('open-quest-url',      (_, url)  => openQuestUrl(url));
   ipcMain.on('close-quest-window',  ()        => questWindow?.close());
-
-
   ipcMain.on('set-game-view-visibility', (_, visible) => {
     overlayOpen = !visible;
     updateViewBounds();
@@ -888,12 +906,12 @@ function setupIPC() {
 
   // Automation-Config für Settings-Fenster liefern
   ipcMain.handle('get-automation-config', () => {
-    return loadConfig('automation.json');
+    return loadConfig('automation.json', true);
   });
 
   // Gamepad-Config für Renderer liefern
   ipcMain.handle('get-gamepad-config', () => {
-    return loadConfig('gamepad.json') || { '0': 'Z', '1': 'X', '2': 'C', '3': 'V' };
+    return loadConfig('gamepad.json', true);
   });
 
   ipcMain.handle('clear-session', async (_, account) => {
@@ -1129,7 +1147,7 @@ function setupIPC() {
   });
 
   // Autoheal-Config laden
-  ipcMain.handle('get-autoheal-config', () => loadConfig('autoheal.json') || {});
+  ipcMain.handle('get-autoheal-config', () => loadConfig('autoheal.json', true));
 
   // Autoheal-Config speichern und Loops neu starten
   ipcMain.on('save-autoheal-config', (_, cfg) => {
@@ -1295,7 +1313,7 @@ function setupIPC() {
     const wasRunning = automation.isRunning(account);
     if (wasRunning) stopAutomation(account);
 
-    const baseDelay  = macro.delay || 200;
+    const baseDelay  = (macro.delaySec || macro.delay || 2) * 1000; // sec→ms, fallback for old configs
     const keys       = macro.keys  || [];
     const startDelay = wasRunning ? 100 : 0;
 
@@ -1330,7 +1348,7 @@ function setupIPC() {
 app.whenReady().then(async () => {
   await initStore();
 
-  const automationCfg = loadConfig('automation.json');
+  const automationCfg = loadConfig('automation.json', true);
   if (automationCfg) automation.setConfig(automationCfg);
 
   activeAccount = store.get('activeAccount', 'account1');

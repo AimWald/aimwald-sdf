@@ -93,52 +93,6 @@
       -webkit-app-region: no-drag;
     }
 
-    /* Virtual Keyboard */
-    #vkbd-overlay {
-      display: none;
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #1a1a3aee;
-      border: 2px solid #4a4a7a;
-      border-radius: 8px;
-      padding: 10px;
-      z-index: 1000;
-      backdrop-filter: blur(4px);
-      -webkit-app-region: no-drag;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.6);
-    }
-    .vkbd-row { display: flex; gap: 4px; margin-bottom: 4px; justify-content: center; }
-    .vkbd-key {
-      background: #2a2a5a;
-      border: 1px solid #4a4a8a;
-      color: #d0d0e8;
-      padding: 8px 12px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 13px;
-      min-width: 36px;
-      text-align: center;
-      user-select: none;
-      transition: background 0.1s;
-    }
-    .vkbd-key:hover { background: #3a3a7a; }
-    .vkbd-key:active { background: #4a4a9a; }
-    .vkbd-key.wide { min-width: 80px; }
-    .vkbd-key.space { min-width: 200px; }
-    .vkbd-close {
-      position: absolute;
-      top: 4px;
-      right: 4px;
-      background: #4a1a1a;
-      border: 1px solid #8a3a3a;
-      color: #ff8888;
-      padding: 2px 8px;
-      border-radius: 3px;
-      cursor: pointer;
-      font-size: 11px;
-    }
     .vkbd-close:hover { background: #6a2a2a; }
     #changelog-overlay h2, #guide-overlay h2 { color: #88aaff; font-size: 13px; border-bottom: 1px solid #2a2a4a; padding-bottom: 3px; margin: 10px 0 4px; }
     #changelog-overlay h2:first-child, #guide-overlay h2:first-child { margin-top: 0; }
@@ -295,7 +249,6 @@
     <span id="app-version" class="label no-drag" style="color:#333; font-size:10px;"></span>
     <button id="btn-guide" onclick="openGuide()" title="Madrigal Guide (Quests & Monsters)" style="padding:0 5px; font-size:10px; color:#aaa; border-color:#2a2a4a; background:#1e1e3a;">📖 Guide</button>
     <button id="btn-changelog" onclick="openChangelog()" title="Show Changelog" style="padding:0 5px; font-size:10px; color:#444; border-color:#2a2a4a; background:#12122a;">📋</button>
-    <button id="btn-vkbd" onclick="toggleVkbd()" title="Virtual Keyboard" style="padding:0 5px; font-size:10px; color:#666; border-color:#2a2a4a; background:#12122a;">🔤</button>
 
     <!-- Resolution indicator -->
     <span id="res-label" class="label no-drag" style="color:#333; font-size:10px;" title="Game view resolution"></span>
@@ -318,7 +271,7 @@
       if (macros.length === 0) return;
       const sep = document.createElement('div'); sep.className = 'sep';
       area.appendChild(sep);
-      macros.forEach(m => {
+      macros.forEach((m) => {
         const btn = document.createElement('button');
         btn.textContent = m.label;
         btn.title = `${m.label} → ${m.account === 'account1' ? 'Acc 1' : 'Acc 2'}`;
@@ -530,28 +483,6 @@
     init();
 
     // ── Virtual Keyboard ──────────────────────────────────────────────────────
-
-    let vkbdOpen = false;
-
-    function toggleVkbd() {
-      const overlay = document.getElementById('vkbd-overlay');
-      vkbdOpen = !vkbdOpen;
-      overlay.style.display = vkbdOpen ? 'block' : 'none';
-      console.log('[VKBD] Toggled:', vkbdOpen ? 'open' : 'closed');
-    }
-
-    function sendVkbdKey(key) {
-      console.log('[VKBD] Sending key:', key);
-      try {
-        window.flyff.sendGamepadButton(key);
-      } catch (e) {
-        console.error('[VKBD] Error sending key:', e);
-      }
-    }
-
-    // F8 Hotkey für Virtual Keyboard entfernt - nur noch über Toolbar-Button
-    // (F8 ist im Game für Action Bar 8 reserviert)
-    // Nutze nur noch den 🔤 Button in der Toolbar
 
     // ── Changelog-Overlay ─────────────────────────────────────────────────────
 
@@ -927,57 +858,5 @@
     <div id="guide-content"></div>
   </div>
 
-  <div id="vkbd-overlay">
-    <button class="vkbd-close" onclick="toggleVkbd()">✕</button>
-    <div class="vkbd-row">
-      <div class="vkbd-key" onclick="sendVkbdKey('1')">1</div>
-      <div class="vkbd-key" onclick="sendVkbdKey('2')">2</div>
-      <div class="vkbd-key" onclick="sendVkbdKey('3')">3</div>
-      <div class="vkbd-key" onclick="sendVkbdKey('4')">4</div>
-      <div class="vkbd-key" onclick="sendVkbdKey('5')">5</div>
-      <div class="vkbd-key" onclick="sendVkbdKey('6')">6</div>
-      <div class="vkbd-key" onclick="sendVkbdKey('7')">7</div>
-      <div class="vkbd-key" onclick="sendVkbdKey('8')">8</div>
-      <div class="vkbd-key" onclick="sendVkbdKey('9')">9</div>
-      <div class="vkbd-key" onclick="sendVkbdKey('0')">0</div>
-    </div>
-    <div class="vkbd-row">
-      <div class="vkbd-key" onclick="sendVkbdKey('Q')">Q</div>
-      <div class="vkbd-key" onclick="sendVkbdKey('W')">W</div>
-      <div class="vkbd-key" onclick="sendVkbdKey('E')">E</div>
-      <div class="vkbd-key" onclick="sendVkbdKey('R')">R</div>
-      <div class="vkbd-key" onclick="sendVkbdKey('T')">T</div>
-      <div class="vkbd-key" onclick="sendVkbdKey('Y')">Y</div>
-      <div class="vkbd-key" onclick="sendVkbdKey('U')">U</div>
-      <div class="vkbd-key" onclick="sendVkbdKey('I')">I</div>
-      <div class="vkbd-key" onclick="sendVkbdKey('O')">O</div>
-      <div class="vkbd-key" onclick="sendVkbdKey('P')">P</div>
-    </div>
-    <div class="vkbd-row">
-      <div class="vkbd-key" onclick="sendVkbdKey('A')">A</div>
-      <div class="vkbd-key" onclick="sendVkbdKey('S')">S</div>
-      <div class="vkbd-key" onclick="sendVkbdKey('D')">D</div>
-      <div class="vkbd-key" onclick="sendVkbdKey('F')">F</div>
-      <div class="vkbd-key" onclick="sendVkbdKey('G')">G</div>
-      <div class="vkbd-key" onclick="sendVkbdKey('H')">H</div>
-      <div class="vkbd-key" onclick="sendVkbdKey('J')">J</div>
-      <div class="vkbd-key" onclick="sendVkbdKey('K')">K</div>
-      <div class="vkbd-key" onclick="sendVkbdKey('L')">L</div>
-    </div>
-    <div class="vkbd-row">
-      <div class="vkbd-key wide" onclick="sendVkbdKey('Backspace')">⌫ Back</div>
-      <div class="vkbd-key" onclick="sendVkbdKey('Z')">Z</div>
-      <div class="vkbd-key" onclick="sendVkbdKey('X')">X</div>
-      <div class="vkbd-key" onclick="sendVkbdKey('C')">C</div>
-      <div class="vkbd-key" onclick="sendVkbdKey('V')">V</div>
-      <div class="vkbd-key" onclick="sendVkbdKey('B')">B</div>
-      <div class="vkbd-key" onclick="sendVkbdKey('N')">N</div>
-      <div class="vkbd-key" onclick="sendVkbdKey('M')">M</div>
-      <div class="vkbd-key wide" onclick="sendVkbdKey('Return')">↵ Enter</div>
-    </div>
-    <div class="vkbd-row">
-      <div class="vkbd-key space" onclick="sendVkbdKey(' ')">Space</div>
-    </div>
-  </div>
 </body>
 </html>

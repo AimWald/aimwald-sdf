@@ -15,6 +15,35 @@
 
 ---
 
+## 📸 Screenshots
+
+### Gameplay - Dual Account Multiboxing
+<p align="center">
+  <img src="screenshots/gameplay-dual-account.png" alt="Dual Account Split-Screen" width="90%">
+</p>
+
+### Quest Guide - 492 Quests with Progress Tracking
+<p align="center">
+  <img src="screenshots/quest-guide-quests.png" alt="Quest Guide - Quests Tab" width="80%">
+</p>
+
+### Quest Guide - 36 Questlines with Progress Bars
+<p align="center">
+  <img src="screenshots/quest-guide-questlines.png" alt="Quest Guide - Questlines Tab" width="80%">
+</p>
+
+### Settings - Automation (Buff/Heal Timers)
+<p align="center">
+  <img src="screenshots/settings-automation.png" alt="Automation Settings" width="80%">
+</p>
+
+### Settings - Auto-Heal (Bar & Pixel Mode)
+<p align="center">
+  <img src="screenshots/settings-autoheal.png" alt="Auto-Heal Settings" width="80%">
+</p>
+
+---
+
 ## 💡 Why This Exists
 
 Playing Flyff Universe in a web browser on the Steam Deck is incredibly uncomfortable. The game requires a lot of keyboard keys for normal gameplay — buffs, heals, skill rotations — which is painful to manage with the virtual keyboard and without proper gamepad mapping.
@@ -104,26 +133,11 @@ You **MUST** configure this keybind in Flyff Universe game settings for the B bu
 
 **Without this keybind, the B button (Clear Target) will not work!**
 
-**Install Custom Artwork (Automated)**
+**Install Custom Artwork (🚧 Work in Progress)**
 
-The installer downloads artwork automatically. To apply it:
-```bash
-cd $HOME
-./install-steam-artwork.sh
-```
-The script detects your game's App ID and installs all artwork (Grid, Hero, Logo). Restart Steam to see changes.
+> ⚠️ **Note:** Custom Steam artwork (Grid, Hero, Logo) is currently being designed and is not yet available. This section will be updated when artwork is ready.
 
-**Manual: Via Steam UI**
-
-Download artwork manually:
-- **Grid** (Library): [steam-grid.png](https://github.com/AimWald/aimwald-sdf/raw/main/build/steam-grid.png) (460×215)
-- **Hero** (Background): [steam-hero.png](https://github.com/AimWald/aimwald-sdf/raw/main/build/steam-hero.png) (1920×620)
-- **Logo** (Overlay): [steam-logo.png](https://github.com/AimWald/aimwald-sdf/raw/main/build/steam-logo.png) (transparent)
-
-Apply in Steam (Desktop Mode):
-1. Right-click game → **Manage** → **Set custom artwork** (Grid)
-2. Right-click game → **Manage** → **Set custom background** (Hero)
-3. Right-click game → **Manage** → **Set custom logo** (Logo overlay)
+<!-- Future installation instructions will go here -->
 
 ### Manual Installation (Linux)
 
@@ -202,19 +216,35 @@ Automatically presses configured keys when HP/MP/FP drops below thresholds. Runs
 1. **Settings → Auto-Heal** tab
 2. Choose **Bar** or **Pixel** mode for each bar (HP, MP, FP)
 
-### Bar Mode (recommended)
-- Make bars **completely full**
-- Click **📐** next to the bar
-- Drag-select the bar area in the screenshot
-- App calibrates left/right edges automatically
-- Add actions: Key + Threshold % (e.g. Key `1` at `< 50%`)
-- Multiple actions per bar supported (e.g. heal at 50%, emergency heal at 20%)
+### Bar Mode (Recommended)
 
-### Pixel Mode
-- Make bar **completely full**
-- Switch dropdown to **Pixel**, click **📍**
-- Click once on the bar at your desired threshold position
-- Add action: Key + Threshold ratio (50 = safe default)
+**Step-by-step setup:**
+1. **Fill the bar** — Make HP/MP/FP bar **completely full** in-game (use potions/heals)
+2. **Open picker** — Click **📐 button** next to the bar in Settings → Auto-Heal
+3. **Select area** — A screenshot appears. **Drag-select** the entire bar area (left edge to right edge)
+4. **Press Enter** — App calibrates left/right edges automatically and saves the area
+5. **Add actions** — Click **+ action**, set Key (e.g. `1`) and Threshold % (e.g. `< 50%`)
+6. **Set interval** — How often to check the bar (default: 0.5 sec for HP, 1 sec for MP/FP)
+7. **Enable** — Check the ✓ checkbox to activate monitoring
+
+**Multiple thresholds per bar:** Add multiple actions for layered healing (e.g. minor heal at 50%, emergency heal at 20%)
+
+**Why full bar?** The app detects the bar's color (red=HP, blue=MP, green=FP) to calibrate the edges. A partial bar will cause incorrect calibration.
+
+### Pixel Mode (Advanced)
+
+**Use when Bar Mode fails** (e.g., unusual UI layouts):
+1. **Fill the bar completely** in-game
+2. **Switch dropdown** from "Bar" to "Pixel" mode
+3. **Click 📍 button** — Screenshot appears
+4. **Click once** on the bar at your desired threshold position (e.g., halfway for 50%)
+5. **Press Enter** — Saves the pixel coordinates
+6. **Add action** — Key + Threshold (50 = safe default, range 1–99)
+7. **Set interval** and **Enable**
+
+**How it works:** App checks if that specific pixel location shows the bar's color. If not, it triggers the heal.
+
+**Tip:** For multiple thresholds, click **+ action** and use **📍** again to pick a different pixel (e.g., one at 50%, another at 20%).
 
 ### Test
 Press **🔍** to test current reading without waiting for the heal cycle.
@@ -227,7 +257,7 @@ Sends keypresses at fixed intervals — runs even when the account is in the bac
 
 ### Setup
 1. **Settings → Automation** tab
-2. Per account: Label, Key (1–0, F1–F12), Interval (ms), Enable checkbox
+2. Per account: Label, Key (1–0, F1–F12), Interval (seconds), Enable checkbox
 3. `+ Add action` to add more, `✕` to remove
 4. **💾 Save** — running automations restart immediately
 
@@ -239,9 +269,9 @@ Sends keypresses at fixed intervals — runs even when the account is in the bac
 **Default actions (disabled by default):**
 | Label | Key | Interval |
 |-------|-----|----------|
-| Heal | 1 | 3,000 ms |
-| Buff 1 | 2 | 30,000 ms |
-| Buff 2 | 3 | 30,000 ms |
+| Heal | 1 | 3 sec |
+| Buff 1 | 2 | 30 sec |
+| Buff 2 | 3 | 30 sec |
 
 ---
 
@@ -262,8 +292,8 @@ Example: You're on Acc1, press the `⛵ Acc2` button → Acc2 executes follow+bo
 All automation intervals include **±10% random variation** to avoid constant timing patterns that might trigger anti-cheat detection. This makes automated actions appear more human-like.
 
 **Example:**
-- You set interval: `2000 ms`
-- Actual interval: randomly varies between `1800–2200 ms` each execution
+- You set interval: `2 sec`
+- Actual interval: randomly varies between `1.8–2.2 sec` each execution
 
 **Applies to:**
 - **Automation timers** (buff/heal rotations)
@@ -294,8 +324,8 @@ See the [Installation section](#-installation) for detailed setup instructions.
 | R1 (5) | Key `2` (Buff) |
 | L2 (6) | Right click hold (for camera drag — not needed with right-stick arrow keys) |
 | R2 (7) | Key `4` |
-| Back (8) | Escape |
-| Start (9) | M (Map) |
+| Select (8) | M (Map) |
+| Start (9) | I (Inventory) |
 | D-Pad ↑ (12) | Scroll in (zoom) |
 | D-Pad ↓ (13) | Scroll out (zoom) |
 | D-Pad → (15) | Tab (switch skill bar) |
@@ -411,13 +441,15 @@ Click **📖 Guide** in the toolbar to open the in-app overlay.
 Macros fire key sequences with configurable delays. Each macro becomes a toolbar button.
 
 **Default macros:**
-- **Full Buff Acc1** — `F2, 1, 2, 3, 4, 5, 6, 7, 8, 9, F1` with 200ms delay
+- **Full Buff Acc1** — `F2, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, F1` with 2 sec delay between keys
 - **Full Buff Acc2** — same sequence for Acc2
 
 ### Setup
-1. **Settings → Macros** — Label, Account (1–4), Keys (comma-separated), Delay (ms)
+1. **Settings → Macros** — Label, Account (1–4), Keys (comma-separated), Delay (seconds)
 2. `+ Add macro` / `✕` to manage
 3. **💾 Save** — button appears immediately in toolbar
+
+**Example:** Create a macro with keys `F2, 1, 2, 3` and delay `2` sec → Presses F2, waits 2 sec, presses 1, waits 2 sec, presses 2, etc.
 
 Automation on the target account pauses during macro execution and resumes after.
 
@@ -446,12 +478,12 @@ Open with **⚙ Settings** in the toolbar.
 
 | Tab | What it does |
 |-----|-------------|
-| **Automation** | Per-account buff/heal action lists (key + interval + enable) |
-| **Controller** | Gamepad button mapping (0–19), auto-target radius |
+| **Automation** | Per-account buff/heal action lists (key + interval in seconds + enable) |
+| **Controller** | Gamepad button mapping (0–15), auto-target radius |
 | **Accounts** | Reset session per account (clear cookies / force re-login) |
 | **Hotkeys** | Account switch, automation toggle, follow+board |
-| **Macros** | Toolbar macro buttons (key sequences) |
-| **Auto-Heal** | HP/MP/FP monitoring — Bar or Pixel mode per bar |
+| **Macros** | Toolbar macro buttons (key sequences + delay in seconds) |
+| **Auto-Heal** | HP/MP/FP monitoring — Bar or Pixel mode per bar, interval in seconds |
 
 Click **💾 Save** to apply. Running automations restart immediately — no app restart needed.
 

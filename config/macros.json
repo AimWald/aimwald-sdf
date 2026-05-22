@@ -3,14 +3,14 @@
     "id": "fullbuff_acc1",
     "label": "Full Buff Acc1",
     "account": "account1",
-    "keys": ["F2", "1", "2", "3", "4", "5", "6", "7", "8", "9", "F1"],
-    "delay": 200
+    "keys": ["F2", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "F1"],
+    "delaySec": 2
   },
   {
     "id": "fullbuff_acc2",
     "label": "Full Buff Acc2",
     "account": "account2",
-    "keys": ["F2", "1", "2", "3", "4", "5", "6", "7", "8", "9", "F1"],
-    "delay": 200
+    "keys": ["F2", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "F1"],
+    "delaySec": 2
   }
 ]

@@ -3,11 +3,18 @@
 // Laufzeit-Zustand pro Account: ob aktiv und aktive Timer-IDs
 const state = {
   account1: { running: false, timers: [] },
-  account2: { running: false, timers: [] }
+  account2: { running: false, timers: [] },
+  account3: { running: false, timers: [] },
+  account4: { running: false, timers: [] }
 };
 
 // Aktuelle Automation-Config (wird von main.js gesetzt)
-let config = { account1: { actions: [] }, account2: { actions: [] } };
+let config = {
+  account1: { actions: [] },
+  account2: { actions: [] },
+  account3: { actions: [] },
+  account4: { actions: [] }
+};
 
 function setConfig(automationConfig) {
   if (automationConfig) config = automationConfig;
@@ -32,6 +39,7 @@ function randomizeInterval(baseMs) {
 // Startet die Automation für einen Account
 function start(account, webContents, onStateChange) {
   const s = state[account];
+  if (!s) return; // Safety check for undefined accounts
   if (s.running) return;
   s.running = true;
 
@@ -42,7 +50,8 @@ function start(account, webContents, onStateChange) {
     // Rekursive Funktion mit randomisiertem Intervall
     function scheduleNext() {
       if (!s.running) return;
-      const nextDelay = randomizeInterval(action.intervalMs);
+      const intervalMs = (action.intervalSec || action.intervalMs/1000 || 3) * 1000; // sec→ms, fallback
+      const nextDelay = randomizeInterval(intervalMs);
       const timer = setTimeout(() => {
         if (!s.running) return;
         sendKey(webContents, action.key);
@@ -60,6 +69,7 @@ function start(account, webContents, onStateChange) {
 // Stoppt alle Timer eines Accounts
 function stop(account, onStateChange) {
   const s = state[account];
+  if (!s) return; // Safety check for undefined accounts
   s.running = false;
   s.timers.forEach(t => clearTimeout(t)); // clearTimeout statt clearInterval
   s.timers = [];
@@ -67,7 +77,8 @@ function stop(account, onStateChange) {
 }
 
 function isRunning(account) {
-  return state[account].running;
+  const s = state[account];
+  return s ? s.running : false;
 }
 
 module.exports = { setConfig, start, stop, isRunning };
