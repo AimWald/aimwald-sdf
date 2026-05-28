@@ -1,0 +1,314 @@
+[
+  {
+    "section": "Forsaken Tower",
+    "lv": 86,
+    "name": "Curiosity Killed the Cat (1)",
+    "exp": "5% (Lv. 86)",
+    "monsters": "50x ANY Catsy (Lvl. 89-95)",
+    "penya": 30000
+  },
+  {
+    "section": "Forsaken Tower",
+    "lv": 88,
+    "name": "Curiosity Killed the Cat (2)",
+    "exp": "5% (Lv. 88)",
+    "monsters": "1x Giant Catsy (Lvl. 95)",
+    "penya": 40000
+  },
+  {
+    "section": "Forsaken Tower",
+    "lv": 90,
+    "name": "Light as a Feather (1)",
+    "exp": "5% (Lv. 90)",
+    "monsters": "50x ANY Harpy (Lvl. 93-100)",
+    "penya": 50000
+  },
+  {
+    "section": "Forsaken Tower",
+    "lv": 92,
+    "name": "Light as a Feather (2)",
+    "exp": "5% (Lv. 92)",
+    "monsters": "1x Giant Harpy (Lvl. 100)",
+    "penya": 100000
+  },
+  {
+    "section": "Forsaken Tower",
+    "lv": 96,
+    "name": "Gullah Gullah Island! (1)",
+    "exp": "5% (Lv. 96)",
+    "monsters": "50x ANY Gullah (Lvl. 97-105)",
+    "penya": 60000
+  },
+  {
+    "section": "Forsaken Tower",
+    "lv": 98,
+    "name": "Gullah Gullah Island! (2)",
+    "exp": "5% (Lv. 98)",
+    "monsters": "1x Giant Gullah (Lvl. 105)",
+    "penya": 70000
+  },
+  {
+    "section": "Forsaken Tower",
+    "lv": 100,
+    "name": "Abraxas Antitoxin (1)",
+    "exp": "5% (Lv. 100)",
+    "monsters": "50x ANY Abraxas (Lvl. 99-110)",
+    "penya": 80000
+  },
+  {
+    "section": "Forsaken Tower",
+    "lv": 102,
+    "name": "Abraxas Antitoxin (2)",
+    "exp": "5% (Lv. 102)",
+    "monsters": "1x Giant Abraxas (Lvl. 110)",
+    "penya": 200000
+  },
+  {
+    "section": "Forsaken Tower",
+    "lv": 106,
+    "name": "Witch in the Tower (1)",
+    "exp": "5% (Lv. 106)",
+    "monsters": "50x ANY Hague (Lvl. 103-115)",
+    "penya": 90000
+  },
+  {
+    "section": "Forsaken Tower",
+    "lv": 108,
+    "name": "Witch in the Tower (2)",
+    "exp": "5% (Lv. 108)",
+    "monsters": "1x Giant Hague (Lvl. 115)",
+    "penya": 100000
+  },
+  {
+    "section": "Forsaken Tower",
+    "lv": 110,
+    "name": "Bird Assassins (1)",
+    "exp": "5% (Lv. 110)",
+    "monsters": "50x ANY Tengu (Lvl 112-120)",
+    "penya": 110000
+  },
+  {
+    "section": "Forsaken Tower",
+    "lv": 112,
+    "name": "Bird Assassins (2)",
+    "exp": "5% (Lv. 112)",
+    "monsters": "1x Giant Tengu (Lvl. 120)",
+    "penya": 300000
+  },
+  {
+    "section": "Forsaken Tower",
+    "lv": 116,
+    "name": "Minotaur Maze (1)",
+    "exp": "5% (Lv. 116)",
+    "monsters": "50x ANY Asterius (Lvl. 116-124)",
+    "penya": 120000
+  },
+  {
+    "section": "Forsaken Tower",
+    "lv": 118,
+    "name": "Minotaur Maze (2)",
+    "exp": "5% (Lv. 118)",
+    "monsters": "1x Giant Asterius (Lvl. 124)",
+    "penya": 130000
+  },
+  {
+    "section": "Forsaken Tower",
+    "lv": 120,
+    "name": "Bead of the Black Magician (1)",
+    "exp": "5% (Lv. 120)",
+    "monsters": "50x ANY Dantalian (Lvl. 122-130)",
+    "penya": 140000
+  },
+  {
+    "section": "Forsaken Tower",
+    "lv": 122,
+    "name": "Bead of the Black Magician (2)",
+    "exp": "5% (Lv. 122)",
+    "monsters": "1x Giant Dantalian (Lvl. 130)",
+    "penya": 500000
+  },
+  {
+    "section": "Forsaken Tower",
+    "lv": 126,
+    "name": "Keys for the Piano (1)",
+    "exp": "5% (Lv. 126)",
+    "monsters": "50x ANY Gannessa (Lvl. 129-135)",
+    "penya": 160000
+  },
+  {
+    "section": "Forsaken Tower",
+    "lv": 128,
+    "name": "Keys for the Piano (2)",
+    "exp": "5% (Lv. 128)",
+    "monsters": "1x Giant Gannessa (Lvl. 135)",
+    "penya": 750000
+  },
+  {
+    "section": "Forsaken Tower",
+    "lv": 130,
+    "name": "Heart of Iron (1)",
+    "exp": "5% (Lv. 130)",
+    "monsters": "50x ANY Asuras (Lvl. 133-140)",
+    "penya": 200000
+  },
+  {
+    "section": "Forsaken Tower",
+    "lv": 132,
+    "name": "Heart of Iron (2)",
+    "exp": "5% (Lv. 132)",
+    "monsters": "1x Giant Asuras (Lvl. 140)",
+    "penya": 1000000
+  },
+  {
+    "section": "Forsaken Tower",
+    "lv": 136,
+    "name": "The Mystery of the Shady Eye",
+    "exp": "4% (Lv. 136)",
+    "monsters": "50x ANY Shadowirs (Lvl. 138-145)",
+    "penya": 240000
+  },
+  {
+    "section": "Forsaken Tower",
+    "lv": 138,
+    "name": "The Mystery of the Shady Eye (2)",
+    "exp": "4% (Lv. 138)",
+    "monsters": "1x Giant Shadowirs (Lvl. 145)",
+    "penya": 1250000
+  },
+  {
+    "section": "Forsaken Tower",
+    "lv": 140,
+    "name": "The Cursed Wing of Destiny",
+    "exp": "4% (Lv. 140)",
+    "monsters": "50x ANY Skelmaw (Lvl. 143-150)",
+    "penya": 280000
+  },
+  {
+    "section": "Forsaken Tower",
+    "lv": 142,
+    "name": "The Cursed Wing of Destiny (2)",
+    "exp": "4% (Lv. 142)",
+    "monsters": "1x Giant Skelmaw (Lvl. 150)",
+    "penya": 1500000
+  },
+  {
+    "section": "Forsaken Tower",
+    "lv": 146,
+    "name": "Disarming the Maleficars",
+    "exp": "2.5% (Lv. 146)",
+    "monsters": "50x ANY Maleficar (Lvl. 148-155)",
+    "penya": 320000
+  },
+  {
+    "section": "Forsaken Tower",
+    "lv": 148,
+    "name": "Disarming the Maleficars (2)",
+    "exp": "2.5% (Lv. 148)",
+    "monsters": "1x Giant Maleficar (Lvl 155)",
+    "penya": 1750000
+  },
+  {
+    "section": "Forsaken Tower",
+    "lv": 150,
+    "name": "Stealing gems from the cursed guardian",
+    "exp": "2.5% (Lv. 150)",
+    "monsters": "50x ANY Cursed Warden (Lvl. 153-160)",
+    "penya": 360000
+  },
+  {
+    "section": "Forsaken Tower",
+    "lv": 152,
+    "name": "Stealing gems from the cursed guardian (2)",
+    "exp": "2.5% (Lv. 152)",
+    "monsters": "1x Giant Cursed Warden (Lvl. 160)",
+    "penya": 2000000
+  },
+  {
+    "section": "Kaillun",
+    "lv": 162,
+    "name": "Lost your chain again?",
+    "exp": "1.27% (Lv. 162)",
+    "monsters": "50x Small Hundur Sharpfoot (Lvl. 162)",
+    "penya": 420224
+  },
+  {
+    "section": "Kaillun",
+    "lv": 163,
+    "name": "Honor of a Warrior 1",
+    "exp": "1.11% (Lv. 163)",
+    "monsters": "50x Hundur Sharpfoot (Lvl. 163)",
+    "penya": 358138
+  },
+  {
+    "section": "Kaillun",
+    "lv": 164,
+    "name": "Honor of a Warrior 2",
+    "exp": "0.3% (Lv. 164)",
+    "monsters": "30x Captain Hundur Sharpfoot (Lvl. 165)",
+    "penya": 50000
+  },
+  {
+    "section": "Kaillun",
+    "lv": 165,
+    "name": "Guard’s Request 1",
+    "exp": "1.29% (Lv. 165)",
+    "monsters": "50x Small Samoset (Lvl. 166)",
+    "penya": 427114
+  },
+  {
+    "section": "Kaillun",
+    "lv": 166,
+    "name": "Guard’s Request 2",
+    "exp": "1.38% (Lv. 166)",
+    "monsters": "50x Samoset (Lvl. 167)",
+    "penya": 461849
+  },
+  {
+    "section": "Kaillun",
+    "lv": 167,
+    "name": "Guard’s Request 3",
+    "exp": "0.4% (Lv. 167)",
+    "monsters": "30x Captain Samoset (Lvl. 169)",
+    "penya": 88174
+  },
+  {
+    "section": "Kaillun",
+    "lv": 168,
+    "name": "Guard’s Request 4",
+    "exp": "1.58% (Lv. 168)",
+    "monsters": "50x Small Kyouchish (Lvl. 170)",
+    "penya": 537550
+  },
+  {
+    "section": "Kaillun",
+    "lv": 169,
+    "name": "Guard’s Request 5",
+    "exp": "1.67% (Lv. 169)",
+    "monsters": "50x Kyouchish (Lvl. 171)",
+    "penya": 573826
+  },
+  {
+    "section": "Kaillun",
+    "lv": 170,
+    "name": "Clearing the Area",
+    "exp": "0.51% (Lv. 170)",
+    "monsters": "30x Captain Kyouchish (Lvl. 173)",
+    "penya": 130615
+  },
+  {
+    "section": "Kaillun",
+    "lv": 171,
+    "name": "Elder’s Request 1",
+    "exp": "1.89% (Lv. 171)",
+    "monsters": "50x Small Kanonicus (Lvl. 174)",
+    "penya": 657071
+  },
+  {
+    "section": "Kaillun",
+    "lv": 172,
+    "name": "Elder’s Request 2",
+    "exp": "2% (Lv. 172)",
+    "monsters": "50x Kanonicus (Lvl. 175)",
+    "penya": 700000
+  }
+]

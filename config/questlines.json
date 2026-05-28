@@ -1,0 +1,218 @@
+[
+  {
+    "name": "Independent",
+    "npc": "N/a",
+    "lvFirst": "5",
+    "lvLast": "35"
+  },
+  {
+    "name": "Office",
+    "npc": "N/a",
+    "lvFirst": "6",
+    "lvLast": "183"
+  },
+  {
+    "name": "A Vagrant's First Steps",
+    "npc": "Lui, Flarine",
+    "lvFirst": "1",
+    "lvLast": "3"
+  },
+  {
+    "name": "1st Job Change",
+    "npc": "N/a",
+    "lvFirst": "15",
+    "lvLast": "15"
+  },
+  {
+    "name": "Reonan",
+    "npc": "Reonan, Flarine",
+    "lvFirst": "15",
+    "lvLast": "100"
+  },
+  {
+    "name": "Leren Chasm",
+    "npc": "[Mayor of Flarine",
+    "lvFirst": "16",
+    "lvLast": "25"
+  },
+  {
+    "name": "Wagsaac Research",
+    "npc": "Heltung, Saint City",
+    "lvFirst": "20",
+    "lvLast": "20"
+  },
+  {
+    "name": "Laws of Aviation",
+    "npc": "Is, Flarine",
+    "lvFirst": "20",
+    "lvLast": "20"
+  },
+  {
+    "name": "Mia",
+    "npc": "JeongHwa, Saint City",
+    "lvFirst": "20",
+    "lvLast": "28"
+  },
+  {
+    "name": "History of Madrigal",
+    "npc": "[Historian] Martinyc, Flarine",
+    "lvFirst": "20",
+    "lvLast": "29"
+  },
+  {
+    "name": "Marsmine Dungeon",
+    "npc": "Dr. Estly, Flaris",
+    "lvFirst": "20",
+    "lvLast": "30"
+  },
+  {
+    "name": "Legend of Dreadpet",
+    "npc": "[Novelist] Gergantes",
+    "lvFirst": "20",
+    "lvLast": "40"
+  },
+  {
+    "name": "Portrait of Radeon",
+    "npc": "Rudvihil, Flarine",
+    "lvFirst": "26",
+    "lvLast": "26"
+  },
+  {
+    "name": "Red Bang",
+    "npc": "Luda, Flarine",
+    "lvFirst": "30",
+    "lvLast": "66"
+  },
+  {
+    "name": "Missing Play Script",
+    "npc": "[Pepoview] Ruminerr, Saint City",
+    "lvFirst": "37",
+    "lvLast": "49"
+  },
+  {
+    "name": "Rhisis' Catacombs",
+    "npc": "Tina, Saint City",
+    "lvFirst": "40",
+    "lvLast": "55"
+  },
+  {
+    "name": "Save the Garden",
+    "npc": "Ann, Saint City",
+    "lvFirst": "43",
+    "lvLast": "43"
+  },
+  {
+    "name": "Bone Bowl",
+    "npc": "Strange Collector, Saint City",
+    "lvFirst": "44",
+    "lvLast": "44"
+  },
+  {
+    "name": "Ivillis Temple",
+    "npc": "[Mayor of Saint City]",
+    "lvFirst": "45",
+    "lvLast": "58"
+  },
+  {
+    "name": "2nd Job Change",
+    "npc": "N/a",
+    "lvFirst": "60",
+    "lvLast": "60"
+  },
+  {
+    "name": "Emerald Mantis",
+    "npc": "Rudvihil, Flarine",
+    "lvFirst": "60",
+    "lvLast": "64"
+  },
+  {
+    "name": "Crafting and Gathering",
+    "npc": "[Life Master] Livi",
+    "lvFirst": "61",
+    "lvLast": "61"
+  },
+  {
+    "name": "The Clockworks War",
+    "npc": "[Darken Mayor]",
+    "lvFirst": "70",
+    "lvLast": "70"
+  },
+  {
+    "name": "Dekane Mine",
+    "npc": "Cell, Darkon 1",
+    "lvFirst": "70",
+    "lvLast": "85"
+  },
+  {
+    "name": "Envy Depths",
+    "npc": "[Magic Box] Ancimys",
+    "lvFirst": "73",
+    "lvLast": "85"
+  },
+  {
+    "name": "Journal of an Adventurer",
+    "npc": "Tandy, Village of Kan",
+    "lvFirst": "105",
+    "lvLast": "105"
+  },
+  {
+    "name": "Guardiane Sanctuary",
+    "npc": "[Great Magician] Laola, Aniceknight",
+    "lvFirst": "105",
+    "lvLast": "115"
+  },
+  {
+    "name": "Azria",
+    "npc": "Miriun, Azria Village",
+    "lvFirst": "112",
+    "lvLast": "130"
+  },
+  {
+    "name": "Volkane Dungeon",
+    "npc": "Kumah, Volcane Dungeon",
+    "lvFirst": "117",
+    "lvLast": "119"
+  },
+  {
+    "name": "Hero",
+    "npc": "[Master Quests] Leila, Guardiane",
+    "lvFirst": "120",
+    "lvLast": "180 / 160H"
+  },
+  {
+    "name": "Storm Peak",
+    "npc": "Rankashu, Darkon 1",
+    "lvFirst": "129",
+    "lvLast": "135"
+  },
+  {
+    "name": "Coral Island",
+    "npc": "[Darken Mayor]",
+    "lvFirst": "132",
+    "lvLast": "153"
+  },
+  {
+    "name": "The Wilds",
+    "npc": "The Wilds Guard, Coral Island Swamp",
+    "lvFirst": "155",
+    "lvLast": "155"
+  },
+  {
+    "name": "Herneos",
+    "npc": "Sovann, Coral Village",
+    "lvFirst": "160",
+    "lvLast": "160"
+  },
+  {
+    "name": "The Kaillun Expedition",
+    "npc": "Strange Collector, Saint City",
+    "lvFirst": "160",
+    "lvLast": "180"
+  },
+  {
+    "name": "3rd Job Change",
+    "npc": "[Sage] Radion, Fountain of Dead Person",
+    "lvFirst": "166",
+    "lvLast": "166"
+  }
+]

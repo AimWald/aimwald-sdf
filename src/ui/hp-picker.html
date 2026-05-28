@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: #000 no-repeat center/cover;
+      cursor: crosshair;
+      overflow: hidden;
+      user-select: none;
+    }
+    /* Dunkles Overlay über dem Screenshot – kein Compositor nötig */
+    #overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+    }
+    #hint {
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.88);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font: 13px system-ui;
+      text-align: center;
+      pointer-events: none;
+      border: 1px solid #4af;
+      white-space: nowrap;
+      z-index: 10;
+    }
+    #selection {
+      position: fixed;
+      border: 2px solid #44aaff;
+      background: rgba(68,170,255,0.15);
+      display: none;
+      pointer-events: none;
+      z-index: 10;
+    }
+    /* Ausschnitt im Overlay – zeigt Screenshot klar, Rest gedimmt */
+    #cutout {
+      position: fixed;
+      box-shadow: 0 0 0 9999px rgba(0,0,0,0.45);
+      display: none;
+      pointer-events: none;
+      z-index: 5;
+    }
+    #coords {
+      position: fixed;
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.78);
+      color: #88ddff;
+      padding: 5px 14px;
+      border-radius: 6px;
+      font: 12px monospace;
+      pointer-events: none;
+      display: none;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body>
+  <div id="overlay"></div>
+  <div id="hint">Click and drag to select the HP bar &nbsp;|&nbsp; <span style="color:#f88">Escape</span> = cancel</div>
+  <div id="cutout"></div>
+  <div id="selection"></div>
+  <div id="coords"></div>
+
+  <script>
+    const selEl    = document.getElementById('selection');
+    const cutEl    = document.getElementById('cutout');
+    const coordsEl = document.getElementById('coords');
+    let startX = 0, startY = 0, dragging = false;
+    let pixelMode = false;
+
+    const BAR_LABELS = { hp: '❤ HP', mp: '💧 MP', fp: '⚡ FP' };
+
+    window.flyff.on('hp-picker-bg', ({ bg, barType, mode }) => {
+      pixelMode = mode === 'pixel';
+      document.body.style.backgroundImage = `url(${bg})`;
+      document.body.style.backgroundSize  = '100% 100%';
+      const label = BAR_LABELS[barType] || barType?.toUpperCase() || 'bar';
+      if (pixelMode) {
+        document.getElementById('hint').innerHTML =
+          `Click on the <b style="color:#4af">${label}</b> bar at the threshold position (bars must be full) &nbsp;|&nbsp; <span style="color:#f88">Escape</span> = cancel`;
+      } else {
+        document.getElementById('hint').innerHTML =
+          `Click and drag to select the <b style="color:#4af">${label}</b> bar &nbsp;|&nbsp; <span style="color:#f88">Escape</span> = cancel`;
+      }
+    });
+
+    function updateSel(ex, ey) {
+      const x = Math.min(ex, startX);
+      const y = Math.min(ey, startY);
+      const w = Math.abs(ex - startX);
+      const h = Math.abs(ey - startY);
+      selEl.style.left   = x + 'px';
+      selEl.style.top    = y + 'px';
+      selEl.style.width  = w + 'px';
+      selEl.style.height = h + 'px';
+      cutEl.style.left   = x + 'px';
+      cutEl.style.top    = y + 'px';
+      cutEl.style.width  = w + 'px';
+      cutEl.style.height = h + 'px';
+      coordsEl.textContent = `x:${x}  y:${y}  w:${w}  h:${h}`;
+    }
+
+    document.addEventListener('mousedown', e => {
+      if (pixelMode) {
+        // In pixel mode a single click is enough – no drag needed
+        const crossEl = document.getElementById('selection');
+        crossEl.style.cssText = `display:block; left:${e.clientX-6}px; top:${e.clientY-6}px; width:12px; height:12px; border-radius:50%; background:rgba(255,80,80,0.6); border:2px solid #f44;`;
+        coordsEl.textContent = `x:${e.clientX}  y:${e.clientY}`;
+        coordsEl.style.display = 'block';
+        setTimeout(() => window.flyff.hpPickerDone({ mode: 'pixel', x: e.clientX, y: e.clientY }), 120);
+        return;
+      }
+      startX = e.clientX;
+      startY = e.clientY;
+      dragging = true;
+      selEl.style.display    = 'block';
+      cutEl.style.display    = 'block';
+      coordsEl.style.display = 'block';
+      updateSel(e.clientX, e.clientY);
+    });
+
+    document.addEventListener('mousemove', e => {
+      if (!dragging) return;
+      updateSel(e.clientX, e.clientY);
+    });
+
+    document.addEventListener('mouseup', e => {
+      if (!dragging) return;
+      dragging = false;
+      const x = Math.min(e.clientX, startX);
+      const y = Math.min(e.clientY, startY);
+      const w = Math.abs(e.clientX - startX);
+      const h = Math.abs(e.clientY - startY);
+      if (w > 4 && h > 4) {
+        window.flyff.hpPickerDone({ x, y, width: w, height: h });
+      } else {
+        window.flyff.hpPickerCancel();
+      }
+    });
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') window.flyff.hpPickerCancel();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AimWald-SDF</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 30px;
+      overflow: hidden;
+      background: #12122a;
+      color: #d0d0e8;
+      font-family: system-ui, sans-serif;
+      font-size: 11px;
+      user-select: none;
+      /* Gesamte Toolbar ist ziehbar – Buttons überschreiben das */
+      -webkit-app-region: drag;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      height: 30px;
+      padding: 0 6px;
+      gap: 3px;
+    }
+
+    /* Alle interaktiven Elemente aus der Drag-Region herausnehmen */
+    button, .no-drag {
+      -webkit-app-region: no-drag;
+    }
+
+    button {
+      height: 22px;
+      padding: 0 7px;
+      border: 1px solid #3a3a6a;
+      border-radius: 3px;
+      background: #1e1e4a;
+      color: #d0d0e8;
+      font-size: 11px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.1s;
+    }
+    button:hover  { background: #2a2a6a; }
+
+    /* Aktiver Account */
+    button.active {
+      background: #2a4a8a;
+      border-color: #5a8ad8;
+      color: #c8dcff;
+    }
+
+    /* Automation läuft */
+    button.running {
+      background: #1a4a1a;
+      border-color: #3a9a3a;
+      color: #88ee88;
+    }
+
+    .sep {
+      -webkit-app-region: no-drag;
+      width: 1px;
+      height: 18px;
+      background: #3a3a5a;
+      margin: 0 2px;
+    }
+
+    .label {
+      color: #666;
+      font-size: 10px;
+      padding: 0 3px;
+    }
+
+    #btn-close {
+      background: #4a1a1a;
+      border-color: #8a3a3a;
+      margin-left: auto;
+    }
+    #btn-close:hover { background: #7a2a2a; }
+
+    /* Changelog-Overlay & Guide-Overlay */
+    #changelog-overlay, #guide-overlay {
+      display: none;
+      position: fixed;
+      inset: 30px 0 0 0;
+      background: #12122a;
+      z-index: 999;
+      overflow-y: auto;
+      padding: 14px 18px;
+      -webkit-app-region: no-drag;
+    }
+
+    #changelog-overlay h2, #guide-overlay h2 { color: #88aaff; font-size: 13px; border-bottom: 1px solid #2a2a4a; padding-bottom: 3px; margin: 10px 0 4px; }
+    #changelog-overlay h2:first-child, #guide-overlay h2:first-child { margin-top: 0; }
+    #changelog-overlay h3 { color: #6688cc; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; margin: 6px 0 3px; }
+    #changelog-overlay li  { color: #c0c0d8; font-size: 12px; margin: 2px 0 2px 14px; }
+    #changelog-overlay .cl-close, #guide-overlay .guide-close {
+      position: sticky;
+      top: 0;
+      float: right;
+      background: #2a2a4a;
+      border: 1px solid #4a4a7a;
+      color: #aaa;
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-size: 11px;
+      cursor: pointer;
+      z-index: 10;
+    }
+    #changelog-overlay .cl-close:hover, #guide-overlay .guide-close:hover { background: #3a3a6a; }
+
+    /* Guide UI Elements */
+    .guide-nav { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+    .guide-tab { padding: 4px 12px; border: 1px solid #3a3a6a; background: #1e1e3a; color: #aaa; border-radius: 3px; cursor: pointer; }
+    .guide-tab.active { background: #2a4a8a; color: #fff; border-color: #5a8ad8; }
+    .guide-search { flex-grow: 1; background: #0c0c1a; border: 1px solid #2a2a4a; color: #eee; padding: 4px 8px; border-radius: 3px; font-size: 11px; }
+
+    /* Monster Grid */
+    .monster-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 6px;
+    }
+    .monster-item { background: #1e1e3a; padding: 4px 8px; border-radius: 3px; border-left: 2px solid #5a8ad8; display: flex; justify-content: space-between; font-size: 10px; }
+    .monster-item .lv { color: #88ee88; font-weight: bold; }
+
+    /* Quest Table */
+    .quest-table-wrap { overflow-x: auto; }
+    .quest-table { width: 100%; border-collapse: collapse; font-size: 13px; color: #c0c0d8; table-layout: fixed; min-width: 1100px; }
+    .quest-table th { text-align: left; background: #1e1e3a; padding: 6px 5px; color: #88aaff; border-bottom: 1px solid #2a2a4a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .quest-table td { padding: 6px 5px; border-bottom: 1px solid #1a1a3a; vertical-align: top; word-wrap: break-word; }
+    .quest-table tr:hover { background: #1a1a3a; }
+
+    .quest-table .col-done     { width: 90px; text-align: center; padding: 6px 4px; vertical-align: middle; }
+    .quest-table .col-lv       { width: 30px; color: #88ee88; font-weight: bold; }
+    .quest-table .col-line     { width: 100px; color: #6688cc; }
+    .quest-table .col-name           { width: 150px; color: #fff; font-weight: bold; }
+    .quest-table .col-name.link      { color: #88aaff; cursor: pointer; text-decoration: underline; }
+    .quest-table .col-name.link:hover{ color: #aaccff; }
+    .quest-table .col-rec      { width: 75px; font-style: italic; }
+    .quest-table .col-exp      { width: 90px; color: #dddd88; }
+    .quest-table .col-diff     { width: 60px; }
+    .quest-table .col-items    { width: 115px; color: #bbb; }
+    .quest-table .col-monsters { width: 115px; color: #bbb; }
+    .quest-table .col-inv      { width: 38px; color: #ffcc00; font-weight: bold; text-align: center; }
+    .quest-table .col-rew      { width: 100px; color: #eeaa88; }
+    .quest-table .col-notes    { width: 200px; }
+    .quest-table .col-notes .note-clip {
+      color: #888; font-style: italic;
+      display: -webkit-box; -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical; overflow: hidden;
+    }
+
+    .quest-row.done { opacity: 0.35; }
+    .quest-row.done .col-name { text-decoration: line-through; color: #888; }
+    .quest-row.skipped { opacity: 0.4; }
+    .quest-row.skipped .col-name { text-decoration: line-through; color: #666; font-style: italic; }
+
+    /* Quest filter bar */
+    #quest-filter-bar { display: flex; gap: 6px; align-items: center; }
+    .qf-btn { padding: 3px 10px; border: 1px solid #3a3a6a; background: #1e1e3a; color: #aaa; border-radius: 3px; cursor: pointer; font-size: 11px; }
+    .qf-btn.active { background: #2a4a8a; color: #fff; border-color: #5a8ad8; }
+    .quest-count { font-size: 10px; color: #555; }
+    .quest-status-group { display: flex; gap: 3px; align-items: center; justify-content: center; flex-wrap: nowrap; white-space: nowrap; }
+    .quest-status-label { font-size: 16px; color: #888; cursor: pointer; user-select: none; line-height: 1; flex-shrink: 0; }
+
+    .diff-hard     { color: #ff6666; }
+    .diff-vhard    { color: #ff4400; font-weight: bold; }
+    .diff-extreme  { color: #ff00ff; font-weight: bold; }
+
+    .rec-priority  { color: #88ee88; }
+    .rec-mandatory { color: #ffcc44; }
+    .rec-skip      { color: #666; }
+
+    /* Questlines Table */
+    .ql-table { width: 100%; border-collapse: collapse; font-size: 11px; color: #c0c0d8; }
+    .ql-table th { text-align: left; background: #1e1e3a; padding: 6px 8px; color: #88aaff; border-bottom: 1px solid #2a2a4a; white-space: nowrap; }
+    .ql-table td { padding: 7px 8px; border-bottom: 1px solid #1a1a3a; vertical-align: middle; }
+    .ql-table tr:hover { background: #1a1a3a; cursor: pointer; }
+    .ql-table tr:hover .col-ql-name { color: #aaccff; text-decoration: underline; }
+    .col-ql-name  { width: 190px; color: #fff; font-weight: bold; }
+    .col-ql-npc   { width: 200px; color: #99aacc; font-size: 10px; }
+    .col-ql-lv    { width: 80px; color: #88ee88; font-size: 10px; }
+    .col-ql-prog  { width: 220px; }
+    .col-ql-inv   { }
+
+    .ql-bar-wrap  { width: 100%; height: 10px; background: #1e1e3a; border-radius: 5px; overflow: hidden; margin-bottom: 4px; }
+    .ql-bar-fill  { height: 100%; background: #3a9a3a; border-radius: 5px; }
+    .ql-inv-wrap  { width: 100%; height: 6px; background: #1e1e3a; border-radius: 3px; overflow: hidden; margin-bottom: 3px; }
+    .ql-inv-fill  { height: 100%; background: #cc8833; border-radius: 3px; }
+    .ql-bar-label { font-size: 10px; color: #888; }
+
+    /* Dailies */
+    .daily-section { font-size: 13px; color: #88aaff; font-weight: bold; border-bottom: 1px solid #2a2a4a; padding: 10px 4px 5px; margin: 16px 0 8px; }
+    .daily-section:first-child { margin-top: 0; }
+    .daily-table { width: 100%; border-collapse: collapse; font-size: 11px; color: #c0c0d8; margin-bottom: 16px; }
+    .daily-table th { text-align: left; background: #1e1e3a; padding: 5px 8px; color: #88aaff; border-bottom: 1px solid #2a2a4a; white-space: nowrap; }
+    .daily-table td { padding: 7px 8px; border-bottom: 1px solid #1a1a3a; vertical-align: top; word-wrap: break-word; }
+    .daily-table tr:hover { background: #1a1a3a; }
+    .col-dlv   { width: 44px; color: #88ee88; font-weight: bold; }
+    .col-dname { width: 230px; color: #fff; font-weight: bold; }
+    .col-dexp  { width: 110px; color: #dddd88; }
+    .col-dmon  { color: #bbb; }
+    .col-dpenya{ width: 110px; color: #ffcc00; text-align: right; }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+
+    <!-- Account selection -->
+    <span class="label no-drag">Acc:</span>
+    <button id="btn-acc1" class="active" onclick="switchAccount('account1')" title="Show Account 1">1</button>
+    <button id="btn-acc2"               onclick="switchAccount('account2')" title="Show Account 2">2</button>
+    <button id="btn-acc3" style="display:none;" onclick="switchAccount('account3')" title="Show Account 3">3</button>
+    <button id="btn-acc4" style="display:none;" onclick="switchAccount('account4')" title="Show Account 4">4</button>
+    <button id="btn-open-acc3"  onclick="openAccount3()"  title="Open Account 3 (Player Shop)">+ Acc3</button>
+    <button id="btn-close-acc3" onclick="closeAccount3()" title="Close Account 3" style="display:none;">✕ Acc3</button>
+    <button id="btn-open-acc4"  onclick="openAccount4()"  title="Open Account 4">+ Acc4</button>
+    <button id="btn-close-acc4" onclick="closeAccount4()" title="Close Account 4" style="display:none;">✕ Acc4</button>
+
+    <div class="sep"></div>
+
+    <!-- Automation Account 1 -->
+    <span class="label no-drag">Acc1:</span>
+    <button id="btn-start-account1" onclick="startAutomation('account1')" title="Start Automation Account 1 (F10)">▶</button>
+    <button id="btn-stop-account1"  onclick="stopAutomation('account1')"  title="Stop Automation Account 1">■</button>
+    <button onclick="window.flyff.followBoard('account1')" title="Follow + Board (Z + Alt+6) – Acc1" style="padding:0 6px;">⛵</button>
+
+    <div class="sep"></div>
+
+    <!-- Automation Account 2 -->
+    <span class="label no-drag">Acc2:</span>
+    <button id="btn-start-account2" onclick="startAutomation('account2')" title="Start Automation Account 2">▶</button>
+    <button id="btn-stop-account2"  onclick="stopAutomation('account2')"  title="Stop Automation Account 2">■</button>
+    <button onclick="window.flyff.followBoard('account2')" title="Follow + Board (Z + Alt+6) – Acc2" style="padding:0 6px;">⛵</button>
+
+    <!-- Macro buttons (dynamic) -->
+    <div id="macro-area" style="-webkit-app-region:no-drag; display:contents;"></div>
+
+    <div class="sep"></div>
+
+    <button onclick="window.flyff.openSettings()" title="Settings (Keys, Intervals, Hotkeys)">⚙ Settings</button>
+
+    <!-- Version + Changelog -->
+    <span id="app-version" class="label no-drag" style="color:#333; font-size:10px;"></span>
+    <button id="btn-guide" onclick="openGuide()" title="Madrigal Guide (Quests & Monsters)" style="padding:0 5px; font-size:10px; color:#aaa; border-color:#2a2a4a; background:#1e1e3a;">📖 Guide</button>
+    <button id="btn-changelog" onclick="openChangelog()" title="Show Changelog" style="padding:0 5px; font-size:10px; color:#444; border-color:#2a2a4a; background:#12122a;">📋</button>
+
+    <!-- Resolution indicator -->
+    <span id="res-label" class="label no-drag" style="color:#333; font-size:10px;" title="Game view resolution"></span>
+
+    <!-- Gamepad status indicator -->
+    <span id="gp-status" class="label no-drag" title="Gamepad Status">🎮 <span id="gp-label">–</span></span>
+
+    <!-- Close button -->
+    <button id="btn-close" onclick="window.flyff.quitApp()" title="Quit">✕</button>
+  </div>
+
+  <script>
+    // ── Initialisierung ───────────────────────────────────────────────────────
+
+    let macros = [];
+
+    function renderMacroButtons() {
+      const area = document.getElementById('macro-area');
+      area.innerHTML = '';
+      if (macros.length === 0) return;
+      const sep = document.createElement('div'); sep.className = 'sep';
+      area.appendChild(sep);
+      macros.forEach((m) => {
+        const btn = document.createElement('button');
+        btn.textContent = m.label;
+        btn.title = `${m.label} → ${m.account === 'account1' ? 'Acc 1' : 'Acc 2'}`;
+        btn.onclick = () => window.flyff.runMacro(m.id);
+        area.appendChild(btn);
+      });
+    }
+
+    async function init() {
+      const state = await window.flyff.getState();
+      applyAccountState(state.activeAccount);
+      applyRunningState('account1', state.account1Running);
+      applyRunningState('account2', state.account2Running);
+      updateAccountButtons(state);
+      document.getElementById('app-version').textContent = 'v' + state.version;
+
+      window.flyff.getViewSize().then(({ w, h }) => {
+        document.getElementById('res-label').textContent = w + '×' + h;
+      });
+      window.flyff.on('view-size-changed', ({ w, h }) => {
+        document.getElementById('res-label').textContent = w + '×' + h;
+      });
+
+      macros = await window.flyff.getMacros() || [];
+      renderMacroButtons();
+
+      // Gamepad-Config laden und Polling starten.
+      // Polling läuft hier im Renderer-Hauptkontext, weil navigator.getGamepads()
+      // im isolierten Preload-Kontext nicht zuverlässig verfügbar ist.
+      currentButtonMap = await window.flyff.getGamepadConfig();
+      startGamepadPolling();
+
+      window.flyff.on('gamepad-config-updated', cfg => { currentButtonMap = cfg; });
+      window.flyff.on('macros-updated', updated => { macros = updated; renderMacroButtons(); });
+    }
+
+    // ── UI-Hilfsfunktionen ────────────────────────────────────────────────────
+
+    function applyAccountState(active) {
+      ['account1', 'account2', 'account3', 'account4'].forEach(acc => {
+        document.getElementById('btn-' + acc.replace('account', 'acc'))?.classList.toggle('active', active === acc);
+      });
+    }
+
+    function openAccount3() {
+      window.flyff.openAccount('account3');
+    }
+
+    function closeAccount3() {
+      window.flyff.closeAccount('account3');
+    }
+
+    function openAccount4() {
+      window.flyff.openAccount('account4');
+    }
+
+    function closeAccount4() {
+      window.flyff.closeAccount('account4');
+    }
+
+    function updateAccountButtons(state) {
+      const acc3Open = state.account3Open;
+      const acc4Open = state.account4Open;
+
+      document.getElementById('btn-acc3').style.display = acc3Open ? 'inline-block' : 'none';
+      document.getElementById('btn-open-acc3').style.display = acc3Open ? 'none' : 'inline-block';
+      document.getElementById('btn-close-acc3').style.display = acc3Open ? 'inline-block' : 'none';
+
+      document.getElementById('btn-acc4').style.display = acc4Open ? 'inline-block' : 'none';
+      document.getElementById('btn-open-acc4').style.display = acc4Open ? 'none' : 'inline-block';
+      document.getElementById('btn-close-acc4').style.display = acc4Open ? 'inline-block' : 'none';
+    }
+
+    function applyRunningState(account, running) {
+      document.getElementById(`btn-start-${account}`).classList.toggle('running', running);
+      document.getElementById(`btn-stop-${account}` ).classList.toggle('running', running);
+    }
+
+    // ── Button-Handler ────────────────────────────────────────────────────────
+
+    function switchAccount(account) {
+      window.flyff.switchAccount(account);
+      applyAccountState(account);
+    }
+
+    function startAutomation(account) {
+      window.flyff.startAutomation(account);
+      applyRunningState(account, true);
+    }
+
+    function stopAutomation(account) {
+      window.flyff.stopAutomation(account);
+      applyRunningState(account, false);
+    }
+
+    // ── Events vom Main-Prozess (z.B. via F9 / F10) ───────────────────────────
+
+    window.flyff.on('account-switched', (account) => {
+      window.flyff.sendMouseUp('right');
+      window.flyff.resetCursor();
+      applyAccountState(account);
+    });
+
+    window.flyff.on('automation-state-changed', ({ account, running }) => {
+      applyRunningState(account, running);
+    });
+
+    window.flyff.on('account-opened', async (account) => {
+      const state = await window.flyff.getState();
+      updateAccountButtons(state);
+    });
+
+    window.flyff.on('account-closed', async (account) => {
+      const state = await window.flyff.getState();
+      updateAccountButtons(state);
+    });
+
+    // ── Gamepad-Polling (läuft im Renderer-Hauptkontext) ─────────────────────
+
+    let currentButtonMap = null;
+
+    function startGamepadPolling() {
+      const WASD_PRESS     = 0.40;
+      const WASD_RELEASE   = 0.20;
+      const STICK_DEADZONE = 0.25;
+
+      const prevBtns = {};
+      const gpLabel  = document.getElementById('gp-label');
+      const heldKeys = { W: false, A: false, S: false, D: false, ArrowLeft: false, ArrowRight: false, ArrowUp: false, ArrowDown: false };
+
+      function updateAxis(key, val) {
+        const held = heldKeys[key];
+        const next = held ? val > WASD_RELEASE : val > WASD_PRESS;
+        if (next === held) return;
+        heldKeys[key] = next;
+        if (next) window.flyff.sendGamepadKeyDown(key);
+        else       window.flyff.sendGamepadKeyUp(key);
+      }
+
+      function releaseAllWASD() {
+        Object.keys(heldKeys).forEach(k => {
+          if (!heldKeys[k]) return;
+          heldKeys[k] = false;
+          window.flyff.sendGamepadKeyUp(k);
+        });
+      }
+
+      window.addEventListener('gamepadconnected',    () => {});
+      window.addEventListener('gamepaddisconnected', () => releaseAllWASD());
+
+      // requestAnimationFrame statt setInterval: kein Cascade wenn ein Frame zu lang dauert
+      function poll(now) {
+        const pads      = navigator.getGamepads();
+        const connected = Array.from(pads).filter(Boolean);
+
+        if (connected.length === 0) {
+          gpLabel.textContent = '–';
+          gpLabel.style.color = '#555';
+          releaseAllWASD();
+          requestAnimationFrame(poll);
+          return;
+        }
+        gpLabel.textContent = connected.length + ' OK';
+        gpLabel.style.color = '#44ee44';
+
+        for (const gp of connected) {
+          // Linker Stick → WASD
+          updateAxis('D',  gp.axes[0] || 0);
+          updateAxis('A', -(gp.axes[0] || 0));
+          updateAxis('S',  gp.axes[1] || 0);
+          updateAxis('W', -(gp.axes[1] || 0));
+
+          // Buttons: sofort, kein Throttle
+          gp.buttons.forEach((btn, idx) => {
+            const key        = `${gp.index}_${idx}`;
+            const pressed    = btn.pressed;
+            const wasPressed = prevBtns[key];
+            const action     = currentButtonMap && currentButtonMap[String(idx)];
+
+            if (pressed && !wasPressed) {
+              if      (action === '__LCLICK')      { window.flyff.sendMouseDown('left'); setTimeout(() => window.flyff.sendMouseUp('left'), 80); }
+              else if (action === '__RHOLD')        window.flyff.sendMouseDown('right');
+              else if (action === '__SCROLL_UP')    window.flyff.sendGamepadScroll(0,  120);
+              else if (action === '__SCROLL_DOWN')  window.flyff.sendGamepadScroll(0, -120);
+              else if (action === '__TARGET')        window.flyff.searchTarget();
+              else if (action)                      window.flyff.sendGamepadButton(action);
+            } else if (!pressed && wasPressed && action === '__RHOLD') {
+              window.flyff.sendMouseUp('right');
+              window.flyff.resetCursor();
+            }
+            prevBtns[key] = pressed;
+          });
+
+          // Rechter Stick → Pfeil-Tasten (Kamera)
+          const rx = gp.axes[2] || 0;
+          const ry = gp.axes[3] || 0;
+          updateAxis('ArrowLeft',   rx);
+          updateAxis('ArrowRight', -rx);
+          updateAxis('ArrowUp',     ry);
+          updateAxis('ArrowDown',  -ry);
+        }
+
+        requestAnimationFrame(poll);
+      }
+
+      requestAnimationFrame(poll);
+    }
+
+    init();
+
+    // ── Changelog-Overlay ─────────────────────────────────────────────────────
+
+    function renderMarkdown(md) {
+      const el = document.createElement('div');
+      md.split('\n').forEach(line => {
+        if (line.startsWith('## '))      { const h = document.createElement('h2'); h.textContent = line.slice(3); el.appendChild(h); }
+        else if (line.startsWith('### ')) { const h = document.createElement('h3'); h.textContent = line.slice(4); el.appendChild(h); }
+        else if (line.startsWith('- '))  { const ul = el.lastChild?.tagName === 'UL' ? el.lastChild : el.appendChild(document.createElement('ul')); const li = document.createElement('li'); li.textContent = line.slice(2); ul.appendChild(li); }
+        // Leerzeilen und andere Zeilen überspringen
+      });
+      return el;
+    }
+
+    async function openChangelog() {
+      const overlay = document.getElementById('changelog-overlay');
+      if (overlay.style.display === 'block') { closeChangelog(); return; }
+      
+      closeGuide(); // Guide schließen falls offen
+
+      const content = document.getElementById('changelog-content');
+      if (!content.hasChildNodes()) {
+        const md = await window.flyff.getChangelog();
+        content.appendChild(renderMarkdown(md));
+      }
+      overlay.style.display = 'block';
+      window.flyff.setGameViewVisibility(false);
+    }
+
+    function closeChangelog() {
+      document.getElementById('changelog-overlay').style.display = 'none';
+      checkAllOverlaysClosed();
+    }
+
+    // ── Guide-Overlay (Quests & Monsters) ─────────────────────────────────────
+
+    let guideState = { activeTab: 'quests', questFilter: 'open', dailyLevel: 0, quests: [], monsters: [], questlines: [], dailies: [], progress: {} };
+
+    async function openGuide() {
+      const overlay = document.getElementById('guide-overlay');
+      if (overlay.style.display === 'block') { closeGuide(); return; }
+
+      closeChangelog();
+
+      if (guideState.quests.length === 0)      guideState.quests      = await window.flyff.getQuests()      || [];
+      if (guideState.monsters.length === 0)    guideState.monsters    = await window.flyff.getMonsters()    || [];
+      if (guideState.questlines.length === 0)  guideState.questlines  = await window.flyff.getQuestlines()  || [];
+      if (guideState.dailies.length === 0)     guideState.dailies     = await window.flyff.getDailies()     || [];
+      guideState.progress = await window.flyff.getQuestProgress() || {};
+
+      renderGuide();
+      overlay.style.display = 'block';
+      window.flyff.setGameViewVisibility(false);
+    }
+
+    function closeGuide() {
+      document.getElementById('guide-overlay').style.display = 'none';
+      checkAllOverlaysClosed();
+    }
+
+    function checkAllOverlaysClosed() {
+      const changelog = document.getElementById('changelog-overlay');
+      const guide = document.getElementById('guide-overlay');
+      if (changelog.style.display !== 'block' && guide.style.display !== 'block') {
+        window.flyff.setGameViewVisibility(true);
+      }
+    }
+
+    function switchGuideTab(tab) {
+      guideState.activeTab = tab;
+      ['quests', 'questlines', 'dailies', 'monsters'].forEach(t => {
+        document.getElementById('tab-' + t)?.classList.toggle('active', t === tab);
+      });
+      const filterBar = document.getElementById('quest-filter-bar');
+      const dailyBar = document.getElementById('daily-level-bar');
+      if (filterBar) filterBar.style.display = tab === 'quests' ? 'flex' : 'none';
+      if (dailyBar) dailyBar.style.display = tab === 'dailies' ? 'flex' : 'none';
+      renderGuide();
+    }
+
+    function setDailyLevel(val) {
+      guideState.dailyLevel = parseInt(val) || 0;
+      renderGuide();
+    }
+
+    function setQuestFilter(f) {
+      guideState.questFilter = f;
+      ['open', 'done', 'skipped', 'all'].forEach(n =>
+        document.getElementById('qf-' + n).classList.toggle('active', n === f)
+      );
+      renderGuide();
+    }
+
+    function filterGuide() { renderGuide(); }
+
+    function setQuestStatus(questId, status) {
+      if (!guideState.progress[questId]) guideState.progress[questId] = { done: false, skipped: false };
+      if (status === 'open') {
+        guideState.progress[questId].done = false;
+        guideState.progress[questId].skipped = false;
+      } else if (status === 'done') {
+        guideState.progress[questId].done = true;
+        guideState.progress[questId].skipped = false;
+      } else if (status === 'skipped') {
+        guideState.progress[questId].done = false;
+        guideState.progress[questId].skipped = true;
+      }
+      window.flyff.saveQuestProgress(guideState.progress);
+      renderGuide();
+    }
+
+    async function exportProgress() {
+      const result = await window.flyff.exportQuestProgress();
+      if (result.success) {
+        alert('Quest progress exported to:\n' + result.path);
+      } else if (result.error) {
+        alert('Export failed: ' + result.error);
+      }
+      // If canceled, do nothing (no alert)
+    }
+
+    async function importProgress() {
+      const result = await window.flyff.importQuestProgress();
+      if (result.success) {
+        guideState.progress = await window.flyff.getQuestProgress();
+        renderGuide();
+        alert(`Imported ${result.count} quest entries successfully!`);
+      } else if (result.error) {
+        alert('Import failed: ' + result.error);
+      }
+      // If canceled, do nothing (no alert)
+    }
+
+    function filterByQuestline(lineName) {
+      document.getElementById('guide-search').value = lineName;
+      switchGuideTab('quests');
+    }
+
+    function renderGuide() {
+      if      (guideState.activeTab === 'quests')     renderQuestsTab();
+      else if (guideState.activeTab === 'questlines') renderQuestlinesTab();
+      else if (guideState.activeTab === 'dailies')    renderDailiesTab();
+      else                                            renderMonstersTab();
+    }
+
+    function renderQuestsTab() {
+      const content = document.getElementById('guide-content');
+      const search  = document.getElementById('guide-search').value.toLowerCase();
+      const f       = guideState.questFilter;
+
+      const matched = guideState.quests.filter(q =>
+        q.name.toLowerCase().includes(search) ||
+        (q.line     || '').toLowerCase().includes(search) ||
+        (q.monsters || '').toLowerCase().includes(search) ||
+        (q.items    || '').toLowerCase().includes(search) ||
+        (q.rewards  || '').toLowerCase().includes(search) ||
+        (q.notes    || '').toLowerCase().includes(search) ||
+        (q.rec      || '').toLowerCase().includes(search) ||
+        ('lv.' + q.lv).includes(search)
+      );
+
+      const filtered = matched.filter(q => {
+        const qId = `${q.lv}-${q.line}-${q.name}`;
+        const status = guideState.progress[qId] || { done: false, skipped: false };
+        if (f === 'open') return !status.done && !status.skipped;
+        if (f === 'done') return status.done;
+        if (f === 'skipped') return status.skipped;
+        return true;
+      });
+
+      let html = `<div style="font-size:11px;color:#555;margin-bottom:6px">${filtered.length} quests</div>`;
+      html += '<div class="quest-table-wrap"><table class="quest-table"><thead><tr>';
+      html += '<th class="col-done">Status</th><th class="col-lv">Lv</th><th class="col-line">Questline</th><th class="col-name">Name</th><th class="col-rec">Rec</th><th class="col-exp">Exp</th><th class="col-diff">Diff</th><th class="col-items">Items</th><th class="col-monsters">Monsters</th><th class="col-inv">Inv</th><th class="col-rew">Rewards</th><th class="col-notes">Notes</th>';
+      html += '</tr></thead><tbody>';
+
+      filtered.forEach(q => {
+        const qId     = `${q.lv}-${q.line}-${q.name}`;
+        const qIdSafe = qId.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        const status  = guideState.progress[qId] || { done: false, skipped: false };
+        const isDone  = status.done;
+        const isSkipped = status.skipped;
+
+        const diffClass = q.diff === 'Hard'      ? 'diff-hard'    :
+                          q.diff === 'Very Hard'  ? 'diff-vhard'   :
+                          (q.diff === 'Extreme' || q.diff === 'Impossible') ? 'diff-extreme' : '';
+        const recClass  = q.rec === 'Prioritize' ? 'rec-priority'  :
+                          q.rec === 'Mandatory'  ? 'rec-mandatory' :
+                          q.rec === 'Skip'       ? 'rec-skip'      : '';
+        const invDisplay = q.inv === -1 ? 'Req.' : (q.inv > 0 ? '+' + q.inv : '');
+        const notesSafe  = (q.notes || '').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+
+        const rowClass = isDone ? ' done' : (isSkipped ? ' skipped' : '');
+        const currentStatus = isDone ? 'done' : (isSkipped ? 'skipped' : 'open');
+
+        html += `<tr class="quest-row${rowClass}">
+          <td class="col-done">
+            <div class="quest-status-group">
+              <input type="checkbox" ${isDone ? 'checked' : ''} onchange="setQuestStatus('${qIdSafe}', this.checked ? 'done' : 'open')" id="done-${qIdSafe}" style="margin:0; cursor:pointer; width:15px; height:15px;">
+              <label for="done-${qIdSafe}" class="quest-status-label" style="color:#4a4">✓</label>
+              <input type="checkbox" ${isSkipped ? 'checked' : ''} onchange="setQuestStatus('${qIdSafe}', this.checked ? 'skipped' : 'open')" id="skip-${qIdSafe}" style="margin:0; cursor:pointer; width:15px; height:15px;">
+              <label for="skip-${qIdSafe}" class="quest-status-label" style="color:#a44">⊗</label>
+            </div>
+          </td>
+          <td class="col-lv">${q.lv}</td>
+          <td class="col-line">${q.line || ''}</td>
+          <td class="col-name${q.url ? ' link' : ''}"${q.url ? ` onclick="window.flyff.openQuestUrl('${q.url.replace(/'/g, "\\'")}')"` : ''}>${q.name}</td>
+          <td class="col-rec ${recClass}">${q.rec || ''}</td>
+          <td class="col-exp">${q.exp || '-'}${q.exp2 ? `<br><small style="color:#aaa">${q.exp2}</small>` : ''}</td>
+          <td class="col-diff ${diffClass}">${q.diff || ''}</td>
+          <td class="col-items">${q.items || ''}</td>
+          <td class="col-monsters">${q.monsters || ''}</td>
+          <td class="col-inv">${invDisplay}</td>
+          <td class="col-rew">${q.rewards || ''}</td>
+          <td class="col-notes" title="${notesSafe}"><div class="note-clip">${q.notes || ''}</div></td>
+        </tr>`;
+      });
+      html += '</tbody></table></div>';
+      content.innerHTML = html;
+    }
+
+    function renderQuestlinesTab() {
+      const content = document.getElementById('guide-content');
+      const search  = document.getElementById('guide-search').value.toLowerCase();
+
+      // Compute per-questline stats from quest data + progress
+      const lineStats = {};
+      guideState.quests.forEach(q => {
+        const key = q.line || 'Unknown';
+        if (!lineStats[key]) lineStats[key] = { total: 0, done: 0, totalInv: 0, unlockedInv: 0 };
+        const s   = lineStats[key];
+        const qId = `${q.lv}-${q.line}-${q.name}`;
+        s.total++;
+        if (q.inv > 0) s.totalInv += q.inv;
+        const status = guideState.progress[qId] || { done: false, skipped: false };
+        if (status.done) {
+          s.done++;
+          if (q.inv > 0) s.unlockedInv += q.inv;
+        }
+      });
+
+      const filtered = guideState.questlines.filter(ql =>
+        ql.name.toLowerCase().includes(search) ||
+        (ql.npc || '').toLowerCase().includes(search)
+      );
+
+      let html = '<table class="ql-table"><thead><tr>';
+      html += '<th class="col-ql-name">Questline</th><th class="col-ql-npc">Start NPC / Location</th><th class="col-ql-lv">Levels</th><th class="col-ql-prog">Quest Progress</th><th class="col-ql-inv">Inventory Slots</th>';
+      html += '</tr></thead><tbody>';
+
+      filtered.forEach(ql => {
+        const s    = lineStats[ql.name] || { total: 0, done: 0, totalInv: 0, unlockedInv: 0 };
+        const qPct = s.total ? Math.round(s.done / s.total * 100) : 0;
+        const iPct = s.totalInv ? Math.round(s.unlockedInv / s.totalInv * 100) : 0;
+        const lineSafe = ql.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+
+        const invCell = s.totalInv > 0
+          ? `<div class="ql-inv-wrap"><div class="ql-inv-fill" style="width:${iPct}%"></div></div>
+             <span class="ql-bar-label">${s.unlockedInv} / ${s.totalInv} slots unlocked</span>`
+          : '<span style="color:#444; font-size:10px">–</span>';
+
+        html += `<tr onclick="filterByQuestline('${lineSafe}')">
+          <td class="col-ql-name">${ql.name}</td>
+          <td class="col-ql-npc">${ql.npc || '–'}</td>
+          <td class="col-ql-lv">Lv. ${ql.lvFirst} – ${ql.lvLast}</td>
+          <td class="col-ql-prog">
+            <div class="ql-bar-wrap"><div class="ql-bar-fill" style="width:${qPct}%"></div></div>
+            <span class="ql-bar-label">${s.done} / ${s.total} quests (${qPct}%)</span>
+          </td>
+          <td class="col-ql-inv">${invCell}</td>
+        </tr>`;
+      });
+
+      html += '</tbody></table>';
+      html += '<div style="margin-top:10px; font-size:10px; color:#555">Click a questline to filter the Quests tab.</div>';
+      content.innerHTML = html;
+    }
+
+    function renderDailiesTab() {
+      const content  = document.getElementById('guide-content');
+      const search   = document.getElementById('guide-search').value.toLowerCase();
+      const maxLv    = guideState.dailyLevel;
+
+      const filtered = guideState.dailies.filter(d => {
+        const matchSearch = d.name.toLowerCase().includes(search) ||
+          (d.monsters || '').toLowerCase().includes(search) ||
+          String(d.lv).includes(search);
+        const matchLevel = maxLv === 0 || d.lv <= maxLv;
+        return matchSearch && matchLevel;
+      });
+
+      const sections = ['Forsaken Tower', 'Kaillun'];
+      let html = '';
+
+      if (maxLv === 0) {
+        html += '<div style="font-size:11px;color:#555;margin-bottom:8px">Enter your level above to see only available quests.</div>';
+      } else if (filtered.length === 0) {
+        html += `<div style="color:#555;padding:20px;text-align:center">No daily quests available at level ${maxLv}. Forsaken Tower starts at Lv. 86.</div>`;
+        content.innerHTML = html;
+        return;
+      }
+
+      sections.forEach(section => {
+        const rows = filtered.filter(d => d.section === section);
+        if (rows.length === 0) return;
+        html += `<div class="daily-section">${section}</div>`;
+        html += '<table class="daily-table"><thead><tr>';
+        html += '<th class="col-dlv">Lv</th><th class="col-dname">Name</th><th class="col-dexp">Exp</th><th class="col-dmon">Monsters to Kill</th><th class="col-dpenya">Penya</th>';
+        html += '</tr></thead><tbody>';
+        rows.forEach(d => {
+          html += `<tr>
+            <td class="col-dlv">${d.lv}</td>
+            <td class="col-dname">${d.name}</td>
+            <td class="col-dexp">${d.exp}</td>
+            <td class="col-dmon">${d.monsters || '–'}</td>
+            <td class="col-dpenya">${d.penya > 0 ? d.penya.toLocaleString() : '–'}</td>
+          </tr>`;
+        });
+        html += '</tbody></table>';
+      });
+
+      if (!html) html = '<div style="color:#555;padding:20px;text-align:center">No results</div>';
+      content.innerHTML = html;
+    }
+
+    function renderMonstersTab() {
+      const content = document.getElementById('guide-content');
+      const search  = document.getElementById('guide-search').value.toLowerCase();
+
+      const filtered = guideState.monsters.filter(m =>
+        m.name.toLowerCase().includes(search) ||
+        ('lv.' + m.lv).includes(search)
+      );
+      let html = '<div class="monster-grid">';
+      filtered.forEach(m => {
+        html += `<div class="monster-item"><span class="lv">Lv.${m.lv}</span><span class="name">${m.name}</span></div>`;
+      });
+      html += '</div>';
+      content.innerHTML = html;
+    }
+  </script>
+
+  <div id="changelog-overlay">
+    <button class="cl-close" onclick="closeChangelog()">✕ Close</button>
+    <div id="changelog-content"></div>
+  </div>
+
+  <div id="guide-overlay">
+    <button class="guide-close" onclick="closeGuide()">✕ Close</button>
+    <h2>Madrigal Guide</h2>
+    <div style="display:flex; gap:6px; margin-bottom:8px;">
+      <button onclick="exportProgress()" style="padding:3px 10px; border:1px solid #3a3a6a; background:#1e1e3a; color:#aaa; border-radius:3px; cursor:pointer; font-size:11px;">📤 Export Progress</button>
+      <button onclick="importProgress()" style="padding:3px 10px; border:1px solid #3a3a6a; background:#1e1e3a; color:#aaa; border-radius:3px; cursor:pointer; font-size:11px;">📥 Import Progress</button>
+    </div>
+    <div class="guide-nav">
+      <div id="tab-quests"      class="guide-tab active" onclick="switchGuideTab('quests')">Quests</div>
+      <div id="tab-questlines"  class="guide-tab"        onclick="switchGuideTab('questlines')">Questlines</div>
+      <div id="tab-dailies"     class="guide-tab"        onclick="switchGuideTab('dailies')">Dailies</div>
+      <div id="tab-monsters"    class="guide-tab"        onclick="switchGuideTab('monsters')">Monsters</div>
+      <div id="quest-filter-bar">
+        <div id="qf-open" class="qf-btn active" onclick="setQuestFilter('open')">Open</div>
+        <div id="qf-done" class="qf-btn"        onclick="setQuestFilter('done')">Done</div>
+        <div id="qf-skipped" class="qf-btn"     onclick="setQuestFilter('skipped')">Skipped</div>
+        <div id="qf-all"  class="qf-btn"        onclick="setQuestFilter('all')">All</div>
+      </div>
+      <div id="daily-level-bar" style="display:none; align-items:center; gap:6px;">
+        <span style="font-size:11px; color:#888;">Your Level:</span>
+        <input type="number" min="1" max="300" placeholder="e.g. 95"
+          style="width:70px; background:#0c0c1a; border:1px solid #2a2a4a; color:#eee; padding:3px 6px; border-radius:3px; font-size:11px;"
+          oninput="setDailyLevel(this.value)">
+      </div>
+      <input type="text" id="guide-search" class="guide-search" placeholder="Search (e.g. 'Lv.20', questline name, monster...)..." oninput="filterGuide()">
+    </div>
+    <div id="guide-content"></div>
+  </div>
+
+</body>
+</html>

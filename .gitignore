@@ -1,0 +1,9 @@
+node_modules/
+dist/
+out/
+.DS_Store
+*.log
+eng.traineddata
+GEMINI.md
+sync.sh
+CLAUDE.md

@@ -1,0 +1,16 @@
+{
+  "account1": {
+    "statusRect": null,
+    "barBounds": {},
+    "hp": { "enabled": false, "threshold": 50, "key": "1", "intervalMs": 500 },
+    "mp": { "enabled": false, "threshold": 30, "key": "2", "intervalMs": 1000 },
+    "fp": { "enabled": false, "threshold": 30, "key": "3", "intervalMs": 1000 }
+  },
+  "account2": {
+    "statusRect": null,
+    "barBounds": {},
+    "hp": { "enabled": false, "threshold": 50, "key": "1", "intervalMs": 500 },
+    "mp": { "enabled": false, "threshold": 30, "key": "2", "intervalMs": 1000 },
+    "fp": { "enabled": false, "threshold": 30, "key": "3", "intervalMs": 1000 }
+  }
+}

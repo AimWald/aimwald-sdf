@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AimWald-SDF Settings</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: system-ui, sans-serif;
+      font-size: 13px;
+      background: #12122a;
+      color: #d0d0e8;
+      padding: 16px;
+      padding-bottom: 80px; /* Space for sticky footer */
+      min-height: 100vh;
+    }
+
+    h2 {
+      font-size: 15px;
+      margin-bottom: 14px;
+      color: #88aaff;
+      border-bottom: 1px solid #2a2a4a;
+      padding-bottom: 8px;
+    }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 14px;
+      border-bottom: 1px solid #2a2a4a;
+    }
+    .tab {
+      padding: 6px 16px;
+      background: #1a1a3a;
+      border: 1px solid #2a2a4a;
+      border-bottom: none;
+      cursor: pointer;
+      font-size: 12px;
+      color: #888;
+      margin-bottom: -1px;
+    }
+    .tab.active {
+      background: #12122a;
+      color: #d0d0e8;
+      border-bottom: 1px solid #12122a;
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ── Tabellen ── */
+    h3 {
+      font-size: 12px;
+      color: #6688cc;
+      margin: 14px 0 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 6px;
+    }
+    th {
+      text-align: left;
+      font-weight: 600;
+      color: #666;
+      font-size: 11px;
+      padding: 4px 8px;
+      border-bottom: 1px solid #2a2a4a;
+    }
+    td {
+      padding: 3px 6px;
+      border-bottom: 1px solid #1a1a3a;
+      vertical-align: middle;
+    }
+    tr:hover td { background: #1a1a3a; }
+
+    input[type="text"],
+    input[type="number"] {
+      background: #0d0d1e;
+      border: 1px solid #3a3a5a;
+      color: #d0d0e8;
+      padding: 3px 6px;
+      border-radius: 3px;
+      font-size: 12px;
+      width: 100%;
+    }
+    input[type="number"] { width: 80px; }
+
+    select {
+      background: #0d0d1e;
+      border: 1px solid #3a3a5a;
+      color: #d0d0e8;
+      padding: 3px 6px;
+      border-radius: 3px;
+      font-size: 12px;
+    }
+
+    input[type="checkbox"] {
+      cursor: pointer;
+      width: 15px;
+      height: 15px;
+      accent-color: #4488ff;
+    }
+
+    /* ── Hotkeys-Tabelle ── */
+    .hk-table td:first-child { width: 200px; color: #aaa; }
+
+    /* ── Speichern-Button ── */
+    .footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 12px 16px;
+      background: #12122a;
+      border-top: 2px solid #2a2a4a;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      z-index: 100;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.5);
+    }
+    .btn-save {
+      padding: 8px 24px;
+      background: #1a3a1a;
+      border: 1px solid #3a8a3a;
+      color: #88ee88;
+      border-radius: 4px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .btn-save:hover { background: #244424; }
+
+    .btn-back {
+      padding: 8px 18px;
+      background: #2a2a4a;
+      border: 1px solid #4a4a7a;
+      color: #aaa;
+      border-radius: 4px;
+      font-size: 13px;
+      cursor: pointer;
+      margin-left: auto;
+    }
+    .btn-back:hover { background: #3a3a6a; color: #d0d0e8; }
+
+    .saved-msg {
+      color: #44ee44;
+      font-size: 12px;
+      display: none;
+    }
+
+    .btn-del {
+      padding: 2px 7px;
+      background: #3a1a1a;
+      border: 1px solid #8a3a3a;
+      color: #ee8888;
+      border-radius: 3px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .btn-del:hover { background: #5a1a1a; }
+
+    .btn-add {
+      margin: 4px 0 10px;
+      padding: 4px 12px;
+      background: #1a2a1a;
+      border: 1px solid #3a6a3a;
+      color: #88ee88;
+      border-radius: 3px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .btn-add:hover { background: #1a3a1a; }
+  </style>
+</head>
+<body>
+  <h2>⚙ Settings</h2>
+
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('automation')">Automation</div>
+    <div class="tab"        onclick="showTab('gamepad')">Controller</div>
+    <div class="tab"        onclick="showTab('accounts')">Accounts</div>
+    <div class="tab"        onclick="showTab('hotkeys')">Hotkeys</div>
+    <div class="tab"        onclick="showTab('macros')">Macros</div>
+    <div class="tab"        onclick="showTab('autoheal')">Auto-Heal</div>
+  </div>
+
+  <!-- ── Automation tab ────────────────────────────────────────────────── -->
+  <div id="tab-automation" class="tab-content active">
+
+    <h3>Account 1 – Actions</h3>
+    <table id="tbl-account1">
+      <thead>
+        <tr>
+          <th>Label</th>
+          <th>Key</th>
+          <th>Interval (sec)</th>
+          <th>Active</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <button class="btn-add" onclick="addRow('tbl-account1')">+ Add action</button>
+
+    <h3>Account 2 – Actions</h3>
+    <table id="tbl-account2">
+      <thead>
+        <tr>
+          <th>Label</th>
+          <th>Key</th>
+          <th>Interval (sec)</th>
+          <th>Active</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <button class="btn-add" onclick="addRow('tbl-account2')">+ Add action</button>
+
+  </div>
+
+  <!-- ── Controller tab ───────────────────────────────────────────────── -->
+  <div id="tab-gamepad" class="tab-content">
+    <h3>Button Mapping</h3>
+    <p style="color:#555; font-size:11px; margin-bottom:8px;">Left stick → WASD &nbsp;|&nbsp; Right stick → Mouse/Camera (hold L2)</p>
+    <table id="tbl-gamepad">
+      <thead><tr><th>Button</th><th>Action</th></tr></thead>
+      <tbody></tbody>
+    </table>
+
+    <h3>Auto-Target</h3>
+    <table class="hk-table">
+      <tbody>
+        <tr>
+          <td>Spiral radius (px)</td>
+          <td><input type="number" id="target-radius" min="50" max="800" style="width:80px" value="300"></td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="color:#555; font-size:11px; margin-top:4px;">Larger radius = wider search area from screen center.</p>
+  </div>
+
+  <!-- ── Macros tab ──────────────────────────────────────────────────────── -->
+  <div id="tab-macros" class="tab-content">
+    <h3>Toolbar Macro Buttons</h3>
+    <p style="color:#555; font-size:11px; margin-bottom:8px;">Each macro adds a button to the toolbar. Keys are comma-separated (e.g. F2, 1, 2, 3, F1). Automation on the target account is paused during execution.</p>
+    <table id="tbl-macros">
+      <thead>
+        <tr>
+          <th>Label</th>
+          <th>Account</th>
+          <th>Keys (comma-separated)</th>
+          <th>Delay (sec)</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <button class="btn-add" onclick="addMacroRow()">+ Add macro</button>
+  </div>
+
+  <!-- ── Auto-Heal tab ─────────────────────────────────────────────────── -->
+  <div id="tab-autoheal" class="tab-content">
+    <p style="color:#555; font-size:11px; margin-bottom:10px;">
+      <b style="color:#aaa">Bar mode:</b> drag-select the bar area (📐). Works for all bars, supports multiple thresholds.<br>
+      <b style="color:#aaa">Pixel mode:</b> click one pixel on the bar at the desired threshold position (📍). Bars must be full when picking.
+    </p>
+
+    <h3>Account 1</h3>
+    <span id="ah1-test" style="color:#88ff88; font-size:11px; display:block; margin-bottom:4px;"></span>
+    <table>
+      <thead>
+        <tr><th>Bar</th><th>Enable</th><th>Actions (key &lt; %)</th><th>Interval (sec)</th><th>Source</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="color:#ff7777; font-weight:600;">❤ HP</td>
+          <td><input type="checkbox" id="ah1-hp-enabled"></td>
+          <td><div id="ah1-hp-actions"></div><button class="btn-add" style="margin:2px 0 0; padding:2px 8px; font-size:11px;" onclick="addAhAction('account1','hp')">+ action</button></td>
+          <td><input type="number" id="ah1-hp-interval" min="0.2" max="10" step="0.1" style="width:65px" value="0.5"></td>
+          <td><select id="ah1-hp-mode" style="font-size:11px; padding:2px; margin-bottom:3px;" onchange="updateAhModeUI('1','hp')"><option value="bar">Bar</option><option value="pixel">Pixel</option></select><br>
+              <button class="btn-add" id="ah1-hp-pick-btn" style="margin:0 2px 0 0;" onclick="pickAh('account1','hp')">📐</button>
+              <button class="btn-add" style="margin:0;" onclick="testBar('account1','hp')">🔍</button>
+              <span id="ah1-hp-rect" style="color:#555; font-size:10px; font-family:monospace; display:block; margin-top:2px;">not set</span></td>
+        </tr>
+        <tr>
+          <td style="color:#7799ff; font-weight:600;">💧 MP</td>
+          <td><input type="checkbox" id="ah1-mp-enabled"></td>
+          <td><div id="ah1-mp-actions"></div><button class="btn-add" style="margin:2px 0 0; padding:2px 8px; font-size:11px;" onclick="addAhAction('account1','mp')">+ action</button></td>
+          <td><input type="number" id="ah1-mp-interval" min="0.2" max="10" step="0.1" style="width:65px" value="1"></td>
+          <td><select id="ah1-mp-mode" style="font-size:11px; padding:2px; margin-bottom:3px;" onchange="updateAhModeUI('1','mp')"><option value="bar">Bar</option><option value="pixel">Pixel</option></select><br>
+              <button class="btn-add" id="ah1-mp-pick-btn" style="margin:0 2px 0 0;" onclick="pickAh('account1','mp')">📐</button>
+              <button class="btn-add" style="margin:0;" onclick="testBar('account1','mp')">🔍</button>
+              <span id="ah1-mp-rect" style="color:#555; font-size:10px; font-family:monospace; display:block; margin-top:2px;">not set</span></td>
+        </tr>
+        <tr>
+          <td style="color:#77ff99; font-weight:600;">⚡ FP</td>
+          <td><input type="checkbox" id="ah1-fp-enabled"></td>
+          <td><div id="ah1-fp-actions"></div><button class="btn-add" style="margin:2px 0 0; padding:2px 8px; font-size:11px;" onclick="addAhAction('account1','fp')">+ action</button></td>
+          <td><input type="number" id="ah1-fp-interval" min="0.2" max="10" step="0.1" style="width:65px" value="1"></td>
+          <td><select id="ah1-fp-mode" style="font-size:11px; padding:2px; margin-bottom:3px;" onchange="updateAhModeUI('1','fp')"><option value="bar">Bar</option><option value="pixel">Pixel</option></select><br>
+              <button class="btn-add" id="ah1-fp-pick-btn" style="margin:0 2px 0 0;" onclick="pickAh('account1','fp')">📐</button>
+              <button class="btn-add" style="margin:0;" onclick="testBar('account1','fp')">🔍</button>
+              <span id="ah1-fp-rect" style="color:#555; font-size:10px; font-family:monospace; display:block; margin-top:2px;">not set</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Account 2</h3>
+    <span id="ah2-test" style="color:#88ff88; font-size:11px; display:block; margin-bottom:4px;"></span>
+    <table>
+      <thead>
+        <tr><th>Bar</th><th>Enable</th><th>Actions (key &lt; %)</th><th>Interval (sec)</th><th>Source</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="color:#ff7777; font-weight:600;">❤ HP</td>
+          <td><input type="checkbox" id="ah2-hp-enabled"></td>
+          <td><div id="ah2-hp-actions"></div><button class="btn-add" style="margin:2px 0 0; padding:2px 8px; font-size:11px;" onclick="addAhAction('account2','hp')">+ action</button></td>
+          <td><input type="number" id="ah2-hp-interval" min="0.2" max="10" step="0.1" style="width:65px" value="0.5"></td>
+          <td><select id="ah2-hp-mode" style="font-size:11px; padding:2px; margin-bottom:3px;" onchange="updateAhModeUI('2','hp')"><option value="bar">Bar</option><option value="pixel">Pixel</option></select><br>
+              <button class="btn-add" id="ah2-hp-pick-btn" style="margin:0 2px 0 0;" onclick="pickAh('account2','hp')">📐</button>
+              <button class="btn-add" style="margin:0;" onclick="testBar('account2','hp')">🔍</button>
+              <span id="ah2-hp-rect" style="color:#555; font-size:10px; font-family:monospace; display:block; margin-top:2px;">not set</span></td>
+        </tr>
+        <tr>
+          <td style="color:#7799ff; font-weight:600;">💧 MP</td>
+          <td><input type="checkbox" id="ah2-mp-enabled"></td>
+          <td><div id="ah2-mp-actions"></div><button class="btn-add" style="margin:2px 0 0; padding:2px 8px; font-size:11px;" onclick="addAhAction('account2','mp')">+ action</button></td>
+          <td><input type="number" id="ah2-mp-interval" min="0.2" max="10" step="0.1" style="width:65px" value="1"></td>
+          <td><select id="ah2-mp-mode" style="font-size:11px; padding:2px; margin-bottom:3px;" onchange="updateAhModeUI('2','mp')"><option value="bar">Bar</option><option value="pixel">Pixel</option></select><br>
+              <button class="btn-add" id="ah2-mp-pick-btn" style="margin:0 2px 0 0;" onclick="pickAh('account2','mp')">📐</button>
+              <button class="btn-add" style="margin:0;" onclick="testBar('account2','mp')">🔍</button>
+              <span id="ah2-mp-rect" style="color:#555; font-size:10px; font-family:monospace; display:block; margin-top:2px;">not set</span></td>
+        </tr>
+        <tr>
+          <td style="color:#77ff99; font-weight:600;">⚡ FP</td>
+          <td><input type="checkbox" id="ah2-fp-enabled"></td>
+          <td><div id="ah2-fp-actions"></div><button class="btn-add" style="margin:2px 0 0; padding:2px 8px; font-size:11px;" onclick="addAhAction('account2','fp')">+ action</button></td>
+          <td><input type="number" id="ah2-fp-interval" min="0.2" max="10" step="0.1" style="width:65px" value="1"></td>
+          <td><select id="ah2-fp-mode" style="font-size:11px; padding:2px; margin-bottom:3px;" onchange="updateAhModeUI('2','fp')"><option value="bar">Bar</option><option value="pixel">Pixel</option></select><br>
+              <button class="btn-add" id="ah2-fp-pick-btn" style="margin:0 2px 0 0;" onclick="pickAh('account2','fp')">📐</button>
+              <button class="btn-add" style="margin:0;" onclick="testBar('account2','fp')">🔍</button>
+              <span id="ah2-fp-rect" style="color:#555; font-size:10px; font-family:monospace; display:block; margin-top:2px;">not set</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+
+  <!-- ── Accounts tab ──────────────────────────────────────────────────── -->
+  <div id="tab-accounts" class="tab-content">
+    <h3>Reset Session</h3>
+    <p style="color:#555; font-size:11px; margin-bottom:8px;">Clears cookies and stored login data for the selected game view. The page will reload afterwards.</p>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="btn-save" style="background:#3a1a1a; border-color:#8a3a3a; color:#ee8888;" onclick="clearSession('account1')">⚠ Reset Account 1</button>
+      <button class="btn-save" style="background:#3a1a1a; border-color:#8a3a3a; color:#ee8888;" onclick="clearSession('account2')">⚠ Reset Account 2</button>
+      <button class="btn-save" style="background:#3a1a1a; border-color:#8a3a3a; color:#ee8888;" onclick="clearSession('account3')">⚠ Reset Account 3</button>
+      <button class="btn-save" style="background:#3a1a1a; border-color:#8a3a3a; color:#ee8888;" onclick="clearSession('account4')">⚠ Reset Account 4</button>
+    </div>
+    <div id="clear-msg" style="color:#ee8888; font-size:12px; margin-top:6px; display:none;"></div>
+  </div>
+
+  <!-- ── Hotkeys tab ────────────────────────────────────────────────────── -->
+  <div id="tab-hotkeys" class="tab-content">
+
+    <h3>Global Hotkeys</h3>
+    <table class="hk-table">
+      <thead><tr><th>Function</th><th>Key</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Switch account</td>
+          <td><input type="text" id="hk-switch" placeholder="F9" style="width:70px"></td>
+        </tr>
+        <tr>
+          <td>Automation (active account) on/off</td>
+          <td><input type="text" id="hk-auto"   placeholder="F10" style="width:70px"></td>
+        </tr>
+        <tr>
+          <td>Follow + Board (active account)</td>
+          <td><input type="text" id="hk-follow" placeholder="," style="width:70px"></td>
+        </tr>
+        <tr>
+          <td>Follow button sent to game</td>
+          <td><input type="text" id="hk-follow-action" placeholder="Z" style="width:90px"></td>
+        </tr>
+        <tr>
+          <td>Board button sent to game</td>
+          <td><input type="text" id="hk-board-action" placeholder="Alt+6" style="width:90px"></td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="color:#555; font-size:11px; margin-top:8px;">
+      F11 (Fullscreen) is fixed and cannot be changed. Examples: Z, F3, Alt+6.
+    </p>
+
+  </div>
+
+  <div class="footer">
+    <button class="btn-save" onclick="save()">💾 Save</button>
+    <span class="saved-msg" id="saved-msg">✓ Saved!</span>
+    <button class="btn-back" onclick="window.flyff.closeSettings()">✕ Close</button>
+  </div>
+
+  <script>
+    const KEY_OPTIONS = ['1','2','3','4','5','6','7','8','9','0','F1','F2','F3','F4','F5','F6','F7','F8','F9','F10','F11','F12'];
+
+    const GP_KEY_OPTIONS = [
+      { value: '',              label: '– no action –' },
+      { value: '__LCLICK',      label: 'Left click' },
+      { value: '__RHOLD',       label: 'Right click (hold)' },
+      { value: '__SCROLL_UP',   label: 'Zoom in (scroll ↑)' },
+      { value: '__SCROLL_DOWN', label: 'Zoom out (scroll ↓)' },
+      { value: '__TARGET',      label: 'Auto-Target (spiral search)' },
+      { value: 'Escape',        label: 'Escape' },
+      { value: 'Tab',           label: 'Tab (switch skillbar)' },
+      { value: 'Space',         label: 'Space' },
+      { value: 'Return',        label: 'Enter' },
+      { value: '.',             label: '. (Clear Target)' },
+      { value: 'M',             label: 'M (Map)' },
+      ...['1','2','3','4','5','6','7','8','9','0'].map(k => ({ value: k, label: `Key ${k}` })),
+      ...Array.from({length:12}, (_,i) => ({ value:`F${i+1}`, label:`F${i+1}` })),
+      ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(k => ({ value: k, label: k })),
+    ];
+
+    const GP_BUTTON_LABELS = {
+      0:'A / Cross', 1:'B / Circle', 2:'X / Square', 3:'Y / Triangle',
+      4:'L1 / LB', 5:'R1 / RB', 6:'L2 / LT (Trigger)', 7:'R2 / RT (Trigger)',
+      8:'Select / View', 9:'Start / Menu', 10:'L3 (Stick click)', 11:'R3 (Stick click)',
+      12:'D-Pad Up', 13:'D-Pad Down', 14:'D-Pad Left', 15:'D-Pad Right',
+      16:'L4 (Back top left)', 17:'R4 (Back top right)',
+      18:'L5 (Back bottom left)', 19:'R5 (Back bottom right)',
+    };
+
+    let loadedConfig    = null;
+    let loadedGpConfig  = null;
+    let loadedMacros    = [];
+    let loadedAhConfig  = null;
+
+    // ── Tab-Navigation ────────────────────────────────────────────────────────
+
+    function showTab(name) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      const tabIndex = ['automation','gamepad','accounts','hotkeys','macros','autoheal'].indexOf(name);
+      document.querySelectorAll('.tab')[tabIndex].classList.add('active');
+      document.getElementById(`tab-${name}`).classList.add('active');
+    }
+
+    // ── Tabelle aufbauen ──────────────────────────────────────────────────────
+
+    function buildKeySelect(selected) {
+      const sel = document.createElement('select');
+      KEY_OPTIONS.forEach(k => {
+        const opt = document.createElement('option');
+        opt.value = k;
+        opt.textContent = k;
+        if (k === selected) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      return sel;
+    }
+
+    function tableAccount(tableId) {
+      return tableId === 'tbl-account1' ? 'account1' : 'account2';
+    }
+
+    function liveSaveAutomation() {
+      const cfg = {
+        account1: { actions: readTable('tbl-account1') },
+        account2: { actions: readTable('tbl-account2') }
+      };
+      window.flyff.saveAutomationConfig(cfg);
+      loadedConfig = cfg;
+    }
+
+    function deleteRow(tableId, idx) {
+      loadedConfig[tableAccount(tableId)].actions.splice(idx, 1);
+      renderTable(tableId, loadedConfig[tableAccount(tableId)].actions);
+      liveSaveAutomation();
+    }
+
+    function addRow(tableId) {
+      loadedConfig[tableAccount(tableId)].actions.push({ label: 'Neu', key: '1', intervalSec: 3, enabled: false });
+      renderTable(tableId, loadedConfig[tableAccount(tableId)].actions);
+      liveSaveAutomation();
+    }
+
+    function renderTable(tableId, actions) {
+      const tbody = document.querySelector(`#${tableId} tbody`);
+      tbody.innerHTML = '';
+
+      actions.forEach((action, i) => {
+        const tr = document.createElement('tr');
+
+        // Label
+        const tdLabel = document.createElement('td');
+        const inpLabel = document.createElement('input');
+        inpLabel.type = 'text';
+        inpLabel.value = action.label;
+        inpLabel.dataset.field = 'label';
+        inpLabel.addEventListener('change', liveSaveAutomation);
+        tdLabel.appendChild(inpLabel);
+
+        // Taste
+        const tdKey = document.createElement('td');
+        const selKey = buildKeySelect(action.key);
+        selKey.dataset.field = 'key';
+        selKey.addEventListener('change', liveSaveAutomation);
+        tdKey.appendChild(selKey);
+
+        // Intervall
+        const tdMs = document.createElement('td');
+        const inpMs = document.createElement('input');
+        inpMs.type = 'number';
+        inpMs.min = 0.1;
+        inpMs.max = 600;
+        inpMs.step = 0.1;
+        inpMs.value = action.intervalSec || (action.intervalMs ? action.intervalMs/1000 : 3);
+        inpMs.dataset.field = 'intervalSec';
+        inpMs.addEventListener('change', liveSaveAutomation);
+        tdMs.appendChild(inpMs);
+
+        // Aktiviert
+        const tdEn = document.createElement('td');
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = action.enabled;
+        cb.dataset.field = 'enabled';
+        cb.addEventListener('change', liveSaveAutomation);
+        tdEn.appendChild(cb);
+
+        // Löschen
+        const tdDel = document.createElement('td');
+        const btnDel = document.createElement('button');
+        btnDel.className = 'btn-del';
+        btnDel.textContent = '✕';
+        btnDel.addEventListener('click', () => deleteRow(tableId, i));
+        tdDel.appendChild(btnDel);
+
+        tr.appendChild(tdLabel);
+        tr.appendChild(tdKey);
+        tr.appendChild(tdMs);
+        tr.appendChild(tdEn);
+        tr.appendChild(tdDel);
+        tbody.appendChild(tr);
+      });
+    }
+
+    function readTable(tableId) {
+      return Array.from(document.querySelectorAll(`#${tableId} tbody tr`)).map(tr => ({
+        label:       tr.querySelector('[data-field="label"]').value,
+        key:         tr.querySelector('[data-field="key"]').value,
+        intervalSec: parseFloat(tr.querySelector('[data-field="intervalSec"]').value) || 3,
+        enabled:     tr.querySelector('[data-field="enabled"]').checked
+      }));
+    }
+
+    // ── Macro-Tabelle ─────────────────────────────────────────────────────────
+
+    function renderMacrosTable(macroList) {
+      const tbody = document.querySelector('#tbl-macros tbody');
+      tbody.innerHTML = '';
+      macroList.forEach((macro, i) => {
+        const tr = document.createElement('tr');
+
+        const tdLabel = document.createElement('td');
+        const inpLabel = document.createElement('input'); inpLabel.type='text'; inpLabel.value=macro.label||''; inpLabel.dataset.field='label'; inpLabel.style.minWidth='90px';
+        tdLabel.appendChild(inpLabel);
+
+        const tdAcc = document.createElement('td');
+        const selAcc = document.createElement('select'); selAcc.dataset.field='account';
+        ['account1','account2'].forEach(a => {
+          const o = document.createElement('option'); o.value=a; o.textContent=a==='account1'?'Acc 1':'Acc 2';
+          if (a === (macro.account||'account2')) o.selected=true;
+          selAcc.appendChild(o);
+        });
+        tdAcc.appendChild(selAcc);
+
+        const tdKeys = document.createElement('td');
+        const inpKeys = document.createElement('input'); inpKeys.type='text'; inpKeys.value=(macro.keys||[]).join(', '); inpKeys.dataset.field='keys'; inpKeys.placeholder='F2, 1, 2, 3, F1'; inpKeys.style.width='200px';
+        tdKeys.appendChild(inpKeys);
+
+        const tdDelay = document.createElement('td');
+        const inpDelay = document.createElement('input'); inpDelay.type='number'; inpDelay.min=0.05; inpDelay.max=10; inpDelay.step=0.1; inpDelay.value=macro.delaySec||2; inpDelay.dataset.field='delaySec'; inpDelay.style.width='70px';
+        tdDelay.appendChild(inpDelay);
+
+        const tdDel = document.createElement('td');
+        const btnDel = document.createElement('button'); btnDel.className='btn-del'; btnDel.textContent='✕';
+        btnDel.addEventListener('click', () => { loadedMacros.splice(i,1); renderMacrosTable(loadedMacros); });
+        tdDel.appendChild(btnDel);
+
+        tr.appendChild(tdLabel); tr.appendChild(tdAcc); tr.appendChild(tdKeys); tr.appendChild(tdDelay); tr.appendChild(tdDel);
+        tbody.appendChild(tr);
+      });
+    }
+
+    function readMacrosTable() {
+      return Array.from(document.querySelectorAll('#tbl-macros tbody tr')).map((tr, i) => ({
+        id:      loadedMacros[i]?.id || ('macro_' + Date.now() + '_' + i),
+        label:   tr.querySelector('[data-field="label"]').value,
+        account: tr.querySelector('[data-field="account"]').value,
+        keys:    tr.querySelector('[data-field="keys"]').value.split(',').map(k => k.trim()).filter(Boolean),
+        delaySec: parseFloat(tr.querySelector('[data-field="delaySec"]').value) || 2,
+      }));
+    }
+
+    function addMacroRow() {
+      loadedMacros.push({ id: 'macro_' + Date.now(), label: 'New Macro', account: 'account2', keys: [], delaySec: 2 });
+      renderMacrosTable(loadedMacros);
+    }
+
+    // ── Gamepad-Tabelle ───────────────────────────────────────────────────────
+
+    function renderGamepadTable(gpConfig) {
+      const tbody = document.querySelector('#tbl-gamepad tbody');
+      tbody.innerHTML = '';
+      for (let idx = 0; idx <= 15; idx++) {
+        const tr  = document.createElement('tr');
+        const tdL = document.createElement('td');
+        tdL.textContent = GP_BUTTON_LABELS[idx] || `Button ${idx}`;
+        tdL.style.color = '#aaa';
+        const tdA = document.createElement('td');
+        const sel = document.createElement('select');
+        sel.dataset.btn = idx;
+        const current = (gpConfig && gpConfig[String(idx)]) || '';
+        GP_KEY_OPTIONS.forEach(opt => {
+          const o = document.createElement('option');
+          o.value = opt.value; o.textContent = opt.label;
+          if (opt.value === current) o.selected = true;
+          sel.appendChild(o);
+        });
+        tdA.appendChild(sel);
+        tr.appendChild(tdL); tr.appendChild(tdA);
+        tbody.appendChild(tr);
+      }
+    }
+
+    function readGamepadTable() {
+      const cfg = {};
+      document.querySelectorAll('#tbl-gamepad tbody tr').forEach(tr => {
+        const sel = tr.querySelector('select');
+        cfg[sel.dataset.btn] = sel.value;
+      });
+      cfg.targetRadius = parseInt(document.getElementById('target-radius').value, 10) || 300;
+      return cfg;
+    }
+
+    // ── Initialisierung ───────────────────────────────────────────────────────
+
+    async function init() {
+      loadedConfig = await window.flyff.getAutomationConfig();
+      renderTable('tbl-account1', loadedConfig.account1.actions);
+      renderTable('tbl-account2', loadedConfig.account2.actions);
+
+      loadedGpConfig = await window.flyff.getGamepadConfig();
+      renderGamepadTable(loadedGpConfig);
+      document.getElementById('target-radius').value = loadedGpConfig.targetRadius || 300;
+
+      const state = await window.flyff.getState();
+      document.getElementById('hk-switch').value = state.hotkeys?.switchAccount     || 'F9';
+      document.getElementById('hk-auto').value   = state.hotkeys?.toggleAutomation || 'F10';
+      document.getElementById('hk-follow').value = state.hotkeys?.followBoard      || ',';
+      document.getElementById('hk-follow-action').value = state.hotkeys?.followAction || 'Z';
+      document.getElementById('hk-board-action').value  = state.hotkeys?.boardAction  || 'Alt+6';
+
+      loadedMacros = await window.flyff.getMacros() || [];
+      renderMacrosTable(loadedMacros);
+
+      loadedAhConfig = await window.flyff.getAutoHealConfig() || {};
+      renderAhConfig(loadedAhConfig);
+    }
+
+    // ── Speichern ─────────────────────────────────────────────────────────────
+
+    function save() {
+      // Automation (live-save, aber hier auch explizit beim Speichern)
+      liveSaveAutomation();
+
+      // Gamepad
+      const gpCfg = readGamepadTable();
+      window.flyff.saveGamepadConfig(gpCfg);
+      loadedGpConfig = gpCfg;
+
+      // Hotkeys
+      window.flyff.saveHotkeys({
+        switchAccount:    document.getElementById('hk-switch').value.trim() || 'F9',
+        toggleAutomation: document.getElementById('hk-auto').value.trim()   || 'F10',
+        followBoard:      document.getElementById('hk-follow').value.trim() || ',',
+        followAction:     document.getElementById('hk-follow-action').value.trim() || 'Z',
+        boardAction:      document.getElementById('hk-board-action').value.trim() || 'Alt+6'
+      });
+
+      // Macros
+      const macrosCfg = readMacrosTable();
+      window.flyff.saveMacros(macrosCfg);
+      loadedMacros = macrosCfg;
+
+      // Auto-Heal
+      const ahCfg = readAhConfig();
+      window.flyff.saveAutoHealConfig(ahCfg);
+      loadedAhConfig = ahCfg;
+
+      const msg = document.getElementById('saved-msg');
+      msg.style.display = 'inline';
+      setTimeout(() => { msg.style.display = 'none'; }, 2500);
+    }
+
+    // ── Auto-Heal ──────────────────────────────────────────────────────────────
+
+    function formatRect(r) {
+      if (!r) return 'not set';
+      if (r.mode === 'pixel') return `x:${r.x} y:${r.y}  ref R:${r.refR} G:${r.refG} B:${r.refB}`;
+      return `x:${r.x} y:${r.y} w:${r.width} h:${r.height}`;
+    }
+
+    function pickAh(account, barType) {
+      const n    = account === 'account1' ? '1' : '2';
+      const mode = document.getElementById(`ah${n}-${bar}-mode`).value;
+      window.flyff.openHpPicker(account, barType, mode);
+    }
+
+    function pickAhPixel(account, barType, pixelIndex) {
+      window.flyff.openHpPicker(account, barType, 'pixel', pixelIndex);
+    }
+
+    function buildAhPixelRow(n, bar, keyVal, coords, idx) {
+      const account = `account${n}`;
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'display:flex; align-items:center; gap:4px; margin-bottom:2px;';
+      wrap.dataset.pixelIdx = idx;
+
+      const pickBtn = document.createElement('button');
+      pickBtn.className = 'btn-add';
+      pickBtn.textContent = '📍';
+      pickBtn.style.cssText = 'padding:1px 6px; font-size:12px;';
+      pickBtn.onclick = () => pickAhPixel(account, bar, idx);
+
+      const sel = document.createElement('select');
+      sel.className = 'ah-action-key';
+      KEY_OPTIONS.forEach(k => {
+        const o = document.createElement('option');
+        o.value = k; o.textContent = k;
+        if (k === keyVal) o.selected = true;
+        sel.appendChild(o);
+      });
+
+      const coordSpan = document.createElement('span');
+      coordSpan.className = 'ah-pixel-coords';
+      coordSpan.style.cssText = 'color:#555; font-size:10px; font-family:monospace; min-width:80px;';
+      coordSpan.textContent = coords || 'not set';
+
+      const del = document.createElement('button');
+      del.className = 'btn-del';
+      del.textContent = '✕';
+      del.onclick = () => { wrap.remove(); reindexPixelRows(n, bar); };
+
+      wrap.appendChild(pickBtn);
+      wrap.appendChild(sel);
+      wrap.appendChild(coordSpan);
+      wrap.appendChild(del);
+      return wrap;
+    }
+
+    function reindexPixelRows(n, bar) {
+      const account = `account${n}`;
+      const container = document.getElementById(`ah${n}-${bar}-actions`);
+      Array.from(container.querySelectorAll('div[data-pixel-idx]')).forEach((row, idx) => {
+        row.dataset.pixelIdx = idx;
+        row.querySelector('button').onclick = () => pickAhPixel(account, bar, idx);
+      });
+    }
+
+    function updateAhModeUI(n, bar) {
+      const mode    = document.getElementById(`ah${n}-${bar}-mode`).value;
+      const pickBtn = document.getElementById(`ah${n}-${bar}-pick-btn`);
+      const rectEl  = document.getElementById(`ah${n}-${bar}-rect`);
+      const account = `account${n}`;
+
+      pickBtn.style.display = mode === 'pixel' ? 'none' : '';
+      if (mode === 'bar') {
+        const bounds = loadedAhConfig?.[account]?.barBounds?.[bar];
+        rectEl.textContent = formatRect(bounds);
+      } else {
+        rectEl.textContent = '';
+      }
+
+      const container  = document.getElementById(`ah${n}-${bar}-actions`);
+      const isPixelRows  = !!container.querySelector('[data-pixel-idx]');
+      const isActionRows = !!container.querySelector('.ah-action-threshold');
+
+      if (mode === 'pixel' && !isPixelRows) {
+        const keys = Array.from(container.querySelectorAll('.ah-action-key')).map(s => s.value);
+        const existingPixels = loadedAhConfig?.[account]?.barBounds?.[bar]?.pixels || [];
+        container.innerHTML = '';
+        const count = Math.max(keys.length, 1);
+        for (let idx = 0; idx < count; idx++) {
+          const px = existingPixels[idx];
+          container.appendChild(buildAhPixelRow(n, bar, keys[idx] || AH_DEFAULTS[bar].key,
+            px ? `x:${px.x} y:${px.y}` : 'not set', idx));
+        }
+      } else if (mode === 'bar' && !isActionRows) {
+        const keys = Array.from(container.querySelectorAll('.ah-action-key')).map(s => s.value);
+        const def  = AH_DEFAULTS[bar];
+        container.innerHTML = '';
+        const count = Math.max(keys.length, 1);
+        for (let idx = 0; idx < count; idx++) {
+          container.appendChild(buildAhActionRow(keys[idx] || def.key, def.threshold));
+        }
+      }
+    }
+
+    const AH_DEFAULTS = {
+      hp: { key: '1', threshold: 50, intervalSec: 0.5 },
+      mp: { key: '2', threshold: 30, intervalSec: 1 },
+      fp: { key: '3', threshold: 30, intervalSec: 1 },
+    };
+
+    function buildAhActionRow(keyVal, thresholdVal) {
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'display:flex; align-items:center; gap:4px; margin-bottom:2px;';
+
+      const sel = document.createElement('select');
+      sel.className = 'ah-action-key';
+      KEY_OPTIONS.forEach(k => {
+        const o = document.createElement('option');
+        o.value = k; o.textContent = k;
+        if (k === keyVal) o.selected = true;
+        sel.appendChild(o);
+      });
+
+      const lt = document.createElement('span');
+      lt.textContent = '<';
+      lt.style.cssText = 'color:#888; font-size:11px;';
+
+      const inp = document.createElement('input');
+      inp.type = 'number';
+      inp.className = 'ah-action-threshold';
+      inp.min = 1; inp.max = 99;
+      inp.value = thresholdVal ?? 50;
+      inp.style.width = '50px';
+
+      const pct = document.createElement('span');
+      pct.textContent = '%';
+      pct.style.cssText = 'color:#888; font-size:11px;';
+
+      const btn = document.createElement('button');
+      btn.className = 'btn-del';
+      btn.textContent = '✕';
+      btn.style.cssText = 'padding:1px 5px; font-size:10px;';
+      btn.addEventListener('click', () => wrap.remove());
+
+      wrap.appendChild(sel);
+      wrap.appendChild(lt);
+      wrap.appendChild(inp);
+      wrap.appendChild(pct);
+      wrap.appendChild(btn);
+      return wrap;
+    }
+
+    function addAhAction(account, bar) {
+      const n = account === 'account1' ? '1' : '2';
+      const def = AH_DEFAULTS[bar];
+      const mode = document.getElementById(`ah${n}-${bar}-mode`).value;
+      const container = document.getElementById(`ah${n}-${bar}-actions`);
+      if (mode === 'pixel') {
+        const idx = container.querySelectorAll('[data-pixel-idx]').length;
+        container.appendChild(buildAhPixelRow(n, bar, def.key, 'not set', idx));
+      } else {
+        container.appendChild(buildAhActionRow(def.key, def.threshold));
+      }
+    }
+
+    function renderAhConfig(cfg) {
+      loadedAhConfig = cfg || {};
+      for (const n of ['1', '2']) {
+        const acc  = `account${n}`;
+        const acfg = cfg?.[acc] || {};
+        for (const bar of ['hp', 'mp', 'fp']) {
+          const bcfg   = acfg[bar] || {};
+          const def    = AH_DEFAULTS[bar];
+          const bounds = acfg.barBounds?.[bar];
+          const isPixel = bounds?.mode === 'pixel';
+
+          document.getElementById(`ah${n}-${bar}-enabled`).checked = !!bcfg.enabled;
+          document.getElementById(`ah${n}-${bar}-interval`).value  = bcfg.intervalSec ?? (bcfg.intervalMs ? bcfg.intervalMs/1000 : def.intervalSec);
+
+          const modeEl = document.getElementById(`ah${n}-${bar}-mode`);
+          modeEl.value = isPixel ? 'pixel' : 'bar';
+
+          const pickBtn = document.getElementById(`ah${n}-${bar}-pick-btn`);
+          pickBtn.style.display = isPixel ? 'none' : '';
+          const rectEl = document.getElementById(`ah${n}-${bar}-rect`);
+          rectEl.textContent = isPixel ? '' : formatRect(bounds);
+
+          const container = document.getElementById(`ah${n}-${bar}-actions`);
+          container.innerHTML = '';
+
+          const actions = bcfg.actions?.length
+            ? bcfg.actions
+            : [{ key: bcfg.key ?? def.key, threshold: bcfg.threshold ?? def.threshold }];
+
+          if (isPixel) {
+            const pixels = Array.isArray(bounds.pixels)
+              ? bounds.pixels
+              : (bounds.x != null ? [{ x: bounds.x, y: bounds.y }] : []);
+            const count = Math.max(actions.length, pixels.length, 1);
+            for (let idx = 0; idx < count; idx++) {
+              const k  = actions[idx]?.key ?? def.key;
+              const px = pixels[idx];
+              container.appendChild(buildAhPixelRow(n, bar, k, px ? `x:${px.x} y:${px.y}` : 'not set', idx));
+            }
+          } else {
+            actions.forEach(a => container.appendChild(buildAhActionRow(a.key, a.threshold)));
+          }
+        }
+      }
+    }
+
+    function readAhConfig() {
+      const cfg = {};
+      for (const n of ['1', '2']) {
+        const acc  = `account${n}`;
+        const acfg = loadedAhConfig?.[acc] || {};
+        cfg[acc] = { barBounds: acfg.barBounds ?? {} };
+        for (const bar of ['hp', 'mp', 'fp']) {
+          const def  = AH_DEFAULTS[bar];
+          const mode = document.getElementById(`ah${n}-${bar}-mode`).value;
+          const container = document.getElementById(`ah${n}-${bar}-actions`);
+          let actions;
+          if (mode === 'pixel') {
+            // In pixel mode keys live in pixel rows; threshold is unused but kept for compat
+            actions = Array.from(container.querySelectorAll('[data-pixel-idx]')).map(row => ({
+              key:       row.querySelector('.ah-action-key').value,
+              threshold: 50,
+            }));
+            if (!actions.length) actions = [{ key: def.key, threshold: 50 }];
+            // trim pixels array in barBounds to match row count (rows may have been deleted)
+            const pxEntry = cfg[acc].barBounds[bar];
+            if (pxEntry?.mode === 'pixel' && Array.isArray(pxEntry.pixels)) {
+              pxEntry.pixels = pxEntry.pixels.slice(0, actions.length);
+            }
+          } else {
+            actions = Array.from(container.querySelectorAll('div')).map(row => ({
+              key:       row.querySelector('.ah-action-key').value,
+              threshold: parseInt(row.querySelector('.ah-action-threshold').value, 10) || def.threshold,
+            }));
+            if (!actions.length) actions = [{ key: def.key, threshold: def.threshold }];
+          }
+          cfg[acc][bar] = {
+            enabled:     document.getElementById(`ah${n}-${bar}-enabled`).checked,
+            intervalSec: parseFloat(document.getElementById(`ah${n}-${bar}-interval`).value) || def.intervalSec,
+            actions,
+          };
+        }
+      }
+      return cfg;
+    }
+
+    function pickBar(account, barType) {
+      window.flyff.openHpPicker(account, barType);
+    }
+
+    async function testBar(account, barType) {
+      const n   = account === 'account1' ? '1' : '2';
+      const el  = document.getElementById(`ah${n}-test`);
+      el.style.color = '#aaa';
+      el.textContent = `measuring ${barType.toUpperCase()}…`;
+      const r = await window.flyff.testHpCapture(account);
+      if (!r || r.error) {
+        el.textContent = r?.error || 'failed';
+        el.style.color = '#f88';
+        return;
+      }
+      const val = r[barType];
+      if (val == null) {
+        el.textContent = `${barType.toUpperCase()} – not picked yet`;
+        el.style.color = '#f88';
+      } else {
+        el.style.color = '#88ff88';
+        el.textContent = typeof val === 'string'
+          ? `${barType.toUpperCase()} ${val}`
+          : `${barType.toUpperCase()} = ${val}%`;
+      }
+      setTimeout(() => { el.textContent = ''; }, 8000);
+    }
+
+    // Picker-Ergebnis empfangen
+    window.flyff.on('autoheal-rect-picked', ({ account, barType, pixelIndex, rect }) => {
+      if (!loadedAhConfig) loadedAhConfig = {};
+      if (!loadedAhConfig[account]) loadedAhConfig[account] = {};
+      if (!loadedAhConfig[account].barBounds) loadedAhConfig[account].barBounds = {};
+      const n = account === 'account1' ? '1' : '2';
+      const el = document.getElementById(`ah${n}-test`);
+
+      if (pixelIndex != null) {
+        // Pixel mode: update pixels array in loadedAhConfig
+        const existing = loadedAhConfig[account].barBounds[barType];
+        const pixels = (existing?.mode === 'pixel' && Array.isArray(existing.pixels))
+          ? existing.pixels : [];
+        while (pixels.length <= pixelIndex) pixels.push(null);
+        pixels[pixelIndex] = { x: rect.x, y: rect.y };
+        loadedAhConfig[account].barBounds[barType] = { mode: 'pixel', pixels };
+        // update coords in matching row
+        const container = document.getElementById(`ah${n}-${barType}-actions`);
+        const row = container.querySelector(`[data-pixel-idx="${pixelIndex}"]`);
+        if (row) row.querySelector('.ah-pixel-coords').textContent = `x:${rect.x} y:${rect.y}`;
+        el.style.color = '#88ff88';
+        el.textContent = `${barType.toUpperCase()} pixel[${pixelIndex}] saved`;
+      } else {
+        // Bar mode
+        loadedAhConfig[account].barBounds[barType] = rect;
+        document.getElementById(`ah${n}-${barType}-rect`).textContent = formatRect(rect);
+        el.style.color = '#88ff88';
+        el.textContent = `${barType.toUpperCase()} area saved`;
+      }
+      setTimeout(() => { el.textContent = ''; }, 4000);
+    });
+
+    async function clearSession(account) {
+      const label = account === 'account1' ? 'Account 1' : 'Account 2';
+      if (!confirm(`Really clear ${label} session? The page will reload.`)) return;
+      await window.flyff.clearSession(account);
+      const msg = document.getElementById('clear-msg');
+      msg.textContent = `✓ ${label} session cleared – page reloading.`;
+      msg.style.display = 'block';
+      setTimeout(() => { msg.style.display = 'none'; }, 3000);
+    }
+
+    init();
+  </script>
+</body>
+</html>
