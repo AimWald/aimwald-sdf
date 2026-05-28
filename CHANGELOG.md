@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.63.0 (2026-05-28)
+
+### Features
+- **Follow + Board:** Added configurable follow/board button bindings in Settings instead of hard-wiring `Z` and `Alt+6`
+- **Guide Monsters:** The monster guide now loads the full Flyff monster list from the official API and caches it locally as fallback
+
+### Bug Fixes
+- **Macros:** Fixed comma input in macro key sequences by suspending global shortcuts while the Settings window is focused
+- **Guide Monsters:** Corrected monster levels by using API `level` data instead of the old simplified bundled list
+
 ## v1.62.0 (2026-05-22)
 
 ### Features

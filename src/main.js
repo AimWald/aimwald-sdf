@@ -4,8 +4,15 @@ const { app, BrowserWindow, WebContentsView, globalShortcut, ipcMain, nativeImag
 const path = require('path');
 const fs   = require('fs');
 const automation = require('./automation.js');
+const {
+  DEFAULT_HOTKEYS,
+  normalizeHotkeys,
+  parseConfiguredBinding,
+  mapMonsterForGuide
+} = require('./flyff-data.js');
 
 const FLYFF_URL     = 'https://universe.flyff.com';
+const FLYFF_MONSTER_API_URL = 'https://api.flyff.com/monster';
 
 // sendInputEvent erwartet DOM-Keywerte, nicht Accelerator-Namen
 const KEY_NAME_MAP = { 'Space': ' ', 'Return': '\r', 'Enter': '\r', 'ArrowLeft': 'Left', 'ArrowRight': 'Right', 'ArrowUp': 'Up', 'ArrowDown': 'Down' };
@@ -21,7 +28,7 @@ async function initStore() {
   store = new Store({
     defaults: {
       activeAccount: 'account1',
-      hotkeys: { switchAccount: 'F9', toggleAutomation: 'F10', followBoard: ',' },
+      hotkeys: DEFAULT_HOTKEYS,
       windowBounds: { width: DEFAULT_W, height: DEFAULT_H }
     }
   });
@@ -69,6 +76,16 @@ function loadConfig(filename, merge = false) {
 function saveConfig(filename, data) {
   fs.mkdirSync(app.getPath('userData'), { recursive: true });
   fs.writeFileSync(userConfigPath(filename), JSON.stringify(data, null, 2), 'utf8');
+}
+
+function loadMonsterFallback() {
+  try {
+    return JSON.parse(fs.readFileSync(userConfigPath('monster-cache.json'), 'utf8'));
+  } catch {}
+  try {
+    return JSON.parse(fs.readFileSync(path.join(__dirname, '../config/monsters.json'), 'utf8'));
+  } catch {}
+  return [];
 }
 
 // ── Globale Variablen ─────────────────────────────────────────────────────────
@@ -280,32 +297,50 @@ function stopAutomation(account) {
 async function sendFollowBoard(account) {
   const view = gameViews[account];
   if (!view) return;
+  const hotkeys = normalizeHotkeys(store.get('hotkeys'));
 
-  console.log(`[FollowBoard] Sending to ${account}: Z, then Alt+6`);
+  console.log(`[FollowBoard] Sending to ${account}: ${hotkeys.followAction}, then ${hotkeys.boardAction}`);
 
   // Z drücken
-  const zKey = CDP_KEYS['Z'] || { windowsVirtualKeyCode: 90, nativeVirtualKeyCode: 90, code: 'KeyZ', key: 'z', text: 'z', unmodifiedText: 'z', autoRepeat: false };
-  await sendKeyCDP(view, zKey);
+  await sendConfiguredBinding(view, hotkeys.followAction);
   await new Promise(r => setTimeout(r, 150));
 
   // Alt+6 drücken
+  await sendConfiguredBinding(view, hotkeys.boardAction);
+}
+
+async function sendConfiguredBinding(view, binding) {
+  const parsed = parseConfiguredBinding(binding);
+  if (!parsed) return;
+
+  const { keyCode, modifiers, char } = parsed;
+  const modifierKeyCodes = { alt: 'Alt', control: 'Control', shift: 'Shift', meta: 'Meta' };
+
   try {
-    view.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Alt' });
-    await new Promise(r => setTimeout(r, 50));
-    view.webContents.sendInputEvent({ type: 'keyDown', keyCode: '6', modifiers: ['alt'] });
-    view.webContents.sendInputEvent({ type: 'char', keyCode: '6', modifiers: ['alt'] });
+    for (const modifier of modifiers) {
+      view.webContents.sendInputEvent({ type: 'keyDown', keyCode: modifierKeyCodes[modifier] || modifier });
+    }
+    if (modifiers.length) await new Promise(r => setTimeout(r, 50));
+
+    view.webContents.sendInputEvent({ type: 'keyDown', keyCode, modifiers });
+    if (char) {
+      view.webContents.sendInputEvent({ type: 'char', keyCode: char, modifiers });
+    }
     await new Promise(r => setTimeout(r, 80));
-    view.webContents.sendInputEvent({ type: 'keyUp', keyCode: '6', modifiers: ['alt'] });
-    view.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'Alt' });
+    view.webContents.sendInputEvent({ type: 'keyUp', keyCode, modifiers });
+
+    for (const modifier of modifiers.slice().reverse()) {
+      view.webContents.sendInputEvent({ type: 'keyUp', keyCode: modifierKeyCodes[modifier] || modifier });
+    }
   } catch (e) {
-    console.error('[FollowBoard] Error sending Alt+6:', e.message);
+    console.error(`[FollowBoard] Error sending ${binding}:`, e.message);
   }
 }
 
 // ── Globale Shortcuts ─────────────────────────────────────────────────────────
 
 function registerShortcuts() {
-  const hk = store.get('hotkeys', { switchAccount: 'F9', toggleAutomation: 'F10', followBoard: ',' });
+  const hk = normalizeHotkeys(store.get('hotkeys'));
 
   // F9 (konfigurierbar): Account wechseln
   try { globalShortcut.register(hk.switchAccount, () => switchAccount()); } catch (e) {
@@ -361,7 +396,18 @@ function openSettings() {
 
   settingsWindow.loadFile(path.join(__dirname, 'ui', 'settings.html'));
   settingsWindow.setMenu(null);
-  settingsWindow.on('closed', () => { settingsWindow = null; });
+  settingsWindow.on('focus', () => {
+    globalShortcut.unregisterAll();
+  });
+  settingsWindow.on('blur', () => {
+    globalShortcut.unregisterAll();
+    registerShortcuts();
+  });
+  settingsWindow.on('closed', () => {
+    settingsWindow = null;
+    globalShortcut.unregisterAll();
+    registerShortcuts();
+  });
 }
 
 const CLOSE_BTN_JS = `(() => {
@@ -900,7 +946,7 @@ function setupIPC() {
     account2Running: automation.isRunning('account2'),
     account3Open: !!gameViews.account3,
     account4Open: !!gameViews.account4,
-    hotkeys: store.get('hotkeys'),
+    hotkeys: normalizeHotkeys(store.get('hotkeys')),
     version: app.getVersion()
   }));
 
@@ -928,10 +974,26 @@ function setupIPC() {
     } catch { return ''; }
   });
 
-  ipcMain.handle('get-monsters', () => {
+  ipcMain.handle('get-monsters', async () => {
     try {
-      return JSON.parse(fs.readFileSync(path.join(__dirname, '../config/monsters.json'), 'utf8'));
-    } catch { return []; }
+      const idsResponse = await fetch(FLYFF_MONSTER_API_URL);
+      if (!idsResponse.ok) throw new Error(`monster id fetch failed: ${idsResponse.status}`);
+      const ids = await idsResponse.json();
+
+      const monsters = [];
+      for (let i = 0; i < ids.length; i += 100) {
+        const response = await fetch(`${FLYFF_MONSTER_API_URL}/${ids.slice(i, i + 100).join(',')}`);
+        if (!response.ok) throw new Error(`monster batch fetch failed: ${response.status}`);
+        const batch = await response.json();
+        monsters.push(...batch.map(mapMonsterForGuide));
+      }
+
+      monsters.sort((a, b) => (a.lv - b.lv) || a.name.localeCompare(b.name));
+      saveConfig('monster-cache.json', monsters);
+      return monsters;
+    } catch {
+      return loadMonsterFallback();
+    }
   });
 
   ipcMain.handle('get-quests', () => {
@@ -1028,9 +1090,11 @@ function setupIPC() {
 
   // Hotkeys neu registrieren
   ipcMain.on('save-hotkeys', (_, hotkeys) => {
-    store.set('hotkeys', hotkeys);
+    store.set('hotkeys', normalizeHotkeys(hotkeys));
     globalShortcut.unregisterAll();
-    registerShortcuts();
+    if (!settingsWindow?.isFocused()) {
+      registerShortcuts();
+    }
   });
 
   // Gamepad-Mausbewegung: Delta auf virtuelle Position anwenden und an aktiven View senden
