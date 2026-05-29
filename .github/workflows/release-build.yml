@@ -1,0 +1,98 @@
+name: Release Build
+
+on:
+  workflow_dispatch:
+  release:
+    types:
+      - published
+
+permissions:
+  contents: write
+
+jobs:
+  build-linux:
+    name: Build AppImage
+    runs-on: ubuntu-latest
+    env:
+      ELECTRON_CACHE: ${{ runner.temp }}/electron-cache
+      ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/electron-builder-cache
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Linux AppImage
+        run: npm run build:linux
+
+      - name: Upload AppImage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-appimage
+          path: dist/AimWald-SDF.AppImage
+          if-no-files-found: error
+
+  build-windows:
+    name: Build Windows Setup
+    runs-on: windows-latest
+    env:
+      ELECTRON_CACHE: ${{ runner.temp }}\electron-cache
+      ELECTRON_BUILDER_CACHE: ${{ runner.temp }}\electron-builder-cache
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Windows NSIS setup
+        run: npm run build:win
+
+      - name: Upload Windows setup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-setup
+          path: dist/AimWald-SDF-Setup.exe
+          if-no-files-found: error
+
+  publish-release-assets:
+    name: Attach assets to GitHub release
+    if: github.event_name == 'release'
+    needs:
+      - build-linux
+      - build-windows
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Download AppImage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-appimage
+          path: release/linux
+
+      - name: Download Windows setup artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-setup
+          path: release/windows
+
+      - name: Upload assets to current release
+        run: >
+          gh release upload "${{ github.event.release.tag_name }}"
+          release/linux/AimWald-SDF.AppImage
+          release/windows/AimWald-SDF-Setup.exe
+          --clobber
