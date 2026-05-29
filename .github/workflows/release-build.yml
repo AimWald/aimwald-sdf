@@ -21,9 +21,6 @@ jobs:
   build-linux:
     name: Build AppImage
     runs-on: ubuntu-latest
-    env:
-      ELECTRON_CACHE: ${{ runner.temp }}/electron-cache
-      ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/electron-builder-cache
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -50,9 +47,6 @@ jobs:
   build-windows:
     name: Build Windows Setup
     runs-on: windows-latest
-    env:
-      ELECTRON_CACHE: ${{ runner.temp }}\electron-cache
-      ELECTRON_BUILDER_CACHE: ${{ runner.temp }}\electron-builder-cache
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
