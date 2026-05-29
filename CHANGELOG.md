@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.64.0 (2026-05-29)
+
+### Features
+- **Guide Monsters:** Reworked the monster guide into a multi-column layout that reads left-to-right by level instead of filling one column top-to-bottom first
+- **Guide Monsters:** Added local element icon assets plus weak/strong matchup indicators directly inside each monster entry
+- **Guide Monsters:** Added Flyff API monster portraits in the guide for monsters that expose an API icon filename
+- **Build:** Added dedicated `build:linux` and `build:win` scripts for release packaging
+
+### Bug Fixes
+- **Macros:** Macro sequences now accept comma as an actual key and support modifier combinations like `Ctrl+1`, `Alt+1`, and `Control+F2`
+- **Guide Monsters:** Weak-to and strong-against are now derived from Flyff API resistance values instead of a simplified hard-coded guess
+- **Guide Monsters:** Cached monster fallback data is normalized into the same richer guide format as live API data
+
 ## v1.63.0 (2026-05-28)
 
 ### Features
@@ -52,4 +65,3 @@
 - Multi-instance support (up to 4 accounts)
 - Quest progress improvements
 - Virtual keyboard improvements
-

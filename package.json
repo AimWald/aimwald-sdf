@@ -1,6 +1,6 @@
 {
   "name": "aimwald-sdf",
-  "version": "1.63.0",
+  "version": "1.64.0",
   "description": "AimWald-SDF: Flyff Universe wrapper for Steam Deck – Multiboxing, Automation, Gamepad",
   "main": "src/main.js",
   "author": "AimWald",
@@ -12,7 +12,8 @@
   "scripts": {
     "start": "electron . --disable-gpu-sandbox",
     "start-nogpu": "electron . --disable-gpu",
-    "build": "electron-builder --linux AppImage",
+    "build": "npm run build:linux",
+    "build:linux": "electron-builder --linux AppImage",
     "build:win": "electron-builder --win nsis"
   },
   "dependencies": {

@@ -8,6 +8,23 @@ const DEFAULT_HOTKEYS = {
   boardAction: 'Alt+6'
 };
 
+const ELEMENT_ORDER = ['fire', 'water', 'electricity', 'earth', 'wind'];
+const ELEMENT_RESIST_FIELDS = {
+  fire: 'resistFire',
+  water: 'resistWater',
+  electricity: 'resistElectricity',
+  earth: 'resistEarth',
+  wind: 'resistWind'
+};
+const ELEMENT_CYCLE = {
+  fire: { weakTo: 'water', strongAgainst: 'wind' },
+  water: { weakTo: 'electricity', strongAgainst: 'fire' },
+  electricity: { weakTo: 'earth', strongAgainst: 'water' },
+  earth: { weakTo: 'wind', strongAgainst: 'electricity' },
+  wind: { weakTo: 'fire', strongAgainst: 'earth' },
+  none: { weakTo: '', strongAgainst: '' }
+};
+
 function normalizeHotkeys(hotkeys) {
   return {
     ...DEFAULT_HOTKEYS,
@@ -49,14 +66,69 @@ function parseConfiguredBinding(binding) {
   return { keyCode, modifiers, char };
 }
 
-function mapMonsterForGuide(monster) {
+function normalizeElement(element) {
+  const raw = String(element || '').trim().toLowerCase();
+  if (!raw || raw === 'neutral') return 'none';
+  if (raw === 'electric') return 'electricity';
+  return raw;
+}
+
+function inferMonsterMatchups(monster) {
+  let weakTo = '';
+  let weakValue = 0;
+  let strongAgainst = '';
+  let strongValue = 0;
+  let hasResistData = false;
+
+  for (const element of ELEMENT_ORDER) {
+    const value = monster[ELEMENT_RESIST_FIELDS[element]];
+    if (typeof value !== 'number' || Number.isNaN(value)) continue;
+    hasResistData = true;
+    if (value < weakValue) {
+      weakValue = value;
+      weakTo = element;
+    }
+    if (value > strongValue) {
+      strongValue = value;
+      strongAgainst = element;
+    }
+  }
+
+  if (hasResistData) {
+    return {
+      weakTo,
+      strongAgainst
+    };
+  }
+
+  const fallback = ELEMENT_CYCLE[normalizeElement(monster.element)] || ELEMENT_CYCLE.none;
   return {
+    weakTo: fallback.weakTo,
+    strongAgainst: fallback.strongAgainst
+  };
+}
+
+function mapMonsterForGuide(monster) {
+  const element = normalizeElement(monster.element);
+  const guideMonster = {
     id: monster.id,
-    lv: monster.level,
-    name: monster.name?.en || 'Unknown',
+    lv: monster.level ?? monster.lv ?? 0,
+    name: monster.name?.en || monster.name || 'Unknown',
     rank: monster.rank || '',
     area: monster.area || '',
-    element: monster.element || ''
+    element,
+    icon: monster.icon || '',
+    resistFire: typeof monster.resistFire === 'number' ? monster.resistFire : null,
+    resistWater: typeof monster.resistWater === 'number' ? monster.resistWater : null,
+    resistWind: typeof monster.resistWind === 'number' ? monster.resistWind : null,
+    resistEarth: typeof monster.resistEarth === 'number' ? monster.resistEarth : null,
+    resistElectricity: typeof monster.resistElectricity === 'number' ? monster.resistElectricity : null
+  };
+  const { weakTo, strongAgainst } = inferMonsterMatchups(guideMonster);
+  return {
+    ...guideMonster,
+    weakTo,
+    strongAgainst
   };
 }
 

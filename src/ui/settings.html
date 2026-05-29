@@ -79,7 +79,8 @@
     tr:hover td { background: #1a1a3a; }
 
     input[type="text"],
-    input[type="number"] {
+    input[type="number"],
+    textarea {
       background: #0d0d1e;
       border: 1px solid #3a3a5a;
       color: #d0d0e8;
@@ -87,8 +88,10 @@
       border-radius: 3px;
       font-size: 12px;
       width: 100%;
+      font-family: inherit;
     }
     input[type="number"] { width: 80px; }
+    textarea { resize: vertical; min-height: 78px; line-height: 1.35; }
 
     select {
       background: #0d0d1e;
@@ -248,13 +251,13 @@
   <!-- ── Macros tab ──────────────────────────────────────────────────────── -->
   <div id="tab-macros" class="tab-content">
     <h3>Toolbar Macro Buttons</h3>
-    <p style="color:#555; font-size:11px; margin-bottom:8px;">Each macro adds a button to the toolbar. Keys are comma-separated (e.g. F2, 1, 2, 3, F1). Automation on the target account is paused during execution.</p>
+    <p style="color:#555; font-size:11px; margin-bottom:8px;">Each macro adds a button to the toolbar. Enter one key per line, e.g. F2, 1, Ctrl+1, Alt+1, or a single comma on its own line. Old comma-separated lists still load.</p>
     <table id="tbl-macros">
       <thead>
         <tr>
           <th>Label</th>
           <th>Account</th>
-          <th>Keys (comma-separated)</th>
+          <th>Keys</th>
           <th>Delay (sec)</th>
           <th></th>
         </tr>
@@ -583,7 +586,7 @@
         tdAcc.appendChild(selAcc);
 
         const tdKeys = document.createElement('td');
-        const inpKeys = document.createElement('input'); inpKeys.type='text'; inpKeys.value=(macro.keys||[]).join(', '); inpKeys.dataset.field='keys'; inpKeys.placeholder='F2, 1, 2, 3, F1'; inpKeys.style.width='200px';
+        const inpKeys = document.createElement('textarea'); inpKeys.value=(macro.keys||[]).join('\n'); inpKeys.dataset.field='keys'; inpKeys.placeholder='F2\n1\nCtrl+1\n,\nAlt+1\nF1'; inpKeys.style.minWidth='220px';
         tdKeys.appendChild(inpKeys);
 
         const tdDelay = document.createElement('td');
@@ -600,12 +603,24 @@
       });
     }
 
+    function parseMacroKeys(rawValue) {
+      const raw = String(rawValue || '').replace(/\r/g, '');
+      const tokens = raw.includes('\n')
+        ? raw.split('\n')
+        : (raw.trim() === ',' ? [','] : raw.split(','));
+
+      return tokens
+        .map(k => k.trim())
+        .filter(Boolean)
+        .map(k => /^(comma|komma)$/i.test(k) ? ',' : k);
+    }
+
     function readMacrosTable() {
       return Array.from(document.querySelectorAll('#tbl-macros tbody tr')).map((tr, i) => ({
         id:      loadedMacros[i]?.id || ('macro_' + Date.now() + '_' + i),
         label:   tr.querySelector('[data-field="label"]').value,
         account: tr.querySelector('[data-field="account"]').value,
-        keys:    tr.querySelector('[data-field="keys"]').value.split(',').map(k => k.trim()).filter(Boolean),
+        keys:    parseMacroKeys(tr.querySelector('[data-field="keys"]').value),
         delaySec: parseFloat(tr.querySelector('[data-field="delaySec"]').value) || 2,
       }));
     }

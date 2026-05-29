@@ -118,14 +118,103 @@
     .guide-tab.active { background: #2a4a8a; color: #fff; border-color: #5a8ad8; }
     .guide-search { flex-grow: 1; background: #0c0c1a; border: 1px solid #2a2a4a; color: #eee; padding: 4px 8px; border-radius: 3px; font-size: 11px; }
 
-    /* Monster Grid */
-    .monster-grid {
+    /* Monster List */
+    .monster-columns {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-      gap: 6px;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 12px 14px;
+      align-items: start;
     }
-    .monster-item { background: #1e1e3a; padding: 4px 8px; border-radius: 3px; border-left: 2px solid #5a8ad8; display: flex; justify-content: space-between; font-size: 10px; }
-    .monster-item .lv { color: #88ee88; font-weight: bold; }
+    .monster-entry {
+      padding: 8px 10px;
+      border: 1px solid #2a2a4a;
+      border-left: 3px solid #5a8ad8;
+      border-radius: 4px;
+      background: #17172f;
+    }
+    .monster-entry:hover { background: #1d1d38; }
+    .monster-head {
+      display: grid;
+      grid-template-columns: 38px 52px minmax(0, 1fr);
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .monster-portrait {
+      width: 34px;
+      height: 34px;
+      object-fit: contain;
+      image-rendering: pixelated;
+      background: rgba(10, 10, 20, 0.55);
+      border: 1px solid #2f3552;
+      border-radius: 4px;
+      padding: 2px;
+    }
+    .monster-portrait.placeholder {
+      display: inline-block;
+      box-shadow: inset 0 0 0 1px #242946;
+    }
+    .monster-lv { color: #88ee88; font-weight: bold; font-size: 13px; }
+    .monster-name { color: #fff; font-weight: 600; font-size: 14px; line-height: 1.2; }
+    .monster-meta {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 6px;
+    }
+    .monster-line {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #b9bfd4;
+      min-width: 0;
+    }
+    .monster-arrow {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      flex: 0 0 auto;
+    }
+    .monster-arrow img {
+      display: block;
+      width: 16px;
+      height: 16px;
+    }
+    .monster-foot {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      font-size: 11px;
+      color: #99aacc;
+    }
+    .monster-element {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      padding: 0;
+      border: 1px solid #3a3a5a;
+      border-radius: 3px;
+      background: #17172f;
+      color: #d0d0e8;
+    }
+    .monster-element-icon {
+      width: 14px;
+      height: 14px;
+      flex: 0 0 auto;
+    }
+    .monster-element.fire { color: #ff9b76; border-color: #7a3a2a; }
+    .monster-element.water { color: #80b9ff; border-color: #2a4f7a; }
+    .monster-element.wind { color: #94e6a2; border-color: #327047; }
+    .monster-element.electricity { color: #f1dd6f; border-color: #786b28; }
+    .monster-element.earth { color: #d2b37a; border-color: #6f5830; }
+    .monster-element.none { color: #8f8fa8; }
+    .monster-area, .monster-rank { text-transform: capitalize; }
 
     /* Quest Table */
     .quest-table-wrap { overflow-x: auto; }
@@ -807,14 +896,76 @@
     function renderMonstersTab() {
       const content = document.getElementById('guide-content');
       const search  = document.getElementById('guide-search').value.toLowerCase();
+      const elementAssets = {
+        fire: 'assets/elements/fire.svg',
+        water: 'assets/elements/water.svg',
+        electricity: 'assets/elements/electricity.svg',
+        earth: 'assets/elements/earth.svg',
+        wind: 'assets/elements/wind.svg',
+        none: 'assets/elements/neutral.svg'
+      };
+      const arrowAssets = {
+        weak: 'assets/elements/arrow-up-weak.svg',
+        strong: 'assets/elements/arrow-down-strong.svg'
+      };
+      const formatElement = (value) => {
+        const raw = String(value || 'none').trim().toLowerCase();
+        if (!raw) return 'None';
+        return raw.charAt(0).toUpperCase() + raw.slice(1);
+      };
+      const normalizeElementKey = (value) => {
+        const raw = String(value || 'none').trim().toLowerCase();
+        if (!raw || raw === 'neutral') return 'none';
+        if (raw === 'electric') return 'electricity';
+        return raw;
+      };
+      const renderElementBadge = (elementName) => {
+        const key = normalizeElementKey(elementName);
+        return `<span class="monster-element ${key}" title="${formatElement(key)}"><img class="monster-element-icon" src="${elementAssets[key] || elementAssets.none}" alt="${formatElement(key)}"></span>`;
+      };
+      const renderArrow = (kind, label) => `<span class="monster-arrow ${kind}" title="${label}"><img src="${arrowAssets[kind]}" alt="${label}"></span>`;
+      const renderMonsterIcon = (icon, name) => {
+        if (!icon) return '<span class="monster-portrait placeholder"></span>';
+        return `<img class="monster-portrait" src="https://api.flyff.com/image/monster/${icon}" alt="${name}">`;
+      };
+      const getMatchup = (monster) => ({
+        weakTo: monster.weakTo || '',
+        strongAgainst: monster.strongAgainst || ''
+      });
 
       const filtered = guideState.monsters.filter(m =>
         m.name.toLowerCase().includes(search) ||
+        (m.element || '').toLowerCase().includes(search) ||
+        (m.rank || '').toLowerCase().includes(search) ||
+        (m.area || '').toLowerCase().includes(search) ||
+        getMatchup(m).weakTo.toLowerCase().includes(search) ||
+        getMatchup(m).strongAgainst.toLowerCase().includes(search) ||
         ('lv.' + m.lv).includes(search)
       );
-      let html = '<div class="monster-grid">';
+
+      let html = `<div style="font-size:11px;color:#555;margin-bottom:6px">${filtered.length} monsters</div>`;
+      html += '<div class="monster-columns">';
       filtered.forEach(m => {
-        html += `<div class="monster-item"><span class="lv">Lv.${m.lv}</span><span class="name">${m.name}</span></div>`;
+        const element = normalizeElementKey(m.element);
+        const matchup = getMatchup(m);
+        const weakTo = matchup.weakTo ? renderElementBadge(matchup.weakTo) : '-';
+        const strongAgainst = matchup.strongAgainst ? renderElementBadge(matchup.strongAgainst) : '-';
+        html += `<div class="monster-entry">
+          <div class="monster-head">
+            ${renderMonsterIcon(m.icon, m.name)}
+            <div class="monster-lv">Lv ${m.lv}</div>
+            <div class="monster-name">${m.name}</div>
+          </div>
+          <div class="monster-meta">
+            <div class="monster-line" title="Weak to ${formatElement(matchup.weakTo || 'none')}">${renderArrow('weak', 'Weak to')}${weakTo}</div>
+            <div class="monster-line" title="Strong against ${formatElement(matchup.strongAgainst || 'none')}">${renderArrow('strong', 'Strong against')}${strongAgainst}</div>
+          </div>
+          <div class="monster-foot">
+            ${renderElementBadge(element)}
+            <span class="monster-rank">${m.rank || '-'}</span>
+            <span class="monster-area">${m.area || '-'}</span>
+          </div>
+        </div>`;
       });
       html += '</div>';
       content.innerHTML = html;

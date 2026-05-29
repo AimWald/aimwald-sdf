@@ -80,10 +80,10 @@ function saveConfig(filename, data) {
 
 function loadMonsterFallback() {
   try {
-    return JSON.parse(fs.readFileSync(userConfigPath('monster-cache.json'), 'utf8'));
+    return JSON.parse(fs.readFileSync(userConfigPath('monster-cache.json'), 'utf8')).map(mapMonsterForGuide);
   } catch {}
   try {
-    return JSON.parse(fs.readFileSync(path.join(__dirname, '../config/monsters.json'), 'utf8'));
+    return JSON.parse(fs.readFileSync(path.join(__dirname, '../config/monsters.json'), 'utf8')).map(mapMonsterForGuide);
   } catch {}
   return [];
 }
@@ -1387,16 +1387,7 @@ function setupIPC() {
       accumulatedDelay += thisDelay;
 
       setTimeout(() => {
-        const cdpDef = CDP_KEYS[keyCode];
-        if (cdpDef) {
-          sendKeyCDP(view, cdpDef);
-        } else {
-          try {
-            view.webContents.sendInputEvent({ type: 'keyDown', keyCode });
-            view.webContents.sendInputEvent({ type: 'char',    keyCode: normalizeKey(keyCode) });
-            view.webContents.sendInputEvent({ type: 'keyUp',   keyCode });
-          } catch {}
-        }
+        sendConfiguredBinding(view, keyCode);
       }, accumulatedDelay);
     });
 
