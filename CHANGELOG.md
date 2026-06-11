@@ -9,6 +9,8 @@
 - **Build:** Added dedicated `build:linux` and `build:win` scripts for release packaging
 
 ### Bug Fixes
+- **Input:** Fixed "stuck" modifier keys (Alt, Control, etc.) after Alt+Tab or window focus loss
+- **Input:** Unblocked the comma (`,`) key; it can now be used for typing in-game while still functioning as a macro trigger
 - **Macros:** Macro sequences now accept comma as an actual key and support modifier combinations like `Ctrl+1`, `Alt+1`, and `Control+F2`
 - **Guide Monsters:** Weak-to and strong-against are now derived from Flyff API resistance values instead of a simplified hard-coded guess
 - **Guide Monsters:** Cached monster fallback data is normalized into the same richer guide format as live API data
