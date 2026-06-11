@@ -41,6 +41,14 @@ test('mapMonsterForGuide uses API level and english name', () => {
     name: 'Grand Master of the Violet Magician Troupe',
     rank: 'giant',
     area: 'normal',
-    element: 'none'
+    element: 'none',
+    icon: '',
+    resistFire: null,
+    resistWater: null,
+    resistWind: null,
+    resistEarth: null,
+    resistElectricity: null,
+    weakTo: '',
+    strongAgainst: ''
   });
 });

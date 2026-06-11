@@ -147,6 +147,21 @@ function createMainWindow() {
 
   mainWindow.on('closed', () => { mainWindow = null; });
 
+  // Reset keyboard modifiers when window loses focus to prevent "stuck" keys
+  const releaseModifiers = () => {
+    const view = gameViews[activeAccount];
+    if (view?.webContents) {
+      ['Alt', 'Control', 'Shift', 'Meta'].forEach(keyCode => {
+        try { view.webContents.sendInputEvent({ type: 'keyUp', keyCode }); } catch {}
+      });
+    }
+  };
+  mainWindow.on('blur', releaseModifiers);
+  mainWindow.on('focus', () => {
+    // Re-register shortcuts when coming back (they might have been unregistered for typing)
+    registerShortcuts();
+  });
+
   // Forward keyboard events from the toolbar renderer to the active game view.
   // Steam Deck's virtual keyboard sends events to the OS window (BrowserWindow)
   // rather than the focused WebContentsView, so they would otherwise be lost.
@@ -155,6 +170,18 @@ function createMainWindow() {
     if (overlayOpen) return;
     const view = gameViews[activeAccount];
     if (!view?.webContents) return;
+
+    // Check if this is a local shortcut (e.g. Comma for Follow+Board)
+    // We only do this if it's not already a globalShortcut.
+    const hk = normalizeHotkeys(store.get('hotkeys'));
+    const isSingleChar = hk.followBoard.length === 1 && !hk.followBoard.includes('+');
+    
+    if (input.type === 'keyDown' && isSingleChar && input.key.toLowerCase() === hk.followBoard.toLowerCase()) {
+      if (!input.alt && !input.control && !input.shift && !input.meta) {
+        sendFollowBoard(activeAccount);
+      }
+    }
+
     event.preventDefault();
     const mods = [];
     if (input.shift)   mods.push('shift');
@@ -193,6 +220,21 @@ function createGameView(account) {
   const CURSOR_CSS = '*, canvas { cursor: default !important; }';
   view.webContents.on('did-finish-load', () => {
     view.webContents.insertCSS(CURSOR_CSS);
+  });
+
+  // Handle local shortcuts even when the game view is focused
+  view.webContents.on('before-input-event', (event, input) => {
+    if (input.type !== 'keyDown') return;
+    const hk = normalizeHotkeys(store.get('hotkeys'));
+    const isSingleChar = hk.followBoard.length === 1 && !hk.followBoard.includes('+');
+    
+    if (isSingleChar && input.key.toLowerCase() === hk.followBoard.toLowerCase()) {
+      if (!input.alt && !input.control && !input.shift && !input.meta) {
+        sendFollowBoard(activeAccount);
+        // We do NOT preventDefault() here, so the game itself still receives the key.
+        // This allows the default "Follow" action in Flyff to trigger alongside our macro.
+      }
+    }
   });
 
   gameViews[account] = view;
@@ -366,14 +408,18 @@ function registerShortcuts() {
   } catch {}
 
   // Follow + Board Hotkey (konfigurierbar, Standard: ,)
-  try {
-    globalShortcut.register(hk.followBoard, () => {
-      sendFollowBoard(activeAccount);
-    });
-  } catch (e) {
-    console.error('Shortcut konnte nicht registriert werden:', hk.followBoard, e.message);
+  // Single-character shortcuts are NOT registered globally to allow typing.
+  // They are handled via before-input-event when the window is focused.
+  const isGlobal = hk.followBoard.length > 1 || hk.followBoard.includes('+');
+  if (isGlobal) {
+    try {
+      globalShortcut.register(hk.followBoard, () => {
+        sendFollowBoard(activeAccount);
+      });
+    } catch (e) {
+      console.error('Shortcut konnte nicht registriert werden:', hk.followBoard, e.message);
+    }
   }
-
 }
 
 // ── Settings-Fenster ──────────────────────────────────────────────────────────
