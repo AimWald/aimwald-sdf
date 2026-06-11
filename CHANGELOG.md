@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.64.0 (2026-05-29)
+## v1.65.0 (2026-06-11)
 
 ### Features
 - **Guide Monsters:** Reworked the monster guide into a multi-column layout that reads left-to-right by level instead of filling one column top-to-bottom first
@@ -14,6 +14,11 @@
 - **Macros:** Macro sequences now accept comma as an actual key and support modifier combinations like `Ctrl+1`, `Alt+1`, and `Control+F2`
 - **Guide Monsters:** Weak-to and strong-against are now derived from Flyff API resistance values instead of a simplified hard-coded guess
 - **Guide Monsters:** Cached monster fallback data is normalized into the same richer guide format as live API data
+
+## v1.64.0 (2026-05-29)
+
+### Features
+- Initial monster guide rework and build script improvements.
 
 ## v1.63.0 (2026-05-28)
 
